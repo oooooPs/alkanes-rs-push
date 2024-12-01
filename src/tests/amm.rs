@@ -252,16 +252,14 @@ fn insert_remove_liquidity_txs(
     amount: u128,
     test_block: &mut Block,
     deployment_ids: &AmmTestDeploymentIds,
+    input_outpoint: OutPoint,
 ) {
     let address: Address<NetworkChecked> =
         protorune::test_helpers::get_address(&protorune::test_helpers::ADDRESS1);
     let script_pubkey = address.script_pubkey();
     let split = alkane_helpers::create_protostone_tx_with_inputs(
         vec![TxIn {
-            previous_output: OutPoint {
-                txid: test_block.txdata[test_block.txdata.len() - 1].compute_txid(),
-                vout: 0,
-            },
+            previous_output: input_outpoint,
             script_sig: ScriptBuf::new(),
             sequence: Sequence::MAX,
             witness: Witness::new(),
@@ -409,13 +407,23 @@ fn test_amm_pool_init_fixture(
 }
 
 fn test_amm_burn_fixture(amount_burn: u128) -> Result<()> {
-    let block_height = 840_000;
     let (amount1, amount2) = (1000000, 1000000);
     let total_lp = calc_lp_balance_from_pool_init(1000000, 1000000);
     let total_supply = (amount1 * amount2).sqrt();
-    let (mut test_block, deployment_ids) = init_block_with_amm_pool()?;
-    insert_init_pool_liquidity_txs(amount1, amount2, &mut test_block, &deployment_ids);
-    insert_remove_liquidity_txs(amount_burn, &mut test_block, &deployment_ids);
+    let (mut init_block, deployment_ids) = test_amm_pool_init_fixture(amount1, amount2)?;
+
+    let block_height = 840_001;
+    let mut test_block = create_block_with_coinbase_tx(block_height);
+    let input_outpoint = OutPoint {
+        txid: init_block.txdata[init_block.txdata.len() - 1].compute_txid(),
+        vout: 0,
+    };
+    insert_remove_liquidity_txs(
+        amount_burn,
+        &mut test_block,
+        &deployment_ids,
+        input_outpoint,
+    );
     index_block(&test_block, block_height)?;
 
     let sheet = get_sheet_with_remaining_lp_after_burn(&test_block)?;
