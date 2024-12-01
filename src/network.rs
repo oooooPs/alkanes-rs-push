@@ -6,7 +6,8 @@ use crate::precompiled::{
 };
 use crate::utils::pipe_storagemap_to;
 use crate::vm::utils::{sequence_pointer};
-use crate::{simulate_parcel, AlkaneMessageContext};
+use crate::view::{simulate_parcel};
+use crate::message::{AlkaneMessageContext};
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::gz::{compress};
 use alkanes_support::id::AlkaneId;

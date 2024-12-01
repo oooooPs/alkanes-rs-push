@@ -1,14 +1,8 @@
-use crate::message::AlkaneMessageContext;
-use crate::network::{genesis, is_genesis};
 use crate::view::simulate_parcel;
 use alkanes_support::proto;
-use anyhow::Result;
-use bitcoin::blockdata::block::Block;
-use bitcoin::blockdata::block::Header;
-use bitcoin::blockdata::transaction::Transaction;
-use bitcoin::blockdata::transaction::Version;
 use bitcoin::hashes::Hash;
-use bitcoin::{BlockHash, CompactTarget, TxMerkleNode};
+use bitcoin::{Transaction, blockdata::block::{Header}, Block, BlockHash, CompactTarget, TxMerkleNode};
+use bitcoin::blockdata::transaction::{Version};
 #[allow(unused_imports)]
 use metashrew::{
     flush, input, println,
@@ -16,15 +10,13 @@ use metashrew::{
 };
 use metashrew_support::block::AuxpowBlock;
 use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
-use ordinals::{Artifact, Runestone};
 use protobuf::{Message, MessageField};
 use protorune::message::MessageContextParcel;
-use protorune::{message::MessageContext, Protorune};
-use protorune_support::protostone::Protostone;
 use protorune_support::rune_transfer::RuneTransfer;
 use protorune_support::utils::consensus_decode;
 use std::io::Cursor;
 pub mod message;
+pub mod indexer;
 pub mod network;
 pub mod precompiled;
 #[cfg(test)]
@@ -32,32 +24,7 @@ pub mod tests;
 pub mod utils;
 pub mod view;
 pub mod vm;
-
-use crate::vm::fuel::set_message_count;
-
-pub fn count_alkanes_protomessages(block: &Block) {
-    let mut count: u64 = 0;
-    for tx in &block.txdata {
-        if let Some(Artifact::Runestone(ref runestone)) = Runestone::decipher(tx) {
-            if let Ok(protostones) = Protostone::from_runestone(runestone) {
-                for protostone in protostones {
-                    if protostone.protocol_tag == AlkaneMessageContext::protocol_tag()
-                        && protostone.message.len() != 0
-                    {
-                        count = count + 1;
-                    }
-                }
-            }
-        }
-    }
-    set_message_count(count);
-}
-
-pub fn index_block(block: &Block, height: u32) -> Result<()> {
-    count_alkanes_protomessages(&block);
-    Protorune::index_block::<AlkaneMessageContext>(block.clone(), height.into())?;
-    Ok(())
-}
+use crate::indexer::{index_block};
 
 fn default_transaction() -> Transaction {
     Transaction {
@@ -155,9 +122,6 @@ pub fn _start() {
     let block: Block = AuxpowBlock::parse(&mut Cursor::<Vec<u8>>::new(reader.to_vec()))
         .unwrap()
         .to_consensus();
-    if is_genesis(height.into()) {
-        genesis(&block).unwrap();
-    }
     index_block(&block, height).unwrap();
     flush();
 }
