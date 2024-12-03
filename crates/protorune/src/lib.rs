@@ -665,12 +665,17 @@ impl Protorune {
             )?;
 
             // by default, all protorunes that come in as input will be given to the
-            // first protostone (which has a virtual vout of num outputs + 1)
-            Self::handle_leftover_runes(
-                &mut balance_sheet,
-                &mut proto_balances_by_output,
-                (tx.output.len() as u32) + 1,
-            )?;
+            // first protostone with a matching protocol_tag
+            if let Some(position) = protostones
+                .into_iter()
+                .position(|s| s.protocol_tag == T::protocol_tag())
+            {
+                Self::handle_leftover_runes(
+                    &mut balance_sheet,
+                    &mut proto_balances_by_output,
+                    (tx.output.len() as u32) + 1 + position,
+                )?;
+            }
             protostones
                 .into_iter()
                 .enumerate()
