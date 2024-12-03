@@ -1,10 +1,7 @@
-use crate::{
-    println,
-    stdio::{stdout, Write},
-};
 use crate::{runtime::AlkaneResponder, storage::StoragePointer};
 use alkanes_support::{
     cellpack::Cellpack,
+    constants::AUTH_TOKEN_FACTORY_ID,
     id::AlkaneId,
     parcel::{AlkaneTransfer, AlkaneTransferParcel},
 };
@@ -17,20 +14,17 @@ pub trait AuthenticatedResponder: AlkaneResponder {
         let cellpack = Cellpack {
             target: AlkaneId {
                 block: 6,
-                tx: 0xffee,
+                tx: AUTH_TOKEN_FACTORY_ID,
             },
             inputs: vec![0x0, units],
         };
         let sequence = self.sequence();
-        println!("sequence: {}", sequence);
         let response = self.call(&cellpack, &AlkaneTransferParcel::default(), self.fuel())?;
-        println!("received response to call: {:#?}", response);
-        StoragePointer::from_keyword("/auth").set(Arc::new(<AlkaneId as Into<Vec<u8>>>::into(
-            AlkaneId {
-                block: 2,
-                tx: sequence,
-            },
-        )));
+        let mut ptr = StoragePointer::from_keyword("/auth");
+        ptr.set(Arc::new(<AlkaneId as Into<Vec<u8>>>::into(AlkaneId {
+            block: 2,
+            tx: sequence,
+        })));
         if response.alkanes.0.len() < 1 {
             Err(anyhow!("auth token not returned with factory"))
         } else {
@@ -38,8 +32,8 @@ pub trait AuthenticatedResponder: AlkaneResponder {
         }
     }
     fn auth_token(&self) -> Result<AlkaneId> {
-        let pointer = StoragePointer::from_keyword("/auth");
-        Ok(pointer.get().as_ref().clone().try_into()?)
+        let pointer = StoragePointer::from_keyword("/auth").get();
+        Ok(pointer.as_ref().clone().try_into()?)
     }
     fn only_owner(&self) -> Result<()> {
         let auth_token = self.auth_token()?;

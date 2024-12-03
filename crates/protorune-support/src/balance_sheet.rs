@@ -1,10 +1,17 @@
+use crate::proto;
+use crate::proto::protorune::{BalanceSheetItem, Rune};
 use crate::rune_transfer::RuneTransfer;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use hex;
 use ordinals::RuneId;
+use protobuf::{MessageField, SpecialFields};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::{fmt, u128};
+use std::u128;
+
+// use metashrew::{println, stdio::stdout};
+// use std::fmt::Write;
 
 #[derive(
     Eq, PartialOrd, Ord, PartialEq, Hash, Clone, Copy, Debug, Default, Serialize, Deserialize,
@@ -16,6 +23,51 @@ pub struct ProtoruneRuneId {
 
 pub trait RuneIdentifier {
     fn to_pair(&self) -> (u128, u128);
+}
+
+impl From<crate::proto::protorune::BalanceSheet> for BalanceSheet {
+    fn from(balance_sheet: crate::proto::protorune::BalanceSheet) -> BalanceSheet {
+        BalanceSheet {
+            balances: HashMap::<ProtoruneRuneId, u128>::from_iter(
+                balance_sheet.entries.into_iter().map(|v| {
+                    let id = ProtoruneRuneId::new(
+                        v.rune.runeId.height.clone().into_option().unwrap().into(),
+                        v.rune.runeId.txindex.clone().into_option().unwrap().into(),
+                    );
+                    (id, v.balance.into_option().unwrap().into())
+                }),
+            ),
+        }
+    }
+}
+
+impl From<BalanceSheet> for crate::proto::protorune::BalanceSheet {
+    fn from(balance_sheet: BalanceSheet) -> crate::proto::protorune::BalanceSheet {
+        crate::proto::protorune::BalanceSheet {
+            entries: balance_sheet
+                .balances
+                .clone()
+                .iter()
+                .map(|(k, v)| BalanceSheetItem {
+                    special_fields: SpecialFields::new(),
+                    rune: MessageField::some(Rune {
+                        special_fields: SpecialFields::new(),
+                        runeId: MessageField::some(proto::protorune::ProtoruneRuneId {
+                            special_fields: SpecialFields::new(),
+                            height: MessageField::some(k.block.into()),
+                            txindex: MessageField::some(k.tx.into()),
+                        }),
+                        name: "name".as_bytes().to_vec(),
+                        divisibility: 1,
+                        spacers: 1,
+                        symbol: 'Z' as char as u32,
+                    }),
+                    balance: MessageField::some((*v).into()),
+                })
+                .collect::<Vec<BalanceSheetItem>>(),
+            special_fields: SpecialFields::new(),
+        }
+    }
 }
 
 impl ProtoruneRuneId {
@@ -54,11 +106,13 @@ impl From<RuneId> for ProtoruneRuneId {
     }
 }
 
+/*
 impl fmt::Display for ProtoruneRuneId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "RuneId {{ block: {}, tx: {} }}", self.block, self.tx)
     }
 }
+*/
 
 impl From<ProtoruneRuneId> for Vec<u8> {
     fn from(rune_id: ProtoruneRuneId) -> Self {
@@ -98,6 +152,65 @@ pub struct BalanceSheet {
     pub balances: HashMap<ProtoruneRuneId, u128>, // Using HashMap to map runes to their balances
 }
 
+pub fn u128_from_bytes(v: Vec<u8>) -> u128 {
+    let bytes_ref: &[u8] = &v;
+    u128::from_le_bytes(bytes_ref.try_into().unwrap())
+}
+
+impl From<crate::proto::protorune::Uint128> for u128 {
+    fn from(v: crate::proto::protorune::Uint128) -> u128 {
+        let mut result: Vec<u8> = Vec::<u8>::with_capacity(16);
+        result.extend(&v.lo.to_le_bytes());
+        result.extend(&v.hi.to_le_bytes());
+        let bytes_ref: &[u8] = &result;
+        u128::from_le_bytes(bytes_ref.try_into().unwrap())
+    }
+}
+
+impl From<u128> for crate::proto::protorune::Uint128 {
+    fn from(v: u128) -> crate::proto::protorune::Uint128 {
+        let bytes = v.to_le_bytes().to_vec();
+        let mut container: crate::proto::protorune::Uint128 =
+            crate::proto::protorune::Uint128::new();
+        container.lo = u64::from_le_bytes((&bytes[0..8]).try_into().unwrap());
+        container.hi = u64::from_le_bytes((&bytes[8..16]).try_into().unwrap());
+        container
+    }
+}
+
+impl From<crate::proto::protorune::OutpointResponse> for BalanceSheet {
+    fn from(v: crate::proto::protorune::OutpointResponse) -> BalanceSheet {
+        let pairs = v
+            .balances
+            .entries
+            .clone()
+            .into_iter()
+            .map(|v| {
+                (
+                    ProtoruneRuneId::new(
+                        v.rune
+                            .clone()
+                            .unwrap()
+                            .runeId
+                            .unwrap()
+                            .height
+                            .unwrap()
+                            .into(),
+                        v.rune.unwrap().runeId.unwrap().txindex.unwrap().into(),
+                    ),
+                    v.balance.into_option().unwrap().into(),
+                )
+            })
+            .collect::<Vec<(ProtoruneRuneId, u128)>>();
+        let ids = pairs
+            .iter()
+            .map(|(id, _)| id.clone())
+            .collect::<Vec<ProtoruneRuneId>>();
+        let balances = pairs.iter().map(|(_, v)| v.clone()).collect::<Vec<u128>>();
+        BalanceSheet::from_pairs(ids, balances)
+    }
+}
+
 impl BalanceSheet {
     pub fn new() -> Self {
         BalanceSheet {
@@ -113,22 +226,35 @@ impl BalanceSheet {
         return sheet;
     }
 
+    // pipes a balancesheet onto itself
     pub fn pipe(&self, sheet: &mut BalanceSheet) -> () {
         for (rune, balance) in &self.balances {
             sheet.increase(rune, *balance);
         }
     }
+
+    /// When processing the return value for MessageContext.handle()
+    /// we want to be able to mint arbituary amounts of mintable tokens.
+    ///
+    /// This function allows us to debit more than the existing amount
+    /// of a mintable token without returning an Err so that MessageContext
+    /// can mint more than what the initial balance sheet has.
     pub fn debit(&mut self, sheet: &BalanceSheet) -> Result<()> {
         for (rune, balance) in &sheet.balances {
-            let mut amount = *balance;
-            if sheet.get(&rune) > self.get(&rune) {
-                amount = self.get(&rune);
+            if *balance <= self.get(&rune) {
+                self.decrease(rune, *balance);
+            } else {
+                return Err(anyhow!("balance underflow"));
             }
-            self.decrease(rune, amount);
         }
         Ok(())
     }
 
+    pub fn rune_debit(&mut self, sheet: &BalanceSheet) -> Result<()> {
+        self.debit(sheet)
+    }
+
+    /*
     pub fn inspect(&self) -> String {
         let mut base = String::from("balances: [\n");
         for (rune, balance) in &self.balances {
@@ -137,6 +263,7 @@ impl BalanceSheet {
         base.push_str("]");
         base
     }
+    */
 
     pub fn get(&self, rune: &ProtoruneRuneId) -> u128 {
         *self.balances.get(rune).unwrap_or(&0u128) // Return 0 if rune not found
@@ -204,12 +331,6 @@ pub trait IntoString {
 
 impl IntoString for Vec<u8> {
     fn to_str(&self) -> String {
-        let mut str: String = "".to_string();
-        for i in self {
-            str = str + i.to_string().as_str() + ",";
-            ()
-        }
-
-        str
+        hex::encode(self)
     }
 }

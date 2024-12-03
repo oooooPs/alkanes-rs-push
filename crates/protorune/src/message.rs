@@ -1,7 +1,9 @@
+use crate::tables::RuneTable;
 use anyhow::Result;
 use bitcoin::{Block, OutPoint, Transaction};
 use metashrew::index_pointer::AtomicPointer;
-use protorune_support::balance_sheet::BalanceSheet;
+use metashrew_support::index_pointer::KeyValuePointer;
+use protorune_support::balance_sheet::{BalanceSheet, ProtoruneRuneId};
 use protorune_support::rune_transfer::RuneTransfer;
 use protorune_support::utils::consensus_encode;
 use std::u128;
@@ -9,6 +11,13 @@ use std::u128;
 pub trait MessageContext {
     fn handle(parcel: &MessageContextParcel) -> Result<(Vec<RuneTransfer>, BalanceSheet)>;
     fn protocol_tag() -> u128;
+    fn asset_protoburned_in_protocol(id: ProtoruneRuneId) -> bool {
+        let table = RuneTable::for_protocol(Self::protocol_tag());
+        if table.RUNE_ID_TO_ETCHING.select(&id.into()).get().len() > 0 {
+            return true;
+        }
+        false
+    }
 }
 
 #[derive(Clone, Debug)]

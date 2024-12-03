@@ -1,3 +1,4 @@
+use crate::balance_sheet::OutgoingRunes;
 use crate::{
     message::{MessageContext, MessageContextParcel},
     protoburn::{Protoburn, Protoburns},
@@ -9,7 +10,7 @@ use ordinals::Runestone;
 use protorune_support::{
     balance_sheet::BalanceSheet,
     protostone::{split_bytes, Protostone},
-    rune_transfer::{refund_to_refund_pointer, OutgoingRunes, RuneTransfer},
+    rune_transfer::{refund_to_refund_pointer, RuneTransfer},
     utils::encode_varint_list,
 };
 use std::collections::{HashMap, HashSet};
@@ -113,6 +114,7 @@ impl MessageProcessor for Protostone {
             match T::handle(&parcel) {
                 Ok(values) => {
                     match values.reconcile(
+                        atomic,
                         balances_by_output,
                         protomessage_vout,
                         pointer,

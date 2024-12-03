@@ -3,7 +3,18 @@ use alkanes_support::utils::overflow_error;
 use anyhow::Result;
 use wasmi::*;
 
+#[cfg(feature = "regtest")]
 const TOTAL_FUEL: u64 = 100_000_000;
+#[cfg(feature = "mainnet")]
+const TOTAL_FUEL: u64 = 100_000_000;
+#[cfg(feature = "dogecoin")]
+const TOTAL_FUEL: u64 = 60_000_000;
+#[cfg(feature = "fractal")]
+const TOTAL_FUEL: u64 = 50_000_000;
+#[cfg(feature = "luckycoin")]
+const TOTAL_FUEL: u64 = 50_000_000;
+#[cfg(feature = "bellscoin")]
+const TOTAL_FUEL: u64 = 50_000_000;
 
 static mut MESSAGE_COUNT: u64 = 0;
 
@@ -15,6 +26,7 @@ pub const FUEL_FUEL: u64 = 5;
 pub const FUEL_EXTCALL: u64 = 500;
 pub const FUEL_HEIGHT: u64 = 10;
 pub const FUEL_BALANCE: u64 = 10;
+pub const FUEL_EXTCALL_DEPLOY: u64 = 10_000;
 
 pub trait Fuelable {
     fn consume_fuel(&mut self, n: u64) -> Result<()>;

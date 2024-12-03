@@ -2,15 +2,14 @@ use super::{AlkanesInstance, AlkanesRuntimeContext, AlkanesState};
 use crate::utils::{pipe_storagemap_to, transfer_from};
 use crate::vm::fuel::compute_extcall_fuel;
 use alkanes_support::{
-    cellpack::Cellpack, id::AlkaneId, parcel::AlkaneTransferParcel, response::ExtendedCallResponse,
-    storage::StorageMap, utils::overflow_error, witness::find_witness_payload,
+    cellpack::Cellpack, gz::decompress, id::AlkaneId, parcel::AlkaneTransferParcel,
+    response::ExtendedCallResponse, storage::StorageMap, utils::overflow_error,
+    witness::find_witness_payload,
 };
 use anyhow::{anyhow, Result};
-use metashrew::{
-    index_pointer::{AtomicPointer, IndexPointer},
-    println,
-    stdio::{stdout, Write},
-};
+use metashrew::index_pointer::{AtomicPointer, IndexPointer};
+#[allow(unused_imports)]
+use metashrew::{println, stdio::stdout};
 use metashrew_support::index_pointer::KeyValuePointer;
 
 use std::sync::Arc;
@@ -45,14 +44,22 @@ pub fn run_special_cellpacks(
 ) -> Result<(AlkaneId, AlkaneId, Arc<Vec<u8>>)> {
     let mut payload = cellpack.clone();
     let mut binary = Arc::<Vec<u8>>::new(vec![]);
-    if cellpack.target.is_create() {
+    let mut next_sequence_pointer = sequence_pointer(&context.message.atomic);
+    let next_sequence = next_sequence_pointer.get_value::<u128>();
+    if cellpack.target.is_created(next_sequence) {
+        let wasm_payload = context
+            .message
+            .atomic
+            .keyword("/alkanes/")
+            .select(&payload.target.clone().into())
+            .get();
+        binary = Arc::new(decompress(wasm_payload.as_ref().clone())?);
+    } else if cellpack.target.is_create() {
         let wasm_payload = Arc::new(
             find_witness_payload(&context.message.transaction, 0)
                 .ok_or("finding witness payload failed for creation of alkane")
                 .map_err(|_| anyhow!("used CREATE cellpack but no binary found in witness"))?,
         );
-        let mut next_sequence_pointer = sequence_pointer(&context.message.atomic);
-        let next_sequence = next_sequence_pointer.get_value::<u128>();
         payload.target = AlkaneId {
             block: 2,
             tx: next_sequence,
@@ -63,7 +70,7 @@ pub fn run_special_cellpacks(
             .keyword("/alkanes/")
             .select(&payload.target.clone().into());
         pointer.set(wasm_payload.clone());
-        binary = wasm_payload.clone();
+        binary = Arc::new(decompress(wasm_payload.as_ref().clone())?);
         next_sequence_pointer.set_value(next_sequence + 1);
     } else if let Some(number) = cellpack.target.reserved() {
         let wasm_payload = Arc::new(
@@ -90,10 +97,8 @@ pub fn run_special_cellpacks(
                 number
             )));
         }
-        binary = wasm_payload.clone();
+        binary = Arc::new(decompress(wasm_payload.clone().as_ref().clone())?);
     } else if let Some(factory) = cellpack.target.factory() {
-        let mut next_sequence_pointer = sequence_pointer(&context.message.atomic);
-        let next_sequence = next_sequence_pointer.get_value::<u128>();
         payload.target = AlkaneId::new(2, next_sequence);
         next_sequence_pointer.set_value(next_sequence + 1);
         let context_binary: Vec<u8> = context
@@ -111,7 +116,7 @@ pub fn run_special_cellpacks(
             .keyword("/alkanes/")
             .select(&payload.target.clone().into())
             .set(rc.clone());
-        binary = rc.clone();
+        binary = Arc::new(decompress(rc.as_ref().clone())?);
     }
     Ok((
         context.myself.clone(),
@@ -190,12 +195,13 @@ pub fn run_after_special(
         start_fuel
             .checked_sub(instance.store.get_fuel().unwrap())
             .and_then(|v: u64| -> Option<u64> {
-                v.checked_add(compute_extcall_fuel(storage_len).ok()?)
+                let computed_fuel = compute_extcall_fuel(storage_len).ok()?;
+                let opt = v.checked_add(computed_fuel);
+                opt
             }),
     )?;
     Ok((response, fuel_used))
 }
-
 pub fn prepare_context(
     context: &mut AlkanesRuntimeContext,
     caller: &AlkaneId,
@@ -215,10 +221,6 @@ pub fn run(
     delegate: bool,
 ) -> Result<(ExtendedCallResponse, u64)> {
     let (caller, myself, binary) = run_special_cellpacks(&mut context, cellpack)?;
-    println!(
-        "running special cellpack, caller: {:?}, myself: {:?}",
-        caller, myself
-    );
     prepare_context(&mut context, &caller, &myself, delegate);
     run_after_special(context, binary, start_fuel)
 }

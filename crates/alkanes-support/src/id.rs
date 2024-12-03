@@ -53,8 +53,18 @@ impl AlkaneId {
     pub fn new(block: u128, tx: u128) -> AlkaneId {
         AlkaneId { block, tx }
     }
+    pub fn is_created(&self, next_sequence: u128) -> bool {
+        self.block == 2 && self.tx < next_sequence
+    }
     pub fn is_create(&self) -> bool {
         self.block == 1 && self.tx == 0
+    }
+    pub fn is_deployment(&self) -> bool {
+        if self.block == 1 || self.block == 3 || self.block == 5 || self.block == 6 {
+            true
+        } else {
+            false
+        }
     }
     pub fn reserved(&self) -> Option<u128> {
         if self.block == 3 {

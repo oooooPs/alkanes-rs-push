@@ -1,3 +1,4 @@
+use crate::network::{genesis::GENESIS_BLOCK, is_active};
 use crate::utils::{credit_balances, debit_balances, pipe_storagemap_to};
 use crate::vm::{
     fuel::start_fuel,
@@ -5,15 +6,19 @@ use crate::vm::{
     utils::{prepare_context, run_after_special, run_special_cellpacks},
 };
 use alkanes_support::cellpack::Cellpack;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use metashrew::index_pointer::IndexPointer;
-use metashrew::{println, stdio::stdout};
+#[allow(unused_imports)]
+use metashrew::{
+    println,
+    stdio::{stdout, Write},
+};
 use metashrew_support::index_pointer::KeyValuePointer;
+use protorune::balance_sheet::MintableDebit;
 use protorune::message::{MessageContext, MessageContextParcel};
 use protorune_support::{
     balance_sheet::BalanceSheet, rune_transfer::RuneTransfer, utils::decode_varint_list,
 };
-use std::fmt::Write;
 use std::io::Cursor;
 
 #[derive(Clone, Default)]
@@ -37,9 +42,8 @@ pub fn handle_message(parcel: &MessageContextParcel) -> Result<(Vec<RuneTransfer
     let mut combined = parcel.runtime_balances.as_ref().clone();
     <BalanceSheet as From<Vec<RuneTransfer>>>::from(parcel.runes.clone()).pipe(&mut combined);
     let sheet = <BalanceSheet as From<Vec<RuneTransfer>>>::from(response.alkanes.clone().into());
-    combined.debit(&sheet)?;
+    combined.debit_mintable(&sheet, &mut atomic)?;
     debit_balances(&mut atomic, &myself, &response.alkanes)?;
-
     Ok((response.alkanes.into(), combined))
 }
 
@@ -48,12 +52,19 @@ impl MessageContext for AlkaneMessageContext {
         1
     }
     fn handle(_parcel: &MessageContextParcel) -> Result<(Vec<RuneTransfer>, BalanceSheet)> {
-        match handle_message(_parcel) {
-            Ok((outgoing, runtime)) => Ok((outgoing, runtime)),
-            Err(e) => {
-                println!("Error: {:?}", e); // Print the error
-                Err(e) // Return the error
+        if is_active(_parcel.height) {
+            match handle_message(_parcel) {
+                Ok((outgoing, runtime)) => Ok((outgoing, runtime)),
+                Err(e) => {
+                    println!("{:?}", e);
+                    Err(e) // Print the error
+                }
             }
+        } else {
+            Err(anyhow!(
+                "subprotocol inactive until block {}",
+                GENESIS_BLOCK
+            ))
         }
     }
 }

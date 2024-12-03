@@ -16,6 +16,12 @@ mod tests {
     use protorune_support::rune_transfer::RuneTransfer;
     use protorune_support::utils::consensus_encode;
 
+    #[allow(unused_imports)]
+    use metashrew::{
+        println,
+        stdio::{stdout, Write},
+    };
+
     use metashrew::clear;
     use metashrew_support::index_pointer::KeyValuePointer;
     use ordinals::{Etching, Rune, Runestone};
@@ -25,7 +31,9 @@ mod tests {
     struct ForwardAll(());
     struct MixedForwarding(());
     struct FullRefund(());
+    struct FullRefundWithErr(());
     struct OverForward(());
+    struct MintNewProtorune(());
     struct OverStoreInRuntime(());
 
     struct ModifyAtomicWithoutErr(());
@@ -78,6 +86,26 @@ mod tests {
             Ok((vec![transfer], BalanceSheet::default()))
         }
     }
+    impl MessageContext for MintNewProtorune {
+        fn protocol_tag() -> u128 {
+            122
+        }
+        fn handle(parcel: &MessageContextParcel) -> Result<(Vec<RuneTransfer>, BalanceSheet)> {
+            let _ = parcel;
+            let transfer = RuneTransfer {
+                id: parcel.runes[0].id,
+                value: parcel.runes[0].value / 2 - 1,
+            };
+            let mint_rune = ProtoruneRuneId::new(840000, 999);
+            let mint = RuneTransfer {
+                id: mint_rune,
+                value: 10001,
+            };
+            let mut runtime = BalanceSheet::default();
+            runtime.increase(&mint_rune, 12345);
+            Ok((vec![transfer, mint], runtime))
+        }
+    }
     impl MessageContext for OverStoreInRuntime {
         fn protocol_tag() -> u128 {
             122
@@ -99,6 +127,14 @@ mod tests {
         }
     }
     impl MessageContext for FullRefund {
+        fn protocol_tag() -> u128 {
+            122
+        }
+        fn handle(_parcel: &MessageContextParcel) -> Result<(Vec<RuneTransfer>, BalanceSheet)> {
+            Ok((vec![], BalanceSheet::default()))
+        }
+    }
+    impl MessageContext for FullRefundWithErr {
         fn protocol_tag() -> u128 {
             122
         }
@@ -192,7 +228,7 @@ mod tests {
         let script_pubkey = address.script_pubkey();
 
         let txout = TxOut {
-            value: Amount::from_sat(100_000_000).to_sat(),
+            value: Amount::from_sat(100_000_000),
             script_pubkey,
         };
 
@@ -240,12 +276,12 @@ mod tests {
 
         // op return is at output 1
         let op_return = TxOut {
-            value: Amount::from_sat(0).to_sat(),
+            value: Amount::from_sat(0),
             script_pubkey: runestone,
         };
 
         helpers::create_block_with_txs(vec![Transaction {
-            version: 1,
+            version: bitcoin::transaction::Version(2),
             lock_time: bitcoin::absolute::LockTime::ZERO,
             input: vec![txin],
             output: vec![txout, op_return],
@@ -261,20 +297,21 @@ mod tests {
             vout: 0,
         };
 
-        let protoburn_tx = helpers::create_protoburn_transaction(first_mock_output, protocol_id);
-        let protorune_id = ProtoruneRuneId {
+        let protoburn_tx =
+            helpers::create_default_protoburn_transaction(first_mock_output, protocol_id);
+        let _protorune_id = ProtoruneRuneId {
             block: block_height as u128,
             tx: 0,
         };
 
         // output 0 holds all the protorunes
         let protoburn_input = OutPoint {
-            txid: protoburn_tx.txid(),
+            txid: protoburn_tx.compute_txid(),
             vout: 0,
         };
 
         let protomessage_tx =
-            helpers::create_protomessage_from_edict_tx(protoburn_input, protocol_id, protorune_id);
+            helpers::create_protomessage_from_edict_tx(protoburn_input, protocol_id, vec![]);
 
         helpers::create_block_with_txs(vec![protoburn_tx, protomessage_tx])
     }
@@ -294,7 +331,7 @@ mod tests {
         );
 
         let outpoint_address: OutPoint = OutPoint {
-            txid: test_block.txdata[0].txid(),
+            txid: test_block.txdata[0].compute_txid(),
             vout: 0,
         };
         // check runes balance
@@ -325,7 +362,7 @@ mod tests {
         expected_pointer_amount: u128,
         expected_refunded_amount: u128,
         expected_runtime_amount: u128,
-    ) {
+    ) -> (BalanceSheet, BalanceSheet, BalanceSheet) {
         clear();
         let block_height = 840000;
         let protocol_id = 122;
@@ -337,14 +374,14 @@ mod tests {
         };
 
         assert!(Protorune::index_block::<T>(test_block.clone(), block_height as u64).is_ok());
-
+        // print_cache();
         // tx 0 is protoburn, tx 1 is protomessage
         let outpoint_address0: OutPoint = OutPoint {
-            txid: test_block.txdata[1].txid(),
+            txid: test_block.txdata[1].compute_txid(),
             vout: 0,
         };
         let outpoint_address1: OutPoint = OutPoint {
-            txid: test_block.txdata[1].txid(),
+            txid: test_block.txdata[1].compute_txid(),
             vout: 1,
         };
         // check runes balance
@@ -376,6 +413,12 @@ mod tests {
         assert_eq!(stored_protorune_balance1, expected_refunded_amount);
         let stored_protorune_balance_runtime = protorunes_sheet_runtime.get(&protorune_id);
         assert_eq!(stored_protorune_balance_runtime, expected_runtime_amount);
+
+        return (
+            protorunes_sheet0,
+            protorunes_sheet1,
+            protorunes_sheet_runtime,
+        );
     }
 
     fn protomessage_from_edict_multiple_protomessages_test_template<T: MessageContext>(
@@ -396,11 +439,11 @@ mod tests {
 
         // pointer_outpoint is the pointer that received the forwarded runes during the first protomessage
         let pointer_outpoint = OutPoint {
-            txid: test_block.txdata[1].txid(),
+            txid: test_block.txdata[1].compute_txid(),
             vout: 0,
         };
         let protomessage_tx2 =
-            helpers::create_protomessage_from_edict_tx(pointer_outpoint, protocol_id, protorune_id);
+            helpers::create_protomessage_from_edict_tx(pointer_outpoint, protocol_id, vec![]);
 
         test_block.txdata.push(protomessage_tx2);
 
@@ -411,7 +454,7 @@ mod tests {
                 .OUTPOINT_TO_RUNES
                 .select(
                     &consensus_encode(&OutPoint {
-                        txid: test_block.txdata[2].txid(),
+                        txid: test_block.txdata[2].compute_txid(),
                         vout: 0,
                     })
                     .unwrap(),
@@ -422,7 +465,7 @@ mod tests {
                 .OUTPOINT_TO_RUNES
                 .select(
                     &consensus_encode(&OutPoint {
-                        txid: test_block.txdata[2].txid(),
+                        txid: test_block.txdata[2].compute_txid(),
                         vout: 1,
                     })
                     .unwrap(),
@@ -444,32 +487,54 @@ mod tests {
     /// has an edict that targets the protomessage
     #[wasm_bindgen_test]
     fn protomessage_from_edict_test() {
-        protomessage_from_edict_test_template::<ForwardAll>(800, 0, 0);
+        protomessage_from_edict_test_template::<ForwardAll>(1000, 0, 0);
     }
 
     /// Tests that a message context that forwards 1/4, sends 1/8 to runtime, and leaves the rest unaccounted will have the correct values
     #[wasm_bindgen_test]
     fn protomessage_mixed_forwarding_test() {
-        protomessage_from_edict_test_template::<MixedForwarding>(200, 500, 100);
+        protomessage_from_edict_test_template::<MixedForwarding>(250, 625, 125);
+    }
+
+    /// Tests that a message context that returns nothing will refund all
+    #[wasm_bindgen_test]
+    fn protomessage_full_refund_test() {
+        protomessage_from_edict_test_template::<FullRefund>(0, 1000, 0);
     }
 
     /// Tests that a message context that returns an invalid result will refund all
     #[wasm_bindgen_test]
-    fn protomessage_full_refund_test() {
-        protomessage_from_edict_test_template::<FullRefund>(0, 800, 0);
+    fn protomessage_full_refund_using_err_test() {
+        protomessage_from_edict_test_template::<FullRefundWithErr>(0, 1000, 0);
     }
 
     /// Tests that overallocating in handle will refund all
     #[wasm_bindgen_test]
     fn protomessage_overallocation_test() {
-        protomessage_from_edict_test_template::<OverForward>(0, 800, 0);
-        protomessage_from_edict_test_template::<OverStoreInRuntime>(0, 800, 0);
+        protomessage_from_edict_test_template::<OverForward>(0, 1000, 0);
+        protomessage_from_edict_test_template::<OverStoreInRuntime>(0, 1000, 0);
+    }
+
+    /// Tests that overallocating an allowed mintable protorune will
+    /// mint the new protorune
+    #[wasm_bindgen_test]
+    fn protomessage_mint_allowed_protorune_test() {
+        let (protorunes_sheet0, protorunes_sheet1, protorunes_sheet_runtime) =
+            protomessage_from_edict_test_template::<MintNewProtorune>(499, 501, 0);
+        let minted_protorune = ProtoruneRuneId::new(840000, 999);
+
+        let minted_protorune_to_pointer = protorunes_sheet0.get(&minted_protorune);
+        assert_eq!(minted_protorune_to_pointer, 10001);
+        let minted_protorune_to_runtime = protorunes_sheet_runtime.get(&minted_protorune);
+        assert_eq!(minted_protorune_to_runtime, 12345);
+        let minted_protorune_to_refund = protorunes_sheet1.get(&minted_protorune);
+        assert_eq!(minted_protorune_to_refund, 0);
     }
 
     /// Tests that the atomic pointer is not rolled back in an Ok
     #[wasm_bindgen_test]
     fn protomessage_modify_atomic_then_ok_test() {
-        protomessage_from_edict_test_template::<ModifyAtomicWithoutErr>(0, 800, 0);
+        protomessage_from_edict_test_template::<ModifyAtomicWithoutErr>(0, 1000, 0);
 
         let block_height = 840000;
         let protocol_id = 122;
@@ -487,7 +552,7 @@ mod tests {
     /// Tests that the atomic pointer is rolled back in an Err
     #[wasm_bindgen_test]
     fn protomessage_modify_atomic_then_err_test() {
-        protomessage_from_edict_test_template::<ModifyAtomicThenErr>(0, 800, 0);
+        protomessage_from_edict_test_template::<ModifyAtomicThenErr>(0, 1000, 0);
 
         let block_height = 840000;
         let protocol_id = 122;
@@ -504,27 +569,29 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn protomessage_existing_runtime_balance_test() {
-        // there are 200 runes as input.
-        // there is 100 runes in the runtime balance.
+        // first protomessage transfers 1/4 to pointer: 250
+        // there are 250 protorunes as input.
+        // there is 125 protorunes in the runtime balance.
 
-        // pointer should get 200/4 = 50
-        // the runtime balance is set to old + 200/8 = 125
-        // the refunded amount should be (100+200) - (50+125) = 125
+        // pointer should get 250/4 = 62
+        // the runtime balance is set to 125 + 250/8 = 156
+        // the refunded amount should be (125+250) - (62+156) = 157
         protomessage_from_edict_multiple_protomessages_test_template::<MixedForwarding>(
-            50, 125, 125,
+            62, 157, 156,
         )
     }
 
     #[wasm_bindgen_test]
     fn protomessage_decrease_existing_runtime_balance_test() {
-        // there are 200 runes as input.
-        // there is 100 runes in the runtime balance.
+        // This test does not use the existing runtime balance in the handle()
+        // there are 250 runes as input.
+        // there is 125 runes in the runtime balance.
 
-        // pointer should get 200/4 = 50
-        // the runtime balance is set to 200/8 = 25
-        // the refunded amount should be (100+200) - (50+25) = 225
+        // pointer should get 250/4 = 62
+        // the runtime balance is set to 250/8 = 31
+        // the refunded amount should be (125+250) - (62+31) = 282
         protomessage_from_edict_multiple_protomessages_test_template::<MixedForwardingStaticRuntime>(
-            50, 225, 25,
+            62, 282, 31,
         );
     }
 }

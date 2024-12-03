@@ -8,39 +8,46 @@ use crate::protostone::{
 };
 use crate::tables::RuneTable;
 use anyhow::{ anyhow, Ok, Result };
+use balance_sheet::clear_balances;
 use bitcoin::blockdata::block::Block;
 use bitcoin::hashes::Hash;
 use bitcoin::script::Instruction;
 use bitcoin::{ opcodes, Address, OutPoint, ScriptBuf, Transaction, TxOut };
 use metashrew::index_pointer::{ AtomicPointer, IndexPointer };
-use metashrew::{ flush, input };
+#[allow(unused_imports)]
+use metashrew::{ flush, input, println, stdio::{ stdout, Write } };
 use metashrew_support::index_pointer::KeyValuePointer;
-use metashrew_support::{ compat::{ to_arraybuffer_layout, to_ptr }, utils::consume_to_end };
+use metashrew_support::{
+    compat::{ to_arraybuffer_layout, to_passback_ptr, to_ptr },
+    utils::{ consume_sized_int, consume_to_end },
+};
 use ordinals::Etching;
 use ordinals::{ Artifact, Runestone };
-use proto::protorune::{ Output, RunesResponse, WalletResponse };
 use protobuf::{ Message, SpecialFields };
 use protorune_support::constants;
+use protorune_support::proto::protorune::{
+    OutpointResponse,
+    Output,
+    RunesResponse,
+    WalletResponse,
+};
 use protorune_support::utils::get_network;
 use protorune_support::{
     balance_sheet::{ BalanceSheet, ProtoruneRuneId },
     protostone::{ into_protostone_edicts, Protostone, ProtostoneEdict },
-    utils::{ consensus_encode, field_to_name },
+    utils::{ consensus_encode, field_to_name, outpoint_encode },
 };
 use std::collections::HashMap;
 use std::io::Cursor;
 use std::ops::Sub;
 use std::sync::Arc;
 
-// use std::fmt::Write;
-
 pub mod balance_sheet;
 pub mod message;
-pub mod proto;
 pub mod protoburn;
 pub mod protostone;
 pub mod tables;
-#[cfg(feature = "test_utils")]
+#[cfg(feature = "test-utils")]
 pub mod test_helpers;
 #[cfg(test)]
 pub mod tests;
@@ -87,6 +94,16 @@ pub fn protorunesbyaddress() -> i32 {
         ::protorunes_by_address(&consume_to_end(&mut data).unwrap())
         .unwrap();
     to_ptr(&mut to_arraybuffer_layout::<&[u8]>(&result.write_to_bytes().unwrap())) + 4
+}
+
+#[no_mangle]
+pub fn protorunesbyoutpoint() -> i32 {
+    let mut data: Cursor<Vec<u8>> = Cursor::new(input());
+    let _height = consume_sized_int::<u32>(&mut data);
+    let result: OutpointResponse = view
+        ::protorunes_by_outpoint(&consume_to_end(&mut data).unwrap())
+        .unwrap();
+    to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(&result.write_to_bytes().unwrap()))
 }
 
 #[no_mangle]
@@ -151,7 +168,7 @@ impl Protorune {
         )?;
         Self::handle_leftover_runes(&mut balance_sheet, &mut balances_by_output, unallocated_to)?;
         for (vout, sheet) in balances_by_output.clone() {
-            let outpoint = OutPoint::new(tx.txid(), vout);
+            let outpoint = OutPoint::new(tx.compute_txid(), vout);
             sheet.save(
                 &mut atomic.derive(
                     &tables::RUNES.OUTPOINT_TO_RUNES.select(&consensus_encode(&outpoint)?)
@@ -290,7 +307,7 @@ impl Protorune {
         height: u64,
         balance_sheet: &mut BalanceSheet
     ) -> Result<()> {
-        let name = tables::RUNES.RUNE_ID_TO_ETCHING.select(&mint.to_string().into_bytes()).get();
+        let name = tables::RUNES.RUNE_ID_TO_ETCHING.select(&mint.clone().into()).get();
         let remaining: u128 = tables::RUNES.MINTS_REMAINING.select(&name).get_value();
         let amount: u128 = tables::RUNES.AMOUNT.select(&name).get_value();
         if remaining != 0 {
@@ -330,15 +347,15 @@ impl Protorune {
         if let Some(name) = etching.rune {
             let _name = field_to_name(&name.0);
             //Self::get_reserved_name(height, index, name);
-            let rune_id = Self::build_rune_id(height, index);
+            let rune_id = ProtoruneRuneId::new(height.into(), index.into());
             atomic
-                .derive(&tables::RUNES.RUNE_ID_TO_ETCHING.select(&rune_id.clone()))
+                .derive(&tables::RUNES.RUNE_ID_TO_ETCHING.select(&rune_id.into()))
                 .set(Arc::new(name.0.to_string().into_bytes()));
             atomic
                 .derive(&tables::RUNES.ETCHING_TO_RUNE_ID.select(&_name.as_bytes().to_vec()))
-                .set(rune_id.clone());
+                .set(rune_id.into());
             atomic
-                .derive(&tables::RUNES.RUNE_ID_TO_HEIGHT.select(&rune_id.clone()))
+                .derive(&tables::RUNES.RUNE_ID_TO_HEIGHT.select(&rune_id.into()))
                 .set_value(height);
 
             if let Some(divisibility) = etching.divisibility {
@@ -429,9 +446,9 @@ impl Protorune {
     // }
 
     pub fn build_rune_id(height: u64, tx: u32) -> Arc<Vec<u8>> {
-        let rune_id = ProtoruneRuneId::new(height as u128, tx as u128)
-            .to_string()
-            .into_bytes();
+        let rune_id = <ProtoruneRuneId as Into<Vec<u8>>>::into(
+            ProtoruneRuneId::new(height as u128, tx as u128)
+        );
         return Arc::new(rune_id);
     }
 
@@ -478,12 +495,17 @@ impl Protorune {
                     }
                 };
             }
+            for input in &tx.input {
+                //all inputs must be used up, even in cenotaphs
+                let key = consensus_encode(&input.previous_output)?;
+                clear_balances(&mut tables::RUNES.OUTPOINT_TO_RUNES.select(&key));
+            }
         }
         Ok(())
     }
     pub fn index_spendables(txdata: &Vec<Transaction>) -> Result<()> {
         for (_txindex, transaction) in txdata.iter().enumerate() {
-            let tx_id = transaction.txid();
+            let tx_id = transaction.compute_txid();
 
             for (index, output) in transaction.output.iter().enumerate() {
                 let outpoint = OutPoint {
@@ -509,40 +531,34 @@ impl Protorune {
     pub fn index_transaction_ids(block: &Block, height: u64) -> Result<()> {
         let ptr = tables::RUNES.HEIGHT_TO_TRANSACTION_IDS.select_value::<u64>(height);
         for tx in &block.txdata {
-            ptr.append(Arc::new(tx.txid().as_byte_array().to_vec()));
+            ptr.append(Arc::new(tx.compute_txid().as_byte_array().to_vec()));
         }
         Ok(())
     }
     pub fn index_outpoints(block: &Block, height: u64) -> Result<()> {
         let mut atomic = AtomicPointer::default();
         for tx in &block.txdata {
-            let ptr = atomic.derive(
-                &tables::RUNES.OUTPOINT_TO_HEIGHT.select(&tx.txid().as_byte_array().to_vec())
-            );
             for i in 0..tx.output.len() {
-                ptr.select_value(i as u32).set_value(height);
+                let outpoint_bytes = outpoint_encode(
+                    &(OutPoint {
+                        txid: tx.compute_txid(),
+                        vout: i as u32,
+                    })
+                )?;
                 atomic
-                    .derive(
-                        &tables::OUTPOINT_TO_OUTPUT.select(
-                            &consensus_encode(
-                                &(OutPoint {
-                                    txid: tx.txid(),
-                                    vout: i as u32,
-                                })
-                            ).unwrap()
-                        )
+                    .derive(&tables::RUNES.OUTPOINT_TO_HEIGHT.select(&outpoint_bytes))
+                    .set_value(height);
+                atomic.derive(&tables::OUTPOINT_TO_OUTPUT.select(&outpoint_bytes)).set(
+                    Arc::new(
+                        (Output {
+                            script: tx.output[i].clone().script_pubkey.into_bytes(),
+                            value: tx.output[i].clone().value.to_sat(),
+                            special_fields: SpecialFields::new(),
+                        })
+                            .write_to_bytes()
+                            .unwrap()
                     )
-                    .set(
-                        Arc::new(
-                            (Output {
-                                script: tx.output[i].clone().script_pubkey.into_bytes(),
-                                value: tx.output[i].clone().value,
-                                special_fields: SpecialFields::new(),
-                            })
-                                .write_to_bytes()
-                                .unwrap()
-                        )
-                    );
+                );
             }
         }
         atomic.commit();
@@ -560,17 +576,16 @@ impl Protorune {
                 .get(&(i as u32))
                 .map(|v| v.clone())
                 .unwrap_or_else(|| BalanceSheet::default());
+            let outpoint = OutPoint {
+                txid: tx.compute_txid(),
+                vout: i as u32,
+            };
+            // println!(
+            //     "saving balancesheet: {:#?} to outpoint: {:#?}",
+            //     sheet, outpoint
+            // );
             sheet.save(
-                &mut atomic.derive(
-                    &table.OUTPOINT_TO_RUNES.select(
-                        &consensus_encode(
-                            &(OutPoint {
-                                txid: tx.txid(),
-                                vout: i as u32,
-                            })
-                        )?
-                    )
-                ),
+                &mut atomic.derive(&table.OUTPOINT_TO_RUNES.select(&consensus_encode(&outpoint)?)),
                 false
             );
         }
@@ -628,36 +643,44 @@ impl Protorune {
                 balances_by_output,
                 &mut proto_balances_by_output,
                 unallocated_to,
-                tx.txid()
+                tx.compute_txid()
+            )?;
+
+            // by default, all protorunes that come in as input will be given to the
+            // first protostone (which has a virtual vout of num outputs + 1)
+            Self::handle_leftover_runes(
+                &mut balance_sheet,
+                &mut proto_balances_by_output,
+                (tx.output.len() as u32) + 1
             )?;
             protostones
                 .into_iter()
                 .enumerate()
                 .map(|(i, stone)| {
-                    if !stone.edicts.is_empty() {
-                        Self::process_edicts(
-                            tx,
-                            &stone.edicts.clone().into(),
-                            &mut proto_balances_by_output,
-                            &mut balance_sheet,
-                            &tx.output
-                        )?;
-                        Self::handle_leftover_runes(
-                            &mut balance_sheet,
-                            &mut proto_balances_by_output.clone(),
-                            unallocated_to
-                        )?;
-                        for (vout, sheet) in balances_by_output.clone() {
-                            let outpoint = OutPoint::new(tx.txid(), vout);
-                            sheet.save(
-                                &mut atomic.derive(
-                                    &table.OUTPOINT_TO_RUNES.select(&consensus_encode(&outpoint)?)
-                                ),
-                                false
-                            );
-                        }
+                    let shadow_vout = (i as u32) + (tx.output.len() as u32) + 1;
+                    if !proto_balances_by_output.contains_key(&shadow_vout) {
+                        proto_balances_by_output.insert(shadow_vout, BalanceSheet::default());
                     }
-                    if stone.is_message() {
+                    // println!(
+                    //     "shadow vout {} has bs: {:?}",
+                    //     shadow_vout,
+                    //     proto_balances_by_output.get(&shadow_vout)
+                    // );
+                    let protostone_unallocated_to = match stone.pointer {
+                        Some(v) => v,
+                        None => default_output(tx),
+                    };
+                    // README: now calculates the amount left over for edicts in this fashion:
+                    // the protomessage is executed first, and all the runes that go to the refund pointer are available for the edicts to then transfer
+                    // if there is no protomessage, all incoming runes will be available to be transferred by the edict
+                    let mut prior_balance_sheet = balance_sheet.clone();
+                    let is_message = stone.is_message();
+                    if is_message {
+                        let refund = stone.refund.unwrap();
+                        prior_balance_sheet = match proto_balances_by_output.get(&refund) {
+                            Some(sheet) => sheet.clone(),
+                            None => BalanceSheet::default(),
+                        };
                         stone.process_message::<T>(
                             &mut atomic.derive(&IndexPointer::default()),
                             tx,
@@ -665,20 +688,68 @@ impl Protorune {
                             block,
                             height,
                             runestone_output_index,
-                            (tx.output.len() as u32) + 1 + (i as u32),
+                            shadow_vout,
                             &mut proto_balances_by_output,
-                            unallocated_to
+                            protostone_unallocated_to
+                        )?;
+                        prior_balance_sheet = match proto_balances_by_output.get(&refund) {
+                            Some(sheet) => {
+                                let mut sheet = sheet.clone();
+                                sheet.debit(&prior_balance_sheet)?;
+                                sheet
+                            }
+                            None => prior_balance_sheet,
+                        };
+                    }
+                    // Is this necessary? the process_message already removes all balances from shadow_vout
+                    // proto_balances_by_output
+                    //     .get_mut(&shadow_vout)
+                    //     .unwrap()
+                    //     .debit(&balance_sheet)?;
+
+                    // TODO: Handle what happens if edicts overflow the amount in the
+                    // refund pointer
+                    Self::process_edicts(
+                        tx,
+                        &stone.edicts,
+                        &mut proto_balances_by_output,
+                        &mut prior_balance_sheet,
+                        &tx.output
+                    )?;
+
+                    // TODO: After edicts, we may need to update the remaining
+                    // amount in the refund pointer
+
+                    // leftover runes should stay with the refund pointer, and
+                    // should not be transferred to the default pointer
+                    // transfer them to default pointer if the protostone doesnt contain a message
+                    if !is_message {
+                        Self::handle_leftover_runes(
+                            &mut prior_balance_sheet,
+                            &mut proto_balances_by_output,
+                            protostone_unallocated_to
                         )?;
                     }
+
                     Ok(())
                 })
                 .collect::<Result<()>>()?;
+            // println!(
+            //     "protocol id: {}, saving sheets: {:#?}",
+            //     T::protocol_tag(),
+            //     proto_balances_by_output
+            // );
             Self::save_balances(
                 &mut atomic.derive(&IndexPointer::default()),
                 &table,
                 tx,
                 &mut proto_balances_by_output
             )?;
+            for input in &tx.input {
+                //all inputs must be used up, even in cenotaphs
+                let key = consensus_encode(&input.previous_output)?;
+                clear_balances(&mut table.OUTPOINT_TO_RUNES.select(&key));
+            }
         }
         Ok(())
     }

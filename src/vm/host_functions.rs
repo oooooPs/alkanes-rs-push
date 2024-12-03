@@ -2,7 +2,7 @@ use super::{
     get_memory, read_arraybuffer, send_to_arraybuffer, sequence_pointer, AlkanesState, Extcall,
     Saveable, SaveableExtendedCallResponse,
 };
-use crate::utils::{pipe_storagemap_to, transfer_from};
+use crate::utils::{balance_pointer, pipe_storagemap_to, transfer_from};
 use crate::vm::{run_after_special, run_special_cellpacks};
 use alkanes_support::{
     cellpack::Cellpack, id::AlkaneId, parcel::AlkaneTransferParcel, response::CallResponse,
@@ -10,6 +10,7 @@ use alkanes_support::{
 };
 use anyhow::Result;
 use metashrew::index_pointer::IndexPointer;
+#[allow(unused_imports)]
 use metashrew::{
     print, println,
     stdio::{stdout, Write},
@@ -17,14 +18,15 @@ use metashrew::{
 use metashrew_support::index_pointer::KeyValuePointer;
 
 use crate::vm::fuel::{
-    consume_fuel, FUEL_BALANCE, FUEL_EXTCALL, FUEL_FUEL, FUEL_HEIGHT, FUEL_PER_LOAD_BYTE,
-    FUEL_PER_REQUEST_BYTE, FUEL_PER_STORE_BYTE, FUEL_SEQUENCE,
+    consume_fuel, Fuelable, FUEL_BALANCE, FUEL_EXTCALL, FUEL_EXTCALL_DEPLOY, FUEL_FUEL,
+    FUEL_HEIGHT, FUEL_PER_LOAD_BYTE, FUEL_PER_REQUEST_BYTE, FUEL_PER_STORE_BYTE, FUEL_SEQUENCE,
 };
 use protorune_support::utils::consensus_encode;
 use std::io::Cursor;
 use wasmi::*;
 
 pub struct AlkanesHostFunctionsImpl(());
+
 impl AlkanesHostFunctionsImpl {
     pub(super) fn _abort<'a>(caller: Caller<'_, AlkanesState>) {
         AlkanesHostFunctionsImpl::abort(caller, 0, 0, 0, 0);
@@ -52,7 +54,7 @@ impl AlkanesHostFunctionsImpl {
                 .atomic
                 .keyword("/alkanes/")
                 .select(&myself.into())
-                .keyword("/storage")
+                .keyword("/storage/")
                 .select(&key)
                 .get()
                 .len()
@@ -82,7 +84,7 @@ impl AlkanesHostFunctionsImpl {
                     .atomic
                     .keyword("/alkanes/")
                     .select(&myself.into())
-                    .keyword("/storage")
+                    .keyword("/storage/")
                     .select(&key)
                     .get()
             };
@@ -225,20 +227,14 @@ impl AlkanesHostFunctionsImpl {
                 AlkaneId::parse(&mut Cursor::new(read_arraybuffer(data, what_ptr)?))?,
             )
         };
-        let balance = caller
-            .data_mut()
-            .context
-            .lock()
-            .unwrap()
-            .message
-            .atomic
-            .keyword("/alkanes/")
-            .select(&who.into())
-            .keyword("/balances/")
-            .select(&what.into())
-            .get()
-            .as_ref()
-            .clone();
+        let balance = balance_pointer(
+            &mut caller.data_mut().context.lock().unwrap().message.atomic,
+            &who.into(),
+            &what.into(),
+        )
+        .get()
+        .as_ref()
+        .clone();
         consume_fuel(caller, FUEL_BALANCE)?;
         send_to_arraybuffer(caller, output.try_into()?, &balance)?;
         Ok(())
@@ -255,10 +251,8 @@ impl AlkanesHostFunctionsImpl {
             let data = mem.data(&caller);
             let buffer = read_arraybuffer(data, cellpack_ptr)?;
             let cellpack = Cellpack::parse(&mut Cursor::new(buffer))?;
-            println!("got cellpack inside host call: {:?}", cellpack);
             let buf = read_arraybuffer(data, incoming_alkanes_ptr)?;
             let incoming_alkanes = AlkaneTransferParcel::parse(&mut Cursor::new(buf))?;
-            println!("got incoming alkanes");
             let storage_map_buffer = read_arraybuffer(data, checkpoint_ptr)?;
             let storage_map_len = storage_map_buffer.len();
             let storage_map = StorageMap::parse(&mut Cursor::new(storage_map_buffer))?;
@@ -270,6 +264,9 @@ impl AlkanesHostFunctionsImpl {
             )
         };
         let (subcontext, binary_rc) = {
+            if cellpack.target.is_deployment() {
+                caller.consume_fuel(FUEL_EXTCALL_DEPLOY)?;
+            }
             let mut context = caller.data_mut().context.lock().unwrap();
             context.message.atomic.checkpoint();
             let (_subcaller, submyself, binary) = run_special_cellpacks(&mut context, &cellpack)?;
@@ -301,10 +298,6 @@ impl AlkanesHostFunctionsImpl {
             subbed.inputs = cellpack.inputs.clone();
             (subbed, binary)
         };
-        println!(
-            "about to enter subcontext: {:#?} with cellpack: {:#?}",
-            subcontext, cellpack
-        );
         consume_fuel(
             caller,
             overflow_error(FUEL_EXTCALL.checked_add(overflow_error(
@@ -313,18 +306,15 @@ impl AlkanesHostFunctionsImpl {
         )?;
         run_after_special(subcontext.clone(), binary_rc, start_fuel)
             .and_then(|(response, gas_used)| {
-                println!("gas used: {}", gas_used);
                 caller.set_fuel(overflow_error(start_fuel.checked_sub(gas_used))?)?;
-                println!("gas left: {}", (&caller).get_fuel().unwrap());
                 let mut context = caller.data().context.lock().unwrap();
                 let mut saveable: SaveableExtendedCallResponse = response.clone().into();
                 saveable.associate(&subcontext);
                 saveable.save(&mut context.message.atomic)?;
                 T::handle_atomic(&mut context.message.atomic);
-                let plain_response: CallResponse = response.into();
+                let plain_response: CallResponse = response.clone().into();
                 let serialized = plain_response.serialize();
                 context.returndata = serialized;
-                println!("returndata length: {}", context.returndata.len());
                 Ok(context.returndata.len().try_into()?)
             })
             .and_then(|len| {

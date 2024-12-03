@@ -1,3 +1,4 @@
+use crate::gz::compress;
 use {
     bitcoin::blockdata::{
         constants::MAX_SCRIPT_ELEMENT_SIZE,
@@ -97,19 +98,21 @@ impl RawEnvelope {
             .push_slice(PROTOCOL_ID);
 
         builder = builder.push_slice(BODY_TAG);
-        for chunk in self
-            .payload
-            .clone()
-            .into_iter()
-            .flatten()
-            .collect::<Vec<u8>>()
-            .chunks(MAX_SCRIPT_ELEMENT_SIZE)
+        for chunk in compress(
+            self.payload
+                .clone()
+                .into_iter()
+                .flatten()
+                .collect::<Vec<u8>>(),
+        )
+        .unwrap()
+        .chunks(MAX_SCRIPT_ELEMENT_SIZE)
         {
             builder = builder.push_slice::<&script::PushBytes>(chunk.try_into().unwrap());
         }
         builder.push_opcode(opcodes::all::OP_ENDIF).into_script()
     }
-    pub fn to_witness(&self) -> Witness {
+    pub fn to_gzipped_witness(&self) -> Witness {
         let builder = script::Builder::new();
 
         let script = self.append_reveal_script(builder);

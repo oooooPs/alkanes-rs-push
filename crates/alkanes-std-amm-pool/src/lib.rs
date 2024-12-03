@@ -1,4 +1,9 @@
 use alkanes_runtime::{runtime::AlkaneResponder, storage::StoragePointer};
+
+use alkanes_runtime::{
+    println,
+    stdio::{stdout, Write},
+};
 use alkanes_support::{
     id::AlkaneId,
     parcel::{AlkaneTransfer, AlkaneTransferParcel},
@@ -15,6 +20,9 @@ use protorune_support::balance_sheet::BalanceSheet;
 use ruint::Uint;
 use std::sync::Arc;
 
+// per uniswap docs, the first 1e3 wei of lp token minted are burned to mitigate attacks where the value of a lp token is raised too high easily
+pub const MINIMUM_LIQUIDITY: u128 = 1000;
+
 type U256 = Uint<256, 4>;
 
 #[derive(Default)]
@@ -27,12 +35,12 @@ pub fn sub_fees(v: u128) -> Result<u128> {
 impl AMMPool {
     pub fn alkanes_for_self(&self) -> Result<(AlkaneId, AlkaneId)> {
         Ok((
-            StoragePointer::from_keyword("/alkanes/0")
+            StoragePointer::from_keyword("/alkane/0")
                 .get()
                 .as_ref()
                 .clone()
                 .try_into()?,
-            StoragePointer::from_keyword("/alkanes/1")
+            StoragePointer::from_keyword("/alkane/1")
                 .get()
                 .as_ref()
                 .clone()
@@ -106,18 +114,25 @@ impl AMMPool {
     }
     pub fn mint(&self, myself: AlkaneId, parcel: AlkaneTransferParcel) -> Result<CallResponse> {
         self.check_inputs(&myself, &parcel, 2)?;
-        let total_supply = self.total_supply();
+        let mut total_supply = self.total_supply();
         let (reserve_a, reserve_b) = self.reserves();
         let (previous_a, previous_b) = self.previous_reserves(&parcel);
         let root_k_last = overflow_error(previous_a.value.checked_mul(previous_b.value))?.sqrt();
         let root_k = overflow_error(reserve_a.value.checked_mul(reserve_b.value))?.sqrt();
-        if root_k > root_k_last {
-            let numerator = overflow_error(
-                total_supply.checked_mul(overflow_error(root_k.checked_sub(root_k_last))?),
-            )?;
-            let denominator =
-                overflow_error(overflow_error(root_k.checked_mul(5))?.checked_add(root_k_last))?;
-            let liquidity = numerator / denominator;
+        if root_k > root_k_last || root_k_last == 0 {
+            let liquidity;
+            if total_supply == 0 {
+                liquidity = overflow_error(root_k.checked_sub(MINIMUM_LIQUIDITY))?;
+                total_supply = total_supply + MINIMUM_LIQUIDITY;
+            } else {
+                let numerator = overflow_error(
+                    total_supply.checked_mul(overflow_error(root_k.checked_sub(root_k_last))?),
+                )?;
+                let denominator = overflow_error(
+                    overflow_error(root_k.checked_mul(5))?.checked_add(root_k_last), // constant 5 is assuming 1/6 of LP fees goes as protocol fees
+                )?;
+                liquidity = numerator / denominator;
+            }
             self.set_total_supply(overflow_error(total_supply.checked_add(liquidity))?);
             let mut response = CallResponse::default();
             response.alkanes = AlkaneTransferParcel(vec![AlkaneTransfer {
@@ -155,7 +170,7 @@ impl AMMPool {
                 value: amount_b,
             },
         ]);
-        Ok(CallResponse::default())
+        Ok(response)
     }
     pub fn get_amount_out(
         &self,
@@ -236,6 +251,8 @@ impl AlkaneResponder for AMMPool {
             3 => self
                 .swap(context.incoming_alkanes, shift(&mut inputs).unwrap())
                 .unwrap(),
+            50 => CallResponse::forward(&context.incoming_alkanes),
+
             _ => {
                 panic!("unrecognized opcode");
             }

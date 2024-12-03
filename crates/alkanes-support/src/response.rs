@@ -95,3 +95,22 @@ impl ExtendedCallResponse {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+
+    use anyhow::Result;
+
+    use crate::response::ExtendedCallResponse;
+    #[test]
+    pub fn test_serialize_deserialize() -> Result<()> {
+        let mut response = ExtendedCallResponse::default();
+        response.data.push(1);
+        let serialized = response.serialize();
+        let mut c = Cursor::new(serialized);
+        let parsed = ExtendedCallResponse::parse(&mut c)?;
+        assert_eq!(parsed, response);
+        Ok(())
+    }
+}

@@ -3,11 +3,17 @@
 ![Tests](https://img.shields.io/github/actions/workflow/status/AssemblyScript/assemblyscript/test.yml?branch=main&label=test&logo=github)
 ![Publish](https://img.shields.io/github/actions/workflow/status/AssemblyScript/assemblyscript/publish.yml?branch=main&label=publish&logo=github)
 
-**The ALKANES specification is hosted at** 👉🏻👉🏼👉🏽👉🏾👉🏿 [https://github.com/kungfuflex/alkanes/wiki](https://github.com/kungfuflex/alkanes-rs/wiki)
+**The ALKANES specification is hosted at** 👉🏻👉🏼👉🏽👉🏾👉🏿 [https://github.com/kungfuflex/alkanes-rs/wiki](https://github.com/kungfuflex/alkanes-rs/wiki)
+
 
 This repository hosts Rust sources for the ALKANES metaprotocol. The indexer for ALKANES can be built as the top level crate in the monorepo, with builds targeting wasm32-unknown-unknown, usable within the METASHREW indexer stack.
 
 ALKANES is a metaprotocol designed to support an incarnation of DeFi as we have traditionally seen it, but designed specifically for the Bitcoin consensus model and supporting structures.
+The ALKANES genesis block is 880000. Builders are encouraged to test on regtest using the docker-compose environment at [https://github.com/kungfuflex/alkanes](https://github.com/kungfuflex/alkanes)
+
+A signet RPC will be available on https://signet.sandshrew.io 
+
+Join ALKANES / metashrew discussion on the SANDSHREWサンド Discord. 
 
 #### NOTE: ALKANES does not have a network token
 
@@ -42,8 +48,10 @@ Boilerplate for various alkanes are included and prefixed with `alkanes-std-` an
 ALKANES is built with the command:
 
 ```sh
-cargo build --release
+cargo build --release --features all,mainnet
 ```
+
+Replace `mainnet` with your network of choice. Constants are defined for luckycoin, regtest, mainnet, dogecoin, bellscoin, and fractal. For other networks or test networks, use the regtest feature.
 
 An `alkanes.wasm` file will be built, as well as a WASM for every crate prefixed with `alkanes-std-`, which will be built to `target/alkanes/wasm32-unknown-unknown/release`
 
@@ -61,10 +69,28 @@ A sample command may look like:
 
 ### Testing
 
-To test the indexer end-to-end, it is only required to run:
+To run all tests in the monorepo
+
+```
+cargo test --all
+```
+
+To test the alkanes indexer end-to-end, it is only required to run:
 
 ```
 cargo test
+```
+
+To run tests for a specific crate
+
+```
+cargo test -p [CRATE]
+```
+
+example:
+
+```
+cargo test --features test-utils -p protorune
 ```
 
 This will provide a stub environment to test a METASHREW indexer program, and it will test the alkanes standard library smart contracts in simulated blocks.

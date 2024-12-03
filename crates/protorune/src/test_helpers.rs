@@ -1,16 +1,15 @@
 use bitcoin::address::NetworkChecked;
-use bitcoin::blockdata::block::{Block, Header, Version};
+use bitcoin::blockdata::block::{Block, Header};
 use bitcoin::blockdata::script::ScriptBuf;
+use bitcoin::blockdata::transaction::Version;
 use bitcoin::blockdata::transaction::{Transaction, TxIn, TxOut};
 use bitcoin::hashes::Hash;
-use bitcoin::string::FromHexStr;
 use bitcoin::{Address, Amount, BlockHash, OutPoint, Sequence, Witness};
 use byteorder::{ByteOrder, LittleEndian};
 use core::str::FromStr;
 use metashrew::{get_cache, println, stdio::stdout};
 use metashrew_support::utils::format_key;
 use ordinals::{Edict, Etching, Rune, RuneId, Runestone};
-use protorune_support::balance_sheet::ProtoruneRuneId;
 use std::fmt::Write;
 use std::sync::Arc;
 
@@ -73,7 +72,7 @@ pub fn create_coinbase_transaction(height: u32) -> Transaction {
 
     // Create the coinbase transaction output
     let coinbase_output = TxOut {
-        value: 50_000_000, // 50 BTC in satoshis
+        value: Amount::from_sat(50_000_000), // 50 BTC in satoshis
         script_pubkey,
     };
 
@@ -81,7 +80,7 @@ pub fn create_coinbase_transaction(height: u32) -> Transaction {
 
     // Create the coinbase transaction
     Transaction {
-        version: 2,
+        version: Version::TWO,
         lock_time: locktime,
         input: vec![coinbase_input],
         output: vec![coinbase_output],
@@ -127,18 +126,18 @@ pub fn create_test_transaction_with_witness(script: Vec<u8>) -> Transaction {
     let script_pubkey = address.script_pubkey();
 
     let txout = TxOut {
-        value: Amount::from_sat(100_000_000).to_sat(),
+        value: Amount::from_sat(100_000_000),
         script_pubkey,
     };
 
     Transaction {
-        version: 1,
+        version: Version::ONE,
         lock_time: bitcoin::absolute::LockTime::ZERO, // no locktime
         input: vec![txin],
         output: vec![txout],
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RunesTestingConfig {
     pub address1: String,
     pub address2: String,
@@ -218,7 +217,7 @@ pub fn create_rune_etching_transaction(config: &RunesTestingConfig) -> Transacti
 
     // tx vout 0 will hold all 1000 of the runes
     let txout = TxOut {
-        value: Amount::from_sat(100_000_000).to_sat(),
+        value: Amount::from_sat(100_000_000),
         script_pubkey,
     };
 
@@ -240,12 +239,12 @@ pub fn create_rune_etching_transaction(config: &RunesTestingConfig) -> Transacti
     .encipher();
 
     let op_return = TxOut {
-        value: Amount::from_sat(0).to_sat(),
+        value: Amount::from_sat(0),
         script_pubkey: runestone,
     };
 
     Transaction {
-        version: 1,
+        version: Version::ONE,
         lock_time: bitcoin::absolute::LockTime::ZERO,
         input: vec![txin],
         output: vec![txout, op_return],
@@ -257,9 +256,7 @@ pub fn create_rune_etching_transaction(config: &RunesTestingConfig) -> Transacti
 pub fn create_rune_transfer_transaction(
     config: &RunesTestingConfig,
     previous_output: OutPoint,
-    rune_id: RuneId,
-    edict_amount: u128,
-    edict_output: u32,
+    edicts: Vec<Edict>,
 ) -> Transaction {
     let input_script = ScriptBuf::new();
 
@@ -279,38 +276,32 @@ pub fn create_rune_transfer_transaction(
 
     // tx vout 0 corresponds to address2 will hold all 200 of the runes
     let txout0 = TxOut {
-        value: Amount::from_sat(1).to_sat(),
+        value: Amount::from_sat(1),
         script_pubkey: script_pubkey2,
     };
 
     // tx vout 1 corresponds to address1 and will hold 800 of the runes
     let txout1 = TxOut {
-        value: Amount::from_sat(99_999_999).to_sat(),
+        value: Amount::from_sat(99_999_999),
         script_pubkey: script_pubkey1,
-    };
-
-    let edict = Edict {
-        id: rune_id,
-        amount: edict_amount,
-        output: edict_output,
     };
 
     let runestone: ScriptBuf = (Runestone {
         etching: None,
         pointer: Some(1), // refund to vout 1
-        edicts: vec![edict],
+        edicts,
         mint: None,
         protocol: None,
     })
     .encipher();
 
     let op_return = TxOut {
-        value: Amount::from_sat(0).to_sat(),
+        value: Amount::from_sat(0),
         script_pubkey: runestone,
     };
 
     Transaction {
-        version: 1,
+        version: Version::ONE,
         lock_time: bitcoin::absolute::LockTime::ZERO,
         input: vec![txin],
         output: vec![txout0, txout1, op_return],
@@ -319,7 +310,7 @@ pub fn create_rune_transfer_transaction(
 
 pub fn create_block_with_txs(txdata: Vec<Transaction>) -> Block {
     // Define block header fields
-    let version = Version::from_consensus(1);
+    let _version = Version::ONE;
     let previous_blockhash =
         BlockHash::from_str("00000000000000000005c3b409b4f17f9b3a97ed46d1a63d3f660d24168b2b3e")
             .unwrap();
@@ -330,12 +321,12 @@ pub fn create_block_with_txs(txdata: Vec<Transaction>) -> Block {
     )
     .unwrap();
     let time = 1231006505; // Example timestamp (January 3, 2009)
-    let bits = bitcoin::CompactTarget::from_hex_str("0x1234").unwrap(); // Example bits (difficulty)
+    let bits = bitcoin::CompactTarget::from_consensus(0x1234); // Example bits (difficulty)
     let nonce = 2083236893; // Example nonce
 
     // Create the block header
     let header = Header {
-        version,
+        version: bitcoin::blockdata::block::Version::from_consensus(1),
         prev_blockhash: previous_blockhash,
         merkle_root,
         time,
@@ -384,33 +375,15 @@ pub fn create_block_with_coinbase_tx(height: u32) -> Block {
 ///         - [0]: ptpkh address2
 ///         - [1]: ptpkh address1
 ///         - [2]: runestone with edict to transfer to vout0, default to vout1
-pub fn create_block_with_rune_transfer(
-    edict_amount: u128,
-    edict_output: u32,
-) -> (Block, RunesTestingConfig) {
-    let config = RunesTestingConfig::new(
-        "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu",
-        "bc1qwml3ckq4gtmxe7hwvs38nvt5j63gwnwwmvk5r5",
-        "TESTER",
-        "Z",
-        840001,
-        0,
-    );
-    let tx0 = create_rune_etching_transaction(&config);
+pub fn create_block_with_rune_transfer(config: &RunesTestingConfig, edicts: Vec<Edict>) -> Block {
+    let tx0 = create_rune_etching_transaction(config);
     let outpoint_with_runes = OutPoint {
-        txid: tx0.txid(),
+        txid: tx0.compute_txid(),
         vout: 0,
     };
-    let rune_id = RuneId::new(config.rune_etch_height, config.rune_etch_vout).unwrap();
 
-    let tx1 = create_rune_transfer_transaction(
-        &config,
-        outpoint_with_runes,
-        rune_id,
-        edict_amount,
-        edict_output,
-    );
-    return (create_block_with_txs(vec![tx0, tx1]), config);
+    let tx1 = create_rune_transfer_transaction(config, outpoint_with_runes, edicts);
+    return create_block_with_txs(vec![tx0, tx1]);
 }
 
 pub fn create_protostone_encoded_tx(
@@ -432,7 +405,7 @@ pub fn create_protostone_encoded_tx(
     let script_pubkey = address.script_pubkey();
 
     let txout = TxOut {
-        value: Amount::from_sat(100_000_000).to_sat(),
+        value: Amount::from_sat(100_000_000),
         script_pubkey,
     };
 
@@ -457,22 +430,47 @@ pub fn create_protostone_encoded_tx(
 
     // op return is at output 1
     let op_return = TxOut {
-        value: Amount::from_sat(0).to_sat(),
+        value: Amount::from_sat(0),
         script_pubkey: runestone,
     };
 
     Transaction {
-        version: 1,
+        version: Version::ONE,
         lock_time: bitcoin::absolute::LockTime::ZERO,
         input: vec![txin],
         output: vec![txout, op_return],
     }
 }
 
+pub fn create_default_protoburn_transaction(
+    previous_output: OutPoint,
+    burn_protocol_id: u128,
+) -> Transaction {
+    // output rune pointer points to the OP_RETURN, so therefore targets the protoburn
+    return create_protostone_transaction(
+        previous_output,
+        Some(burn_protocol_id),
+        true,
+        1,
+        // protoburn and give protorunes to output 0
+        0,
+        13, // this value must be 13 if protoburn
+        vec![],
+    );
+}
+
 /// Create a protoburn given an input that holds runes
 /// Outpoint with protorunes is the txid and vout 0
 /// This outpoint holds 1000 protorunes
-pub fn create_protoburn_transaction(previous_output: OutPoint, protocol_id: u128) -> Transaction {
+pub fn create_protostone_transaction(
+    previous_output: OutPoint,
+    burn_protocol_id: Option<u128>,
+    etch: bool,
+    output_rune_pointer: u32,
+    output_protostone_pointer: u32,
+    protocol_tag: u128,
+    protostone_edicts: Vec<ProtostoneEdict>,
+) -> Transaction {
     let input_script = ScriptBuf::new();
 
     // Create a transaction input
@@ -488,12 +486,12 @@ pub fn create_protoburn_transaction(previous_output: OutPoint, protocol_id: u128
     let script_pubkey = address.script_pubkey();
 
     let txout = TxOut {
-        value: Amount::from_sat(100_000_000).to_sat(),
+        value: Amount::from_sat(100_000_000),
         script_pubkey,
     };
 
-    let runestone: ScriptBuf = (Runestone {
-        etching: Some(Etching {
+    let etching = if etch {
+        Some(Etching {
             divisibility: Some(2),
             premine: Some(1000),
             rune: Some(Rune::from_str("TESTTESTTEST").unwrap()),
@@ -501,18 +499,23 @@ pub fn create_protoburn_transaction(previous_output: OutPoint, protocol_id: u128
             symbol: Some(char::from_str("A").unwrap()),
             turbo: true,
             terms: None,
-        }),
-        pointer: Some(1), // points to the OP_RETURN, so therefore targets the protoburn
+        })
+    } else {
+        None
+    };
+
+    let runestone: ScriptBuf = (Runestone {
+        etching,
+        pointer: Some(output_rune_pointer),
         edicts: Vec::new(),
         mint: None,
         protocol: match vec![Protostone {
-            // protoburn and give protorunes to output 0
-            burn: Some(protocol_id),
-            edicts: vec![],
-            pointer: Some(0),
+            burn: burn_protocol_id,
+            edicts: protostone_edicts,
+            pointer: Some(output_protostone_pointer),
             refund: None,
             from: None,
-            protocol_tag: 13, // this value must be 13 if protoburn
+            protocol_tag: protocol_tag,
             message: vec![],
         }]
         .encipher()
@@ -525,22 +528,37 @@ pub fn create_protoburn_transaction(previous_output: OutPoint, protocol_id: u128
 
     // op return is at output 1
     let op_return = TxOut {
-        value: Amount::from_sat(0).to_sat(),
+        value: Amount::from_sat(0),
         script_pubkey: runestone,
     };
 
     Transaction {
-        version: 1,
+        version: Version::ONE,
         lock_time: bitcoin::absolute::LockTime::ZERO,
         input: vec![txin],
         output: vec![txout, op_return],
     }
 }
 
+/// This creates the following transaction:
+///   inputs
+///     - 0: UTXO to previous_output
+///   outputs
+///     - 0: pointer
+///     - 1: refund pointer
+///     - 2: OP RETURN runestone
+///         - pointer to output 2 (the runestone), meaning all leftover runes get burned
+///         - Protostone:
+///             - protomessage: no useful calldata, used to call the MessageContext handle
+///             - protosone edict: from input
+///
+/// NOTE: The default behavior of any transaction is all protorunes will become spendable
+/// by the first protostone. In this case, the first protostone is the protomessage,
+/// so all input protorunes will be spendable by that protomessage
 pub fn create_protomessage_from_edict_tx(
     previous_output: OutPoint,
     protocol_id: u128,
-    protorune_id: ProtoruneRuneId,
+    protostone_edicts: Vec<ProtostoneEdict>,
 ) -> Transaction {
     let input_script = ScriptBuf::new();
     let txin = TxIn {
@@ -553,11 +571,11 @@ pub fn create_protomessage_from_edict_tx(
     let address: Address<NetworkChecked> = get_address(&ADDRESS1);
 
     let txout0 = TxOut {
-        value: Amount::from_sat(1).to_sat(),
+        value: Amount::from_sat(1),
         script_pubkey: address.script_pubkey(),
     };
     let txout1 = TxOut {
-        value: Amount::from_sat(2).to_sat(),
+        value: Amount::from_sat(2),
         script_pubkey: address.script_pubkey(),
     };
 
@@ -571,11 +589,7 @@ pub fn create_protomessage_from_edict_tx(
             message: vec![1u8],
             pointer: Some(0),
             refund: Some(1),
-            edicts: vec![ProtostoneEdict {
-                id: protorune_id,
-                amount: 800,
-                output: 4, // output 0, 1 are the spendable outputs, output 2 is the op_return, output 3 is reserved, output 4 is the protomessage
-            }],
+            edicts: protostone_edicts,
             from: None,
             burn: None,
             protocol_tag: protocol_id as u128,
@@ -590,12 +604,12 @@ pub fn create_protomessage_from_edict_tx(
 
     //     // op return is at output 1
     let op_return = TxOut {
-        value: Amount::from_sat(0).to_sat(),
+        value: Amount::from_sat(0),
         script_pubkey: runestone,
     };
 
     Transaction {
-        version: 1,
+        version: Version::ONE,
         lock_time: bitcoin::absolute::LockTime::ZERO,
         input: vec![txin],
         output: vec![txout0, txout1, op_return],

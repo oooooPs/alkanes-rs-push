@@ -24,14 +24,154 @@
 /// of protobuf runtime.
 const _PROTOBUF_VERSION_CHECK: () = ::protobuf::VERSION_3_7_1;
 
+// @@protoc_insertion_point(message:alkanes.uint128)
+#[derive(PartialEq,Clone,Default,Debug)]
+pub struct Uint128 {
+    // message fields
+    // @@protoc_insertion_point(field:alkanes.uint128.lo)
+    pub lo: u64,
+    // @@protoc_insertion_point(field:alkanes.uint128.hi)
+    pub hi: u64,
+    // special fields
+    // @@protoc_insertion_point(special_field:alkanes.uint128.special_fields)
+    pub special_fields: ::protobuf::SpecialFields,
+}
+
+impl<'a> ::std::default::Default for &'a Uint128 {
+    fn default() -> &'a Uint128 {
+        <Uint128 as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl Uint128 {
+    pub fn new() -> Uint128 {
+        ::std::default::Default::default()
+    }
+
+    fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
+        let mut fields = ::std::vec::Vec::with_capacity(2);
+        let mut oneofs = ::std::vec::Vec::with_capacity(0);
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "lo",
+            |m: &Uint128| { &m.lo },
+            |m: &mut Uint128| { &mut m.lo },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "hi",
+            |m: &Uint128| { &m.hi },
+            |m: &mut Uint128| { &mut m.hi },
+        ));
+        ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<Uint128>(
+            "uint128",
+            fields,
+            oneofs,
+        )
+    }
+}
+
+impl ::protobuf::Message for Uint128 {
+    const NAME: &'static str = "uint128";
+
+    fn is_initialized(&self) -> bool {
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
+        while let Some(tag) = is.read_raw_tag_or_eof()? {
+            match tag {
+                8 => {
+                    self.lo = is.read_uint64()?;
+                },
+                16 => {
+                    self.hi = is.read_uint64()?;
+                },
+                tag => {
+                    ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u64 {
+        let mut my_size = 0;
+        if self.lo != 0 {
+            my_size += ::protobuf::rt::uint64_size(1, self.lo);
+        }
+        if self.hi != 0 {
+            my_size += ::protobuf::rt::uint64_size(2, self.hi);
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
+        self.special_fields.cached_size().set(my_size as u32);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
+        if self.lo != 0 {
+            os.write_uint64(1, self.lo)?;
+        }
+        if self.hi != 0 {
+            os.write_uint64(2, self.hi)?;
+        }
+        os.write_unknown_fields(self.special_fields.unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn special_fields(&self) -> &::protobuf::SpecialFields {
+        &self.special_fields
+    }
+
+    fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
+        &mut self.special_fields
+    }
+
+    fn new() -> Uint128 {
+        Uint128::new()
+    }
+
+    fn clear(&mut self) {
+        self.lo = 0;
+        self.hi = 0;
+        self.special_fields.clear();
+    }
+
+    fn default_instance() -> &'static Uint128 {
+        static instance: Uint128 = Uint128 {
+            lo: 0,
+            hi: 0,
+            special_fields: ::protobuf::SpecialFields::new(),
+        };
+        &instance
+    }
+}
+
+impl ::protobuf::MessageFull for Uint128 {
+    fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
+        descriptor.get(|| file_descriptor().message_by_package_relative_name("uint128").unwrap()).clone()
+    }
+}
+
+impl ::std::fmt::Display for Uint128 {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for Uint128 {
+    type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
+}
+
 // @@protoc_insertion_point(message:alkanes.AlkaneId)
 #[derive(PartialEq,Clone,Default,Debug)]
 pub struct AlkaneId {
     // message fields
     // @@protoc_insertion_point(field:alkanes.AlkaneId.block)
-    pub block: ::std::vec::Vec<u8>,
+    pub block: ::protobuf::MessageField<Uint128>,
     // @@protoc_insertion_point(field:alkanes.AlkaneId.tx)
-    pub tx: ::std::vec::Vec<u8>,
+    pub tx: ::protobuf::MessageField<Uint128>,
     // special fields
     // @@protoc_insertion_point(special_field:alkanes.AlkaneId.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
@@ -51,12 +191,12 @@ impl AlkaneId {
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
         let mut fields = ::std::vec::Vec::with_capacity(2);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
-        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, Uint128>(
             "block",
             |m: &AlkaneId| { &m.block },
             |m: &mut AlkaneId| { &mut m.block },
         ));
-        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, Uint128>(
             "tx",
             |m: &AlkaneId| { &m.tx },
             |m: &mut AlkaneId| { &mut m.tx },
@@ -80,10 +220,10 @@ impl ::protobuf::Message for AlkaneId {
         while let Some(tag) = is.read_raw_tag_or_eof()? {
             match tag {
                 10 => {
-                    self.block = is.read_bytes()?;
+                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.block)?;
                 },
                 18 => {
-                    self.tx = is.read_bytes()?;
+                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.tx)?;
                 },
                 tag => {
                     ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
@@ -97,11 +237,13 @@ impl ::protobuf::Message for AlkaneId {
     #[allow(unused_variables)]
     fn compute_size(&self) -> u64 {
         let mut my_size = 0;
-        if !self.block.is_empty() {
-            my_size += ::protobuf::rt::bytes_size(1, &self.block);
+        if let Some(v) = self.block.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
         }
-        if !self.tx.is_empty() {
-            my_size += ::protobuf::rt::bytes_size(2, &self.tx);
+        if let Some(v) = self.tx.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
         self.special_fields.cached_size().set(my_size as u32);
@@ -109,11 +251,11 @@ impl ::protobuf::Message for AlkaneId {
     }
 
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
-        if !self.block.is_empty() {
-            os.write_bytes(1, &self.block)?;
+        if let Some(v) = self.block.as_ref() {
+            ::protobuf::rt::write_message_field_with_cached_size(1, v, os)?;
         }
-        if !self.tx.is_empty() {
-            os.write_bytes(2, &self.tx)?;
+        if let Some(v) = self.tx.as_ref() {
+            ::protobuf::rt::write_message_field_with_cached_size(2, v, os)?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -139,8 +281,8 @@ impl ::protobuf::Message for AlkaneId {
 
     fn default_instance() -> &'static AlkaneId {
         static instance: AlkaneId = AlkaneId {
-            block: ::std::vec::Vec::new(),
-            tx: ::std::vec::Vec::new(),
+            block: ::protobuf::MessageField::none(),
+            tx: ::protobuf::MessageField::none(),
             special_fields: ::protobuf::SpecialFields::new(),
         };
         &instance
@@ -171,7 +313,7 @@ pub struct AlkaneTransfer {
     // @@protoc_insertion_point(field:alkanes.AlkaneTransfer.id)
     pub id: ::protobuf::MessageField<AlkaneId>,
     // @@protoc_insertion_point(field:alkanes.AlkaneTransfer.value)
-    pub value: ::std::vec::Vec<u8>,
+    pub value: ::protobuf::MessageField<Uint128>,
     // special fields
     // @@protoc_insertion_point(special_field:alkanes.AlkaneTransfer.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
@@ -196,7 +338,7 @@ impl AlkaneTransfer {
             |m: &AlkaneTransfer| { &m.id },
             |m: &mut AlkaneTransfer| { &mut m.id },
         ));
-        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, Uint128>(
             "value",
             |m: &AlkaneTransfer| { &m.value },
             |m: &mut AlkaneTransfer| { &mut m.value },
@@ -223,7 +365,7 @@ impl ::protobuf::Message for AlkaneTransfer {
                     ::protobuf::rt::read_singular_message_into_field(is, &mut self.id)?;
                 },
                 18 => {
-                    self.value = is.read_bytes()?;
+                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.value)?;
                 },
                 tag => {
                     ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
@@ -241,8 +383,9 @@ impl ::protobuf::Message for AlkaneTransfer {
             let len = v.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
         }
-        if !self.value.is_empty() {
-            my_size += ::protobuf::rt::bytes_size(2, &self.value);
+        if let Some(v) = self.value.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
         self.special_fields.cached_size().set(my_size as u32);
@@ -253,8 +396,8 @@ impl ::protobuf::Message for AlkaneTransfer {
         if let Some(v) = self.id.as_ref() {
             ::protobuf::rt::write_message_field_with_cached_size(1, v, os)?;
         }
-        if !self.value.is_empty() {
-            os.write_bytes(2, &self.value)?;
+        if let Some(v) = self.value.as_ref() {
+            ::protobuf::rt::write_message_field_with_cached_size(2, v, os)?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -281,7 +424,7 @@ impl ::protobuf::Message for AlkaneTransfer {
     fn default_instance() -> &'static AlkaneTransfer {
         static instance: AlkaneTransfer = AlkaneTransfer {
             id: ::protobuf::MessageField::none(),
-            value: ::std::vec::Vec::new(),
+            value: ::protobuf::MessageField::none(),
             special_fields: ::protobuf::SpecialFields::new(),
         };
         &instance
@@ -313,14 +456,12 @@ pub struct MessageContextParcel {
     pub alkanes: ::std::vec::Vec<AlkaneTransfer>,
     // @@protoc_insertion_point(field:alkanes.MessageContextParcel.transaction)
     pub transaction: ::std::vec::Vec<u8>,
-    // @@protoc_insertion_point(field:alkanes.MessageContextParcel.block)
-    pub block: ::std::vec::Vec<u8>,
     // @@protoc_insertion_point(field:alkanes.MessageContextParcel.height)
     pub height: u64,
-    // @@protoc_insertion_point(field:alkanes.MessageContextParcel.calldata)
-    pub calldata: ::std::vec::Vec<u8>,
     // @@protoc_insertion_point(field:alkanes.MessageContextParcel.txindex)
     pub txindex: u32,
+    // @@protoc_insertion_point(field:alkanes.MessageContextParcel.calldata)
+    pub calldata: ::std::vec::Vec<u8>,
     // @@protoc_insertion_point(field:alkanes.MessageContextParcel.vout)
     pub vout: u32,
     // @@protoc_insertion_point(field:alkanes.MessageContextParcel.pointer)
@@ -344,7 +485,7 @@ impl MessageContextParcel {
     }
 
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
-        let mut fields = ::std::vec::Vec::with_capacity(9);
+        let mut fields = ::std::vec::Vec::with_capacity(8);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
         fields.push(::protobuf::reflect::rt::v2::make_vec_simpler_accessor::<_, _>(
             "alkanes",
@@ -357,24 +498,19 @@ impl MessageContextParcel {
             |m: &mut MessageContextParcel| { &mut m.transaction },
         ));
         fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
-            "block",
-            |m: &MessageContextParcel| { &m.block },
-            |m: &mut MessageContextParcel| { &mut m.block },
-        ));
-        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
             "height",
             |m: &MessageContextParcel| { &m.height },
             |m: &mut MessageContextParcel| { &mut m.height },
         ));
         fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
-            "calldata",
-            |m: &MessageContextParcel| { &m.calldata },
-            |m: &mut MessageContextParcel| { &mut m.calldata },
-        ));
-        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
             "txindex",
             |m: &MessageContextParcel| { &m.txindex },
             |m: &mut MessageContextParcel| { &mut m.txindex },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "calldata",
+            |m: &MessageContextParcel| { &m.calldata },
+            |m: &mut MessageContextParcel| { &mut m.calldata },
         ));
         fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
             "vout",
@@ -415,17 +551,14 @@ impl ::protobuf::Message for MessageContextParcel {
                 18 => {
                     self.transaction = is.read_bytes()?;
                 },
-                26 => {
-                    self.block = is.read_bytes()?;
-                },
                 32 => {
                     self.height = is.read_uint64()?;
                 },
-                42 => {
-                    self.calldata = is.read_bytes()?;
-                },
                 48 => {
                     self.txindex = is.read_uint32()?;
+                },
+                42 => {
+                    self.calldata = is.read_bytes()?;
                 },
                 56 => {
                     self.vout = is.read_uint32()?;
@@ -455,17 +588,14 @@ impl ::protobuf::Message for MessageContextParcel {
         if !self.transaction.is_empty() {
             my_size += ::protobuf::rt::bytes_size(2, &self.transaction);
         }
-        if !self.block.is_empty() {
-            my_size += ::protobuf::rt::bytes_size(3, &self.block);
-        }
         if self.height != 0 {
             my_size += ::protobuf::rt::uint64_size(4, self.height);
         }
-        if !self.calldata.is_empty() {
-            my_size += ::protobuf::rt::bytes_size(5, &self.calldata);
-        }
         if self.txindex != 0 {
             my_size += ::protobuf::rt::uint32_size(6, self.txindex);
+        }
+        if !self.calldata.is_empty() {
+            my_size += ::protobuf::rt::bytes_size(5, &self.calldata);
         }
         if self.vout != 0 {
             my_size += ::protobuf::rt::uint32_size(7, self.vout);
@@ -488,17 +618,14 @@ impl ::protobuf::Message for MessageContextParcel {
         if !self.transaction.is_empty() {
             os.write_bytes(2, &self.transaction)?;
         }
-        if !self.block.is_empty() {
-            os.write_bytes(3, &self.block)?;
-        }
         if self.height != 0 {
             os.write_uint64(4, self.height)?;
         }
-        if !self.calldata.is_empty() {
-            os.write_bytes(5, &self.calldata)?;
-        }
         if self.txindex != 0 {
             os.write_uint32(6, self.txindex)?;
+        }
+        if !self.calldata.is_empty() {
+            os.write_bytes(5, &self.calldata)?;
         }
         if self.vout != 0 {
             os.write_uint32(7, self.vout)?;
@@ -528,10 +655,9 @@ impl ::protobuf::Message for MessageContextParcel {
     fn clear(&mut self) {
         self.alkanes.clear();
         self.transaction.clear();
-        self.block.clear();
         self.height = 0;
-        self.calldata.clear();
         self.txindex = 0;
+        self.calldata.clear();
         self.vout = 0;
         self.pointer = 0;
         self.refund_pointer = 0;
@@ -542,10 +668,9 @@ impl ::protobuf::Message for MessageContextParcel {
         static instance: MessageContextParcel = MessageContextParcel {
             alkanes: ::std::vec::Vec::new(),
             transaction: ::std::vec::Vec::new(),
-            block: ::std::vec::Vec::new(),
             height: 0,
-            calldata: ::std::vec::Vec::new(),
             txindex: 0,
+            calldata: ::std::vec::Vec::new(),
             vout: 0,
             pointer: 0,
             refund_pointer: 0,
@@ -1260,28 +1385,30 @@ impl ::protobuf::reflect::ProtobufValue for AlkaneInventoryResponse {
 }
 
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\ralkanes.proto\x12\x07alkanes\"0\n\x08AlkaneId\x12\x14\n\x05block\x18\
-    \x01\x20\x01(\x0cR\x05block\x12\x0e\n\x02tx\x18\x02\x20\x01(\x0cR\x02tx\
-    \"I\n\x0eAlkaneTransfer\x12!\n\x02id\x18\x01\x20\x01(\x0b2\x11.alkanes.A\
-    lkaneIdR\x02id\x12\x14\n\x05value\x18\x02\x20\x01(\x0cR\x05value\"\xa4\
-    \x02\n\x14MessageContextParcel\x121\n\x07alkanes\x18\x01\x20\x03(\x0b2\
-    \x17.alkanes.AlkaneTransferR\x07alkanes\x12\x20\n\x0btransaction\x18\x02\
-    \x20\x01(\x0cR\x0btransaction\x12\x14\n\x05block\x18\x03\x20\x01(\x0cR\
-    \x05block\x12\x16\n\x06height\x18\x04\x20\x01(\x04R\x06height\x12\x1a\n\
-    \x08calldata\x18\x05\x20\x01(\x0cR\x08calldata\x12\x18\n\x07txindex\x18\
-    \x06\x20\x01(\rR\x07txindex\x12\x12\n\x04vout\x18\x07\x20\x01(\rR\x04vou\
-    t\x12\x18\n\x07pointer\x18\x08\x20\x01(\rR\x07pointer\x12%\n\x0erefund_p\
-    ointer\x18\t\x20\x01(\rR\rrefundPointer\"6\n\x0cKeyValuePair\x12\x10\n\
-    \x03key\x18\x01\x20\x01(\x0cR\x03key\x12\x14\n\x05value\x18\x02\x20\x01(\
-    \x0cR\x05value\"\x8e\x01\n\x14ExtendedCallResponse\x121\n\x07alkanes\x18\
-    \x01\x20\x03(\x0b2\x17.alkanes.AlkaneTransferR\x07alkanes\x12/\n\x07stor\
-    age\x18\x02\x20\x03(\x0b2\x15.alkanes.KeyValuePairR\x07storage\x12\x12\n\
-    \x04data\x18\x03\x20\x01(\x0cR\x04data\"j\n\x10SimulateResponse\x12;\n\t\
-    execution\x18\x01\x20\x01(\x0b2\x1d.alkanes.ExtendedCallResponseR\texecu\
-    tion\x12\x19\n\x08gas_used\x18\x02\x20\x01(\x04R\x07gasUsed\";\n\x16Alka\
-    neInventoryRequest\x12!\n\x02id\x18\x01\x20\x01(\x0b2\x11.alkanes.Alkane\
-    IdR\x02id\"L\n\x17AlkaneInventoryResponse\x121\n\x07alkanes\x18\x01\x20\
-    \x03(\x0b2\x17.alkanes.AlkaneTransferR\x07alkanesb\x06proto3\
+    \n\ralkanes.proto\x12\x07alkanes\")\n\x07uint128\x12\x0e\n\x02lo\x18\x01\
+    \x20\x01(\x04R\x02lo\x12\x0e\n\x02hi\x18\x02\x20\x01(\x04R\x02hi\"T\n\
+    \x08AlkaneId\x12&\n\x05block\x18\x01\x20\x01(\x0b2\x10.alkanes.uint128R\
+    \x05block\x12\x20\n\x02tx\x18\x02\x20\x01(\x0b2\x10.alkanes.uint128R\x02\
+    tx\"[\n\x0eAlkaneTransfer\x12!\n\x02id\x18\x01\x20\x01(\x0b2\x11.alkanes\
+    .AlkaneIdR\x02id\x12&\n\x05value\x18\x02\x20\x01(\x0b2\x10.alkanes.uint1\
+    28R\x05value\"\x8e\x02\n\x14MessageContextParcel\x121\n\x07alkanes\x18\
+    \x01\x20\x03(\x0b2\x17.alkanes.AlkaneTransferR\x07alkanes\x12\x20\n\x0bt\
+    ransaction\x18\x02\x20\x01(\x0cR\x0btransaction\x12\x16\n\x06height\x18\
+    \x04\x20\x01(\x04R\x06height\x12\x18\n\x07txindex\x18\x06\x20\x01(\rR\
+    \x07txindex\x12\x1a\n\x08calldata\x18\x05\x20\x01(\x0cR\x08calldata\x12\
+    \x12\n\x04vout\x18\x07\x20\x01(\rR\x04vout\x12\x18\n\x07pointer\x18\x08\
+    \x20\x01(\rR\x07pointer\x12%\n\x0erefund_pointer\x18\t\x20\x01(\rR\rrefu\
+    ndPointer\"6\n\x0cKeyValuePair\x12\x10\n\x03key\x18\x01\x20\x01(\x0cR\
+    \x03key\x12\x14\n\x05value\x18\x02\x20\x01(\x0cR\x05value\"\x8e\x01\n\
+    \x14ExtendedCallResponse\x121\n\x07alkanes\x18\x01\x20\x03(\x0b2\x17.alk\
+    anes.AlkaneTransferR\x07alkanes\x12/\n\x07storage\x18\x02\x20\x03(\x0b2\
+    \x15.alkanes.KeyValuePairR\x07storage\x12\x12\n\x04data\x18\x03\x20\x01(\
+    \x0cR\x04data\"j\n\x10SimulateResponse\x12;\n\texecution\x18\x01\x20\x01\
+    (\x0b2\x1d.alkanes.ExtendedCallResponseR\texecution\x12\x19\n\x08gas_use\
+    d\x18\x02\x20\x01(\x04R\x07gasUsed\";\n\x16AlkaneInventoryRequest\x12!\n\
+    \x02id\x18\x01\x20\x01(\x0b2\x11.alkanes.AlkaneIdR\x02id\"L\n\x17AlkaneI\
+    nventoryResponse\x121\n\x07alkanes\x18\x01\x20\x03(\x0b2\x17.alkanes.Alk\
+    aneTransferR\x07alkanesb\x06proto3\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file
@@ -1299,7 +1426,8 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
     file_descriptor.get(|| {
         let generated_file_descriptor = generated_file_descriptor_lazy.get(|| {
             let mut deps = ::std::vec::Vec::with_capacity(0);
-            let mut messages = ::std::vec::Vec::with_capacity(8);
+            let mut messages = ::std::vec::Vec::with_capacity(9);
+            messages.push(Uint128::generated_message_descriptor_data());
             messages.push(AlkaneId::generated_message_descriptor_data());
             messages.push(AlkaneTransfer::generated_message_descriptor_data());
             messages.push(MessageContextParcel::generated_message_descriptor_data());
