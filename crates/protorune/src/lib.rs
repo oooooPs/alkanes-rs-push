@@ -664,20 +664,20 @@ impl Protorune {
                 tx.compute_txid(),
             )?;
 
+            let protostones_iter = protostones.into_iter();
             // by default, all protorunes that come in as input will be given to the
             // first protostone with a matching protocol_tag
-            if let Some(position) = protostones
-                .into_iter()
+            if let Some(position) = protostones_iter
+                .clone()
                 .position(|s| s.protocol_tag == T::protocol_tag())
             {
                 Self::handle_leftover_runes(
                     &mut balance_sheet,
                     &mut proto_balances_by_output,
-                    (tx.output.len() as u32) + 1 + position,
+                    (tx.output.len() as u32) + 1 + position as u32,
                 )?;
             }
-            protostones
-                .into_iter()
+            protostones_iter
                 .enumerate()
                 .map(|(i, stone)| {
                     let shadow_vout = (i as u32) + (tx.output.len() as u32) + 1;
