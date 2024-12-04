@@ -95,7 +95,10 @@ fn main() {
                 let final_name = feature_name.to_uppercase().replace("-", "_");
                 if let Some(_) = env::var(format!("CARGO_FEATURE_{}", final_name.as_str())).ok() {
                     Some(name)
-                } else if vars.position(|(k, _v)| k.to_owned().into_string().unwrap().contains("ALL")).is_some() {
+                } else if vars
+                    .position(|(k, _v)| k.to_owned().into_string().unwrap().contains("ALL"))
+                    .is_some()
+                {
                     Some(name)
                 } else {
                     None
@@ -125,7 +128,7 @@ fn main() {
                 build_alkane(wasm_str, vec!["bellscoin"])?;
               }
             } else {
-              build_alkane(wasm_str, vec!["regtest"])?;
+              build_alkane(wasm_str, vec![])?;
             }
             std::env::set_current_dir(&crates_dir)?;
             let subbed = v.clone().replace("-", "_");
