@@ -81,7 +81,7 @@ pub fn serialize_u32_little_endian(value: u32) -> Vec<u8> {
 
 pub fn create_coinbase_transaction(height: u32) -> Transaction {
     // Create the script for the coinbase transaction
-    let script_pubkey = Address::from_str("bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu")
+    let script_pubkey = Address::from_str(ADDRESS1)
         .unwrap()
         .require_network(bitcoin::Network::Bitcoin)
         .unwrap()
@@ -140,7 +140,7 @@ pub fn create_test_transaction_with_witness(script: Vec<u8>) -> Transaction {
         witness,
     };
 
-    let address_str = "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu";
+    let address_str = ADDRESS1;
 
     let address: Address<NetworkChecked> = Address::from_str(&address_str)
         .unwrap()
