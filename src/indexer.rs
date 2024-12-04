@@ -3,11 +3,59 @@ use protorune::{message::MessageContext, Protorune};
 use crate::message::AlkaneMessageContext;
 use crate::vm::fuel::set_message_count;
 use crate::network::{genesis, is_genesis};
+use protorune_support::network::{set_network, NetworkParams};
 use protorune_support::protostone::{Protostone};
 use bitcoin::blockdata::block::{Block};
 use anyhow::{Result};
 
+pub fn configure_network() {
+  #[cfg(feature = "test")]
+  set_network(NetworkParams {
+    bech32_prefix: String::from("bcrt"),
+    p2pkh_prefix: 0x64,
+    p2sh_prefix: 0xc4
+  });
+  #[cfg(feature = "regtest")]
+  set_network(NetworkParams {
+    bech32_prefix: String::from("bcrt"),
+    p2pkh_prefix: 0x64,
+    p2sh_prefix: 0xc4
+  });
+  #[cfg(feature = "mainnet")]
+  set_network(NetworkParams {
+    bech32_prefix: String::from("bc"),
+    p2sh_prefix: 0x05,
+    p2pkh_prefix: 0x00
+  });
+  #[cfg(feature = "testnet")]
+  set_network(NetworkParams {
+    bech32_prefix: String::from("tb"),
+    p2pkh_hash: 0x6f,
+    p2sh_hash: 0xc4
+  });
+  #[cfg(feature = "luckycoin")]
+  set_network(NetworkParams {
+    bech32_prefix: String::from("tb"),
+    p2pkh_hash: 0x6f,
+    p2sh_hash: 0xc4
+  });
+    
+  #[cfg(feature = "dogecoin")]
+  set_network(NetworkParams {
+    bech32_prefix: String::from("dc"),
+    p2pkh_hash: 0x6f,
+    p2sh_hash: 0xc4
+  });
+  #[cfg(feature = "bellscoin")]
+  set_network(NetworkParams {
+    bech32_prefix: String::from("bel"),
+    p2pkh_hash: 0x6f,
+    p2sh_hash: 0xc4
+  });
+}
+
 pub fn index_block(block: &Block, height: u32) -> Result<()> {
+    configure_network();
     if is_genesis(height.into()) {
         genesis(&block).unwrap();
     }

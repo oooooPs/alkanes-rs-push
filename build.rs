@@ -129,13 +129,6 @@ fn main() {
             }
             std::env::set_current_dir(&crates_dir)?;
             let subbed = v.clone().replace("-", "_");
-            let f: Vec<u8> = fs::read(
-                &Path::new(&wasm_str)
-                    .join("wasm32-unknown-unknown")
-                    .join("release")
-                    .join(subbed.clone() + ".wasm"),
-            )?;
-            let data: String = hex::encode(&f);
             eprintln!(
                 "write: {}",
                 write_dir
@@ -145,7 +138,15 @@ fn main() {
                     .to_str()
                     .unwrap()
             );
-            fs::write(&Path::new(&wasm_str).join("wasm32-unknown-unknown").join("release").join(subbed.clone() + ".wasm.gz"), &compress(f.clone())?)?;
+            let f: Vec<u8> = fs::read(
+                &Path::new(&wasm_str)
+                    .join("wasm32-unknown-unknown")
+                    .join("release")
+                    .join(subbed.clone() + ".wasm"),
+            )?;
+            let compressed: Vec<u8> = compress(f.clone())?;
+            fs::write(&Path::new(&wasm_str).join("wasm32-unknown-unknown").join("release").join(subbed.clone() + ".wasm.gz"), &compressed)?;
+            let data: String = hex::encode(&f);
             fs::write(
                 &write_dir.join("std").join(subbed.clone() + "_build.rs"),
                 String::from("use hex_lit::hex;\n#[allow(long_running_const_eval)]\npub fn get_bytes() -> Vec<u8> { (&hex!(\"")
