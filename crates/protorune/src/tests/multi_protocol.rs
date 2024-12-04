@@ -33,7 +33,7 @@ impl MessageContext for ForwardAll {
     }
 }
 
-fn protomessages_from_protocol_ids(protocol_ids: Vec<u128>, block_height: u128) -> bitcoin::Block {
+fn protomessages_from_protocol_ids(protocol_ids: Vec<u128>) -> bitcoin::Block {
     let mut protoburn_txs = protocol_ids
         .clone()
         .into_iter()
@@ -74,21 +74,21 @@ fn multi_protomessage_protocol_test_template<T: MessageContext>(
     let block_height = 840000;
     let protocol_ids = vec![122, 123];
 
-    let test_block = protomessages_from_protocol_ids(protocol_ids, block_height);
+    let test_block = protomessages_from_protocol_ids(protocol_ids);
     let protorune_id = ProtoruneRuneId {
         block: block_height as u128,
-        tx: 0,
+        tx: 1,
     };
 
     assert!(Protorune::index_block::<T>(test_block.clone(), block_height as u64).is_ok());
     // print_cache();
-    // tx 0 is protoburn, tx 1 is protomessage
+    // tx 0 is protoburn, tx 2 is protomessage
     let outpoint_address0: OutPoint = OutPoint {
         txid: test_block.txdata[1].compute_txid(),
         vout: 0,
     };
     let outpoint_address1: OutPoint = OutPoint {
-        txid: test_block.txdata[1].compute_txid(),
+        txid: test_block.txdata[2].compute_txid(),
         vout: 1,
     };
     // check runes balance
@@ -97,7 +97,6 @@ fn multi_protomessage_protocol_test_template<T: MessageContext>(
             .OUTPOINT_TO_RUNES
             .select(&consensus_encode(&outpoint_address0).unwrap()),
     );
-
     let protorunes_sheet0 = load_sheet(
         &tables::RuneTable::for_protocol(122)
             .OUTPOINT_TO_RUNES
@@ -108,6 +107,7 @@ fn multi_protomessage_protocol_test_template<T: MessageContext>(
             .OUTPOINT_TO_RUNES
             .select(&consensus_encode(&outpoint_address1).unwrap()),
     );
+    println!("{:?}\n{:?}", protorunes_sheet0, protorunes_sheet1);
     let protorunes_sheet_runtime =
         load_sheet(&tables::RuneTable::for_protocol(122).RUNTIME_BALANCE);
 
