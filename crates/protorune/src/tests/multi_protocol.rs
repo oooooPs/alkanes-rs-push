@@ -3,7 +3,7 @@ use crate::message::{MessageContext, MessageContextParcel};
 use crate::test_helpers::{self as helpers};
 use crate::{tables, Protorune};
 use anyhow::Result;
-use bitcoin::OutPoint;
+use bitcoin::{OutPoint, Transaction};
 use protorune_support::balance_sheet::{BalanceSheet, ProtoruneRuneId};
 use protorune_support::rune_transfer::RuneTransfer;
 use protorune_support::utils::consensus_encode;
@@ -32,6 +32,37 @@ impl MessageContext for ForwardAll {
         Ok((runes, BalanceSheet::default()))
     }
 }
+
+fn protomessages_from_protocol_ids(protocol_ids: Vec<u128>, block_height: u128) -> bitcoin::Block {
+    let mut protoburn_txs = protocol_ids
+        .into_iter()
+        .map(|tag| {
+            let mock_output = OutPoint {
+                txid: bitcoin::Txid::from_str(
+                    "0000000000000000000000000000000000000000000000000000000000000000",
+                )
+                .unwrap(),
+                vout: 0,
+            };
+            helpers::create_default_protoburn_transaction(mock_output, tag)
+        })
+        .collect::<Vec<Transaction>>();
+
+    let inputs = protoburn_txs
+        .into_iter()
+        .map(|protoburn_tx| OutPoint {
+            txid: protoburn_tx.compute_txid(),
+            vout: 0,
+        })
+        .collect::<Vec<OutPoint>>();
+    // output 0 holds all the protorunes
+
+    let protomessage_tx =
+        helpers::create_multiple_protomessage_from_edict_tx(inputs, protocol_ids, vec![]);
+    protoburn_txs.push([protomessage_tx]);
+    helpers::create_block_with_txs(protoburn_txs)
+}
+
 fn protomessage_from_edict_fixture(protocol_id: u128, block_height: u128) -> bitcoin::Block {
     let first_mock_output = OutPoint {
         txid: bitcoin::Txid::from_str(
@@ -41,8 +72,12 @@ fn protomessage_from_edict_fixture(protocol_id: u128, block_height: u128) -> bit
         vout: 0,
     };
 
+    let second_mock_output = first_mock_output.clone();
+
     let protoburn_tx =
         helpers::create_default_protoburn_transaction(first_mock_output, protocol_id);
+    let protoburn_second_tx =
+        helpers::create_default_protoburn_transaction(second_mock_output, protocol_id);
     let _protorune_id = ProtoruneRuneId {
         block: block_height as u128,
         tx: 0,
