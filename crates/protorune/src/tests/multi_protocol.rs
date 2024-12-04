@@ -65,48 +65,16 @@ fn protomessages_from_protocol_ids(protocol_ids: Vec<u128>, block_height: u128) 
     helpers::create_block_with_txs(protoburn_txs)
 }
 
-fn protomessage_from_edict_fixture(protocol_id: u128, block_height: u128) -> bitcoin::Block {
-    let first_mock_output = OutPoint {
-        txid: bitcoin::Txid::from_str(
-            "0000000000000000000000000000000000000000000000000000000000000000",
-        )
-        .unwrap(),
-        vout: 0,
-    };
-
-    let second_mock_output = first_mock_output.clone();
-
-    let protoburn_tx =
-        helpers::create_default_protoburn_transaction(first_mock_output, protocol_id);
-    let protoburn_second_tx =
-        helpers::create_default_protoburn_transaction(second_mock_output, protocol_id);
-    let _protorune_id = ProtoruneRuneId {
-        block: block_height as u128,
-        tx: 0,
-    };
-
-    // output 0 holds all the protorunes
-    let protoburn_input = OutPoint {
-        txid: protoburn_tx.compute_txid(),
-        vout: 0,
-    };
-
-    let protomessage_tx =
-        helpers::create_protomessage_from_edict_tx(protoburn_input, protocol_id, vec![]);
-
-    helpers::create_block_with_txs(vec![protoburn_tx, protomessage_tx])
-}
-
-fn protomessage_from_edict_test_template<T: MessageContext>(
+fn multi_protomessage_protocol_test_template<T: MessageContext>(
     expected_pointer_amount: u128,
     expected_refunded_amount: u128,
     expected_runtime_amount: u128,
 ) -> (BalanceSheet, BalanceSheet, BalanceSheet) {
     clear();
     let block_height = 840000;
-    let protocol_id = 122;
+    let protocol_ids = vec![122, 123];
 
-    let test_block = protomessage_from_edict_fixture(protocol_id, block_height);
+    let test_block = protomessages_from_protocol_ids(protocol_ids, block_height);
     let protorune_id = ProtoruneRuneId {
         block: block_height as u128,
         tx: 0,
@@ -131,17 +99,17 @@ fn protomessage_from_edict_test_template<T: MessageContext>(
     );
 
     let protorunes_sheet0 = load_sheet(
-        &tables::RuneTable::for_protocol(protocol_id.into())
+        &tables::RuneTable::for_protocol(122)
             .OUTPOINT_TO_RUNES
             .select(&consensus_encode(&outpoint_address0).unwrap()),
     );
     let protorunes_sheet1 = load_sheet(
-        &tables::RuneTable::for_protocol(protocol_id.into())
+        &tables::RuneTable::for_protocol(122)
             .OUTPOINT_TO_RUNES
             .select(&consensus_encode(&outpoint_address1).unwrap()),
     );
     let protorunes_sheet_runtime =
-        load_sheet(&tables::RuneTable::for_protocol(protocol_id.into()).RUNTIME_BALANCE);
+        load_sheet(&tables::RuneTable::for_protocol(122).RUNTIME_BALANCE);
 
     let stored_runes_balance = sheet.get(&protorune_id);
     assert_eq!(stored_runes_balance, 0);
@@ -164,6 +132,6 @@ fn protomessage_from_edict_test_template<T: MessageContext>(
 /// The first transaction is a protoburn. The next transaction is a protostone that
 /// has an edict that targets the protomessage
 #[wasm_bindgen_test]
-fn protomessage_from_edict_test() {
-    protomessage_from_edict_test_template::<ForwardAll>(1000, 0, 0);
+fn multi_protomessage_protocol_test() {
+    multi_protomessage_protocol_test_template::<ForwardAll>(1000, 0, 0);
 }
