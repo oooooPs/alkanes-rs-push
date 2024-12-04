@@ -12,7 +12,8 @@ use balance_sheet::clear_balances;
 use bitcoin::blockdata::block::Block;
 use bitcoin::hashes::Hash;
 use bitcoin::script::Instruction;
-use bitcoin::{ opcodes, Address, OutPoint, ScriptBuf, Transaction, TxOut };
+use bitcoin::{ opcodes, OutPoint, ScriptBuf, Transaction, TxOut };
+use metashrew_support::address::{Payload};
 use metashrew::index_pointer::{ AtomicPointer, IndexPointer };
 #[allow(unused_imports)]
 use metashrew::{ flush, input, println, stdio::{ stdout, Write } };
@@ -24,14 +25,13 @@ use metashrew_support::{
 use ordinals::Etching;
 use ordinals::{ Artifact, Runestone };
 use protobuf::{ Message, SpecialFields };
-use protorune_support::constants;
 use protorune_support::proto::protorune::{
     OutpointResponse,
     Output,
     RunesResponse,
     WalletResponse,
 };
-use protorune_support::utils::get_network;
+use protorune_support::network::{to_address_str};
 use protorune_support::{
     balance_sheet::{ BalanceSheet, ProtoruneRuneId },
     protostone::{ into_protostone_edicts, Protostone, ProtostoneEdict },
@@ -513,15 +513,15 @@ impl Protorune {
                     vout: index as u32,
                 };
                 let output_script_pubkey: &ScriptBuf = &output.script_pubkey;
-                if Address::from_script(&output_script_pubkey, get_network()).is_ok() {
+                if Payload::from_script(output_script_pubkey).is_ok() {
                     let outpoint_bytes: Vec<u8> = consensus_encode(&outpoint)?;
-                    let address = Address::from_script(&output_script_pubkey, get_network())?;
+                    let address = to_address_str(output_script_pubkey).unwrap().into_bytes();
                     tables::OUTPOINTS_FOR_ADDRESS
-                        .select(&address.to_string().into_bytes())
+                        .select(&address.clone())
                         .append(Arc::new(outpoint_bytes.clone()));
                     tables::OUTPOINT_SPENDABLE_BY
                         .select(&outpoint_bytes.clone())
-                        .set(Arc::new(address.to_string().into_bytes()));
+                        .set(Arc::new(address.clone()))
                 }
             }
         }

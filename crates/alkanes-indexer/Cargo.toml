@@ -1,8 +1,8 @@
 [package]
-name = "alkanes"
+name = "alkanes-indexer"
 version = "0.1.0"
 edition = "2021"
-description = "ALKANES metaprotocol indexer"
+description = "ALKANES metaprotocol indexer routines"
 license = "MIT"
 repository = "https://github.com/kungfuflex/alkanes-rs"
 resolver = "2"
@@ -10,12 +10,8 @@ resolver = "2"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[workspace]
-members = [".", "crates/*"]
-
 [features]
 test = []
-testnet = []
 dogecoin = []
 luckycoin = []
 bellscoin = []
@@ -43,12 +39,12 @@ upgradeable = []
 anyhow = "1.0.90"
 num = "0.4.3"
 bitcoin = { version = "0.32.4", features = ["rand"] }
-metashrew = { path = "crates/metashrew" }
-metashrew-support = { path = "crates/metashrew-support" }
-ordinals = { path = "crates/ordinals" }
-protorune = { path = "crates/protorune" }
-protorune-support = { path = "crates/protorune-support" }
-alkanes-support = { path = "crates/alkanes-support" }
+metashrew = { path = "../metashrew" }
+metashrew-support = { path = "../metashrew-support" }
+ordinals = { path = "../ordinals" }
+protorune = { path = "../protorune" }
+protorune-support = { path = "../protorune-support" }
+alkanes-support = { path = "../alkanes-support" }
 ruint = "1.12.3"
 wasm-bindgen = "0.2.95"
 byteorder = "1.5"
@@ -64,7 +60,7 @@ hex_lit = "0.1.1"
 
 [dev-dependencies]
 
-alkanes = { path = ".", features = [
+alkanes-indexer = { path = ".", features = [
     "genesis_alkane",
     "genesis_protorune",
     "amm",
@@ -72,8 +68,8 @@ alkanes = { path = ".", features = [
     "auth_token",
     "minimal"
 ] }
-metashrew = { path = "crates/metashrew", features = ["test-utils"] }
-protorune = { path = "crates/protorune", features = ["test-utils"] }
+metashrew = { path = "../metashrew", features = ["test-utils"] }
+protorune = { path = "../protorune", features = ["test-utils"] }
 
 
 [build-dependencies]
@@ -83,4 +79,3 @@ flate2 = "1.0.34"
 protoc-rust = { version = "2.28.0" }
 protoc-bin-vendored = "3.0.0"
 hex = "0.4.3"
-

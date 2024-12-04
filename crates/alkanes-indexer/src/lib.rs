@@ -14,7 +14,6 @@ use protobuf::{Message, MessageField};
 use protorune::message::MessageContextParcel;
 use protorune_support::rune_transfer::RuneTransfer;
 use protorune_support::utils::consensus_decode;
-use protorune_support::network::{set_network, NetworkParams};
 use std::io::Cursor;
 pub mod message;
 pub mod indexer;
@@ -27,7 +26,7 @@ pub mod view;
 pub mod vm;
 use crate::indexer::{index_block};
 
-fn default_transaction() -> Transaction {
+pub fn default_transaction() -> Transaction {
     Transaction {
         version: Version::non_standard(0),
         lock_time: bitcoin::absolute::LockTime::from_consensus(0),
@@ -36,7 +35,7 @@ fn default_transaction() -> Transaction {
     }
 }
 
-fn default_block() -> Block {
+pub fn default_block() -> Block {
     Block {
         header: Header {
             version: bitcoin::blockdata::block::Version::ONE,
@@ -78,28 +77,6 @@ pub fn parcel_from_protobuf(v: proto::alkanes::MessageContextParcel) -> MessageC
     result
 }
 
-#[no_mangle]
-pub fn simulate() -> i32 {
-    let data = input();
-    let _height = u32::from_le_bytes((&data[0..4]).try_into().unwrap());
-    let reader = &data[4..];
-    let mut result: proto::alkanes::SimulateResponse = proto::alkanes::SimulateResponse::new();
-    match simulate_parcel(&parcel_from_protobuf(
-        proto::alkanes::MessageContextParcel::parse_from_bytes(reader).unwrap(),
-    )) {
-        Ok((response, gas_used)) => {
-            result.execution = MessageField::some(response.into());
-            result.gas_used = gas_used;
-        }
-        Err(e) => {
-            result.error = e.to_string();
-        }
-    }
-    to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(
-        result.write_to_bytes().unwrap().as_ref(),
-    ))
-}
-
 // #[no_mangle]
 // pub fn alkane_balance_sheet() -> i32 {
 //     let data = input();
@@ -114,56 +91,3 @@ pub fn simulate() -> i32 {
 //     to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(result.write_to_bytes().unwrap().as_ref()))
 // }
 //
-//
-pub fn configure_network() {
-  #[cfg(feature = "regtest")]
-  set_network(NetworkParams {
-    bech32_prefix: String::from("bcrt"),
-    p2pkh_prefix: 0x64,
-    p2sh_prefix: 0xc4
-  });
-  #[cfg(feature = "mainnet")]
-  set_network(NetworkParams {
-    bech32_prefix: String::from("bc"),
-    p2sh_prefix: 0x05,
-    p2pkh_prefix: 0x00
-  });
-  #[cfg(feature = "testnet")]
-  set_network(NetworkParams {
-    bech32_prefix: String::from("tb"),
-    p2pkh_hash: 0x6f,
-    p2sh_hash: 0xc4
-  });
-  #[cfg(feature = "luckycoin")]
-  set_network(NetworkParams {
-    bech32_prefix: String::from("tb"),
-    p2pkh_hash: 0x6f,
-    p2sh_hash: 0xc4
-  });
-    
-  #[cfg(feature = "dogecoin")]
-  set_network(NetworkParams {
-    bech32_prefix: String::from("dc"),
-    p2pkh_hash: 0x6f,
-    p2sh_hash: 0xc4
-  });
-  #[cfg(feature = "bellscoin")]
-  set_network(NetworkParams {
-    bech32_prefix: String::from("bel"),
-    p2pkh_hash: 0x6f,
-    p2sh_hash: 0xc4
-  });
-}
-
-#[no_mangle]
-pub fn _start() {
-    configure_network();
-    let data = input();
-    let height = u32::from_le_bytes((&data[0..4]).try_into().unwrap());
-    let reader = &data[4..];
-    let block: Block = AuxpowBlock::parse(&mut Cursor::<Vec<u8>>::new(reader.to_vec()))
-        .unwrap()
-        .to_consensus();
-    index_block(&block, height).unwrap();
-    flush();
-}
