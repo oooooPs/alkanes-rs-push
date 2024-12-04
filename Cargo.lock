@@ -62,38 +62,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "alkanes-indexer"
-version = "0.1.0"
-dependencies = [
- "alkanes-indexer",
- "alkanes-support",
- "anyhow",
- "bitcoin 0.32.4",
- "byteorder",
- "flate2",
- "hex",
- "hex_lit",
- "js-sys",
- "metashrew",
- "metashrew-support",
- "num",
- "ordinals 0.0.10",
- "protobuf 3.7.1",
- "protobuf-codegen 3.7.1",
- "protoc-bin-vendored",
- "protoc-rust",
- "protorune",
- "protorune-support",
- "ruint",
- "serde",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-test",
- "wasmi",
- "web-sys",
-]
-
-[[package]]
 name = "alkanes-runtime"
 version = "0.1.0"
 dependencies = [
