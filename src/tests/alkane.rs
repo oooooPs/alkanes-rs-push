@@ -3,6 +3,7 @@ mod tests {
     use crate::tests::std::alkanes_std_test_build;
     use alkanes_support::cellpack::Cellpack;
     use alkanes_support::id::AlkaneId;
+    use hex;
     use anyhow::Result;
     use metashrew_support::index_pointer::KeyValuePointer;
 
@@ -25,7 +26,6 @@ mod tests {
         assert_eq!(decompress(compressed)?, buffer.clone());
         Ok(())
     }
-
     #[wasm_bindgen_test]
     fn test_extcall() -> Result<()> {
         clear();
@@ -101,8 +101,8 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_base_std_functionality() -> Result<()> {
         clear();
-        let test_target = AlkaneId { block: 1, tx: 0 };
-        let test_stored_target = AlkaneId { block: 2, tx: 0 };
+        let test_target = AlkaneId { block: 3, tx: 15 };
+        let test_stored_target = AlkaneId { block: 4, tx: 15 };
         let input_cellpack = Cellpack {
             target: test_target,
             inputs: vec![
@@ -114,13 +114,19 @@ mod tests {
         let test_block = alkane_helpers::init_test_with_cellpack(input_cellpack);
 
         index_block(&test_block, 840000 as u32)?;
+        /*
+        println!("{}", hex::encode(IndexPointer::from_keyword("/alkanes/")
+                .select(&test_stored_target.into())
+                .get()
+                .as_ref()));
+            */
         assert_eq!(
             IndexPointer::from_keyword("/alkanes/")
                 .select(&test_stored_target.into())
                 .get()
                 .as_ref()
                 .clone(),
-            compress(alkanes_std_test_build::get_bytes().into())?
+            compress(alkanes_std_test_build::get_bytes())?
         );
 
         Ok(())

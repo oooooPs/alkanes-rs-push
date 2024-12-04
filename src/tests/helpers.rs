@@ -248,9 +248,9 @@ pub fn assert_binary_deployed_to_id(token_id: AlkaneId, binary: Vec<u8>) -> Resu
         .get()
         .as_ref()
         .clone();
-    let binary_2: Vec<u8> = compress(binary)?.into();
-    //assert_eq!(binary_1.len(), binary_2.len());
-    //assert_eq!(binary_1, binary_2);
+    let binary_2: Vec<u8> = compress(binary)?;
+    assert_eq!(binary_1.len(), binary_2.len());
+//    assert_eq!(binary_1, binary_2);
     return Ok(());
 }
 

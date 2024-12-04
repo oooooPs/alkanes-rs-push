@@ -43,7 +43,7 @@ fn test_genesis() -> Result<()> {
 
     index_block(&test_block, block_height)?;
     let cellpacks2 = vec![Cellpack {
-        target: AlkaneId { block: 2, tx: 0 },
+        target: AlkaneId { block: 2, tx: 1 },
         inputs: vec![77],
     }];
     let test_block2 = alkane_helpers::init_with_multiple_cellpacks_with_tx([].into(), cellpacks2);

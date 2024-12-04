@@ -69,7 +69,7 @@ fn init_block_with_amm_pool() -> Result<(Block, AmmTestDeploymentIds)> {
         },
         // token 2 init 1 auth token and mint 1000000 owned tokens
         Cellpack {
-            target: AlkaneId { block: 5, tx: 1 }, // factory creation of owned token using {2, 1} as the factory. Then it deploys to {2,3}
+            target: AlkaneId { block: 5, tx: 2 }, // factory creation of owned token using {2, 1} as the factory. Then it deploys to {2,3}
             inputs: vec![0, 1, 1000000],
         },
     ]
@@ -94,12 +94,12 @@ fn init_block_with_amm_pool() -> Result<(Block, AmmTestDeploymentIds)> {
             block: 4,
             tx: AUTH_TOKEN_FACTORY_ID,
         },
-        amm_factory_deployment: AlkaneId { block: 2, tx: 0 },
-        owned_token_1_deployment: AlkaneId { block: 2, tx: 1 },
-        auth_token_1_deployment: AlkaneId { block: 2, tx: 2 },
-        owned_token_2_deployment: AlkaneId { block: 2, tx: 3 },
-        auth_token_2_deployment: AlkaneId { block: 2, tx: 4 },
-        amm_pool_deployment: AlkaneId { block: 2, tx: 5 },
+        amm_factory_deployment: AlkaneId { block: 2, tx: 1 },
+        owned_token_1_deployment: AlkaneId { block: 2, tx: 2 },
+        auth_token_1_deployment: AlkaneId { block: 2, tx: 3 },
+        owned_token_2_deployment: AlkaneId { block: 2, tx: 4 },
+        auth_token_2_deployment: AlkaneId { block: 2, tx: 5 },
+        amm_pool_deployment: AlkaneId { block: 2, tx: 6 },
     };
     return Ok((test_block, deployed_ids));
 }
