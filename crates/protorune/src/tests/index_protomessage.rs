@@ -22,7 +22,7 @@ mod tests {
         stdio::{stdout, Write},
     };
 
-    use metashrew::clear;
+    use helpers::clear;
     use metashrew_support::index_pointer::KeyValuePointer;
     use ordinals::{Etching, Rune, Runestone};
     use std::str::FromStr;

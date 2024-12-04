@@ -14,7 +14,7 @@ use metashrew::{
     stdio::{stdout, Write},
 };
 
-use metashrew::clear;
+use helpers::clear;
 use metashrew_support::index_pointer::KeyValuePointer;
 use std::str::FromStr;
 use wasm_bindgen_test::*;

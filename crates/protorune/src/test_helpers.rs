@@ -10,11 +10,25 @@ use core::str::FromStr;
 use metashrew::{get_cache, println, stdio::stdout};
 use metashrew_support::utils::format_key;
 use ordinals::{Edict, Etching, Rune, RuneId, Runestone};
+use protorune_support::network::{set_network, NetworkParams};
 use std::fmt::Write;
 use std::sync::Arc;
 
 use crate::protostone::Protostones;
 use protorune_support::protostone::{Protostone, ProtostoneEdict};
+
+pub fn init_network() {
+    set_network(NetworkParams {
+        bech32_prefix: String::from("bc"),
+        p2sh_prefix: 0x05,
+        p2pkh_prefix: 0x00,
+    });
+}
+
+pub fn clear() {
+    metashrew::clear();
+    init_network();
+}
 
 // TODO: This module should probably not be compiled into the prod indexer wasm
 pub const ADDRESS1: &'static str = "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu";
