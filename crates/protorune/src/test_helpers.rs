@@ -17,11 +17,21 @@ use std::sync::Arc;
 use crate::protostone::Protostones;
 use protorune_support::protostone::{Protostone, ProtostoneEdict};
 
+#[cfg(not(feature = "regtest"))]
 pub fn init_network() {
     set_network(NetworkParams {
         bech32_prefix: String::from("bc"),
         p2sh_prefix: 0x05,
         p2pkh_prefix: 0x00,
+    });
+}
+
+#[cfg(feature = "regtest")]
+pub fn init_network() {
+    set_network(NetworkParams {
+      bech32_prefix: String::from("bcrt"),
+      p2pkh_prefix: 0x64,
+      p2sh_prefix: 0xc4
     });
 }
 
