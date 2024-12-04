@@ -91,6 +91,10 @@ fn multi_protomessage_protocol_test_template<T: MessageContext>(
         txid: test_block.txdata[2].compute_txid(),
         vout: 1,
     };
+    let outpoint_address2: OutPoint = OutPoint {
+        txid: test_block.txdata[2].compute_txid(),
+        vout: 2,
+    };
     // check runes balance
     let sheet = load_sheet(
         &tables::RUNES
@@ -107,7 +111,12 @@ fn multi_protomessage_protocol_test_template<T: MessageContext>(
             .OUTPOINT_TO_RUNES
             .select(&consensus_encode(&outpoint_address1).unwrap()),
     );
-    println!("{:?}\n{:?}", protorunes_sheet0, protorunes_sheet1);
+    let protorunes_sheet2 = load_sheet(
+        &tables::RuneTable::for_protocol(123)
+            .OUTPOINT_TO_RUNES
+            .select(&consensus_encode(&outpoint_address1).unwrap()),
+    );
+    println!("{:?}", protorunes_sheet2);
     let protorunes_sheet_runtime =
         load_sheet(&tables::RuneTable::for_protocol(122).RUNTIME_BALANCE);
 
