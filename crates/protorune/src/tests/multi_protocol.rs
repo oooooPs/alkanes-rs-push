@@ -35,6 +35,7 @@ impl MessageContext for ForwardAll {
 
 fn protomessages_from_protocol_ids(protocol_ids: Vec<u128>, block_height: u128) -> bitcoin::Block {
     let mut protoburn_txs = protocol_ids
+        .clone()
         .into_iter()
         .map(|tag| {
             let mock_output = OutPoint {
@@ -49,6 +50,7 @@ fn protomessages_from_protocol_ids(protocol_ids: Vec<u128>, block_height: u128) 
         .collect::<Vec<Transaction>>();
 
     let inputs = protoburn_txs
+        .clone()
         .into_iter()
         .map(|protoburn_tx| OutPoint {
             txid: protoburn_tx.compute_txid(),
@@ -59,7 +61,7 @@ fn protomessages_from_protocol_ids(protocol_ids: Vec<u128>, block_height: u128) 
 
     let protomessage_tx =
         helpers::create_multiple_protomessage_from_edict_tx(inputs, protocol_ids, vec![]);
-    protoburn_txs.push([protomessage_tx]);
+    protoburn_txs.push(protomessage_tx);
     helpers::create_block_with_txs(protoburn_txs)
 }
 
