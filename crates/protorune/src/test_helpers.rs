@@ -10,11 +10,25 @@ use core::str::FromStr;
 use metashrew::{get_cache, println, stdio::stdout};
 use metashrew_support::utils::format_key;
 use ordinals::{Edict, Etching, Rune, RuneId, Runestone};
+use protorune_support::network::{set_network, NetworkParams};
 use std::fmt::Write;
 use std::sync::Arc;
 
 use crate::protostone::Protostones;
 use protorune_support::protostone::{Protostone, ProtostoneEdict};
+
+pub fn init_network() {
+    set_network(NetworkParams {
+        bech32_prefix: String::from("bc"),
+        p2sh_prefix: 0x05,
+        p2pkh_prefix: 0x00,
+    });
+}
+
+pub fn clear() {
+    metashrew::clear();
+    init_network();
+}
 
 // TODO: This module should probably not be compiled into the prod indexer wasm
 pub const ADDRESS1: &'static str = "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu";
@@ -537,6 +551,81 @@ pub fn create_protostone_transaction(
         lock_time: bitcoin::absolute::LockTime::ZERO,
         input: vec![txin],
         output: vec![txout, op_return],
+    }
+}
+
+//creates a tx with multiple protomessages and multiple protocols
+pub fn create_multiple_protomessage_from_edict_tx(
+    previous_outputs: Vec<OutPoint>,
+    protocol_id: Vec<u128>,
+    protostone_edicts: Vec<Vec<ProtostoneEdict>>,
+) -> Transaction {
+    let input_script = ScriptBuf::new();
+    let txins = previous_outputs
+        .clone()
+        .into_iter()
+        .map(|previous_output| TxIn {
+            previous_output,
+            script_sig: input_script.clone(),
+            sequence: Sequence::MAX,
+            witness: Witness::new(),
+        })
+        .collect::<Vec<TxIn>>();
+
+    let address: Address<NetworkChecked> = get_address(&ADDRESS1);
+
+    let mut outs = previous_outputs
+        .into_iter()
+        .map(|_| {
+            let txout0 = TxOut {
+                value: Amount::from_sat(1),
+                script_pubkey: address.script_pubkey(),
+            };
+            let txout1 = TxOut {
+                value: Amount::from_sat(2),
+                script_pubkey: address.script_pubkey(),
+            };
+            vec![txout0, txout1]
+        })
+        .flatten()
+        .collect::<Vec<TxOut>>();
+    let protostones = protostone_edicts
+        .into_iter()
+        .enumerate()
+        .map(|(i, edicts)| Protostone {
+            // protomessage which should transfer protorunes to the pointer
+            message: vec![1u8],
+            pointer: Some(0),
+            refund: Some(1),
+            edicts,
+            from: None,
+            burn: None,
+            protocol_tag: protocol_id[i] as u128,
+        })
+        .collect::<Vec<Protostone>>();
+    let runestone: ScriptBuf = (Runestone {
+        etching: None,
+        pointer: Some(2), // all leftover runes points to the OP_RETURN, so therefore targets the protoburn. in this case, there are no runes
+        edicts: Vec::new(),
+        mint: None,
+        protocol: match protostones.encipher() {
+            Ok(v) => Some(v),
+            Err(_) => None,
+        },
+    })
+    .encipher();
+
+    //     // op return is at output 1
+    let op_return = TxOut {
+        value: Amount::from_sat(0),
+        script_pubkey: runestone,
+    };
+    outs.push(op_return);
+    Transaction {
+        version: Version::ONE,
+        lock_time: bitcoin::absolute::LockTime::ZERO,
+        input: txins,
+        output: outs,
     }
 }
 
