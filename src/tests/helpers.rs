@@ -1,6 +1,6 @@
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::envelope::RawEnvelope;
-use alkanes_support::gz::compress;
+use alkanes_support::gz::{compress, decompress};
 use alkanes_support::id::AlkaneId;
 use anyhow::Result;
 use bitcoin::blockdata::transaction::Version;
@@ -248,7 +248,7 @@ pub fn assert_binary_deployed_to_id(token_id: AlkaneId, binary: Vec<u8>) -> Resu
         .get()
         .as_ref()
         .clone();
-    let binary_2 = compress(binary.into())?;
+    let binary_2: Vec<u8> = compress(binary)?.into();
     assert_eq!(binary_1.len(), binary_2.len());
     assert_eq!(binary_1, binary_2);
     return Ok(());

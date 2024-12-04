@@ -14,6 +14,7 @@ use protobuf::{Message, MessageField};
 use protorune::message::MessageContextParcel;
 use protorune_support::rune_transfer::RuneTransfer;
 use protorune_support::utils::consensus_decode;
+use protorune_support::network::{set_network, NetworkParams};
 use std::io::Cursor;
 pub mod message;
 pub mod indexer;
@@ -113,9 +114,50 @@ pub fn simulate() -> i32 {
 //     to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(result.write_to_bytes().unwrap().as_ref()))
 // }
 //
+//
+pub fn configure_network() {
+  #[cfg(feature = "regtest")]
+  set_network(NetworkParams {
+    bech32_prefix: String::from("bcrt"),
+    p2pkh_prefix: 0x64,
+    p2sh_prefix: 0xc4
+  });
+  #[cfg(feature = "mainnet")]
+  set_network(NetworkParams {
+    bech32_prefix: String::from("bc"),
+    p2sh_prefix: 0x05,
+    p2pkh_prefix: 0x00
+  });
+  #[cfg(feature = "testnet")]
+  set_network(NetworkParams {
+    bech32_prefix: String::from("tb"),
+    p2pkh_hash: 0x6f,
+    p2sh_hash: 0xc4
+  });
+  #[cfg(feature = "luckycoin")]
+  set_network(NetworkParams {
+    bech32_prefix: String::from("tb"),
+    p2pkh_hash: 0x6f,
+    p2sh_hash: 0xc4
+  });
+    
+  #[cfg(feature = "dogecoin")]
+  set_network(NetworkParams {
+    bech32_prefix: String::from("dc"),
+    p2pkh_hash: 0x6f,
+    p2sh_hash: 0xc4
+  });
+  #[cfg(feature = "bellscoin")]
+  set_network(NetworkParams {
+    bech32_prefix: String::from("bel"),
+    p2pkh_hash: 0x6f,
+    p2sh_hash: 0xc4
+  });
+}
 
 #[no_mangle]
 pub fn _start() {
+    configure_network();
     let data = input();
     let height = u32::from_le_bytes((&data[0..4]).try_into().unwrap());
     let reader = &data[4..];

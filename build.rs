@@ -90,11 +90,12 @@ fn main() {
         .clone()
         .into_iter()
         .filter_map(|name| {
+            let mut vars = env::vars_os();
             if let Some(feature_name) = name.strip_prefix("alkanes-std-") {
                 let final_name = feature_name.to_uppercase().replace("-", "_");
                 if let Some(_) = env::var(format!("CARGO_FEATURE_{}", final_name.as_str())).ok() {
                     Some(name)
-                } else if let Some(_) = env::var(format!("CARGO_FEATURE_{}", "ALL")).ok() {
+                } else if vars.position(|(k, _v)| k.to_owned().into_string().unwrap().contains("ALL")).is_some() {
                     Some(name)
                 } else {
                     None
@@ -112,6 +113,8 @@ fn main() {
                 build_alkane(wasm_str, vec!["regtest"])?;
               } else if let Some(_) = env::var("CARGO_FEATURE_MAINNET").ok() {
                 build_alkane(wasm_str, vec!["mainnet"])?;
+              } else if let Some(_) = env::var("CARGO_FEATURE_TESTNET").ok() {
+                build_alkane(wasm_str, vec!["regtest"])?;
               } else if let Some(_) = env::var("CARGO_FEATURE_DOGECOIN").ok() {
                 build_alkane(wasm_str, vec!["dogecoin"])?;
               } else if let Some(_) = env::var("CARGO_FEATURE_FRACTAL").ok() {
@@ -122,7 +125,7 @@ fn main() {
                 build_alkane(wasm_str, vec!["bellscoin"])?;
               }
             } else {
-              build_alkane(wasm_str, vec![])?;
+              build_alkane(wasm_str, vec!["regtest"])?;
             }
             std::env::set_current_dir(&crates_dir)?;
             let subbed = v.clone().replace("-", "_");
