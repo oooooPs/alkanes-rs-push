@@ -20,7 +20,7 @@ mod tests {
     use bitcoin::{OutPoint, Txid};
     use hex;
 
-    use metashrew::clear;
+    use helpers::clear;
     use metashrew_support::index_pointer::KeyValuePointer;
     use ordinals::{Edict, Rune, RuneId};
 

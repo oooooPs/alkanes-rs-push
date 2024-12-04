@@ -10,7 +10,7 @@ mod tests {
     use protorune_support::rune_transfer::RuneTransfer;
     use protorune_support::utils::consensus_encode;
 
-    use metashrew::clear;
+    use helpers::clear;
     use metashrew::{
         println,
         stdio::{stdout, Write},
