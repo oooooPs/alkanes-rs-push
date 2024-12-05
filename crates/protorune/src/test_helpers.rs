@@ -4,20 +4,30 @@ use bitcoin::blockdata::script::ScriptBuf;
 use bitcoin::blockdata::transaction::Version;
 use bitcoin::blockdata::transaction::{Transaction, TxIn, TxOut};
 use bitcoin::hashes::Hash;
-use bitcoin::{Address, Amount, BlockHash, OutPoint, Sequence, Witness};
+use bitcoin::{Address, Amount, BlockHash, OutPoint, Script, Sequence, Witness, Network};
 use byteorder::{ByteOrder, LittleEndian};
 use core::str::FromStr;
 use metashrew::{get_cache, println, stdio::stdout};
 use metashrew_support::utils::format_key;
+use hex::decode;
 use ordinals::{Edict, Etching, Rune, RuneId, Runestone};
-use protorune_support::network::{set_network, NetworkParams};
+use protorune_support::network::{set_network, to_address_str, NetworkParams};
 use std::fmt::Write;
 use std::sync::Arc;
-
 use crate::protostone::Protostones;
 use protorune_support::protostone::{Protostone, ProtostoneEdict};
 
-#[cfg(not(feature = "regtest"))]
+#[cfg(feature = "mainnet")]
+pub fn get_btc_network() -> Network {
+    Network::Bitcoin
+}
+
+#[cfg(not(feature = "mainnet"))]
+pub fn get_btc_network() -> Network {
+    Network::Regtest
+}
+
+#[cfg(feature = "mainnet")]
 pub fn init_network() {
     set_network(NetworkParams {
         bech32_prefix: String::from("bc"),
@@ -26,7 +36,7 @@ pub fn init_network() {
     });
 }
 
-#[cfg(feature = "regtest")]
+#[cfg(not(feature = "mainnet"))]
 pub fn init_network() {
     set_network(NetworkParams {
       bech32_prefix: String::from("bcrt"),
@@ -35,13 +45,33 @@ pub fn init_network() {
     });
 }
 
+
 pub fn clear() {
     metashrew::clear();
     init_network();
 }
 
 // TODO: This module should probably not be compiled into the prod indexer wasm
-pub const ADDRESS1: &'static str = "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu";
+
+pub const ADDRESS1_BYTES: &'static str = "a914ad8028e0e0f9b863174e0efc67f65223c3b7ab5387";
+pub const ADDRESS2_BYTES: &'static str = "a914000000000000000000000000000000000000000087";
+
+pub fn get_address_from_bytes(hex: &str) -> String {
+    let bytes = decode(hex.to_string()).unwrap();
+    let pk = Script::from_bytes(bytes.as_slice());
+    let address = to_address_str(pk);
+    address.unwrap()
+}
+
+#[allow(non_snake_case)]
+pub fn ADDRESS1() -> String {
+    get_address_from_bytes(ADDRESS1_BYTES)
+}
+
+#[allow(non_snake_case)]
+pub fn ADDRESS2() -> String {
+    get_address_from_bytes(ADDRESS2_BYTES)
+}
 
 pub fn print_cache() {
     let cache = get_cache();
@@ -81,9 +111,9 @@ pub fn serialize_u32_little_endian(value: u32) -> Vec<u8> {
 
 pub fn create_coinbase_transaction(height: u32) -> Transaction {
     // Create the script for the coinbase transaction
-    let script_pubkey = Address::from_str(ADDRESS1)
+    let script_pubkey = Address::from_str(ADDRESS1().as_str())
         .unwrap()
-        .require_network(bitcoin::Network::Bitcoin)
+        .require_network(get_btc_network())
         .unwrap()
         .script_pubkey();
     // Create a coinbase transaction input
@@ -140,11 +170,11 @@ pub fn create_test_transaction_with_witness(script: Vec<u8>) -> Transaction {
         witness,
     };
 
-    let address_str = ADDRESS1;
+    let address_str = ADDRESS1();
 
     let address: Address<NetworkChecked> = Address::from_str(&address_str)
         .unwrap()
-        .require_network(bitcoin::Network::Bitcoin)
+        .require_network(get_btc_network())
         .unwrap();
 
     let script_pubkey = address.script_pubkey();
@@ -210,7 +240,7 @@ impl RunesTestingConfig {
 pub fn get_address(address: &str) -> Address<NetworkChecked> {
     Address::from_str(address)
         .unwrap()
-        .require_network(bitcoin::Network::Bitcoin)
+        .require_network(get_btc_network())
         .unwrap()
 }
 
@@ -368,8 +398,8 @@ pub fn create_block_with_sample_tx() -> Block {
 
 pub fn create_block_with_rune_tx() -> (Block, RunesTestingConfig) {
     let config = RunesTestingConfig::new(
-        "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu",
-        "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fym",
+        ADDRESS1().as_str(),
+        ADDRESS2().as_str(),
         "TESTER",
         "Z",
         840001,
@@ -424,7 +454,7 @@ pub fn create_protostone_encoded_tx(
         witness: Witness::new(),
     };
 
-    let address: Address<NetworkChecked> = get_address(&ADDRESS1);
+    let address: Address<NetworkChecked> = get_address(&ADDRESS1().as_str());
 
     let script_pubkey = address.script_pubkey();
 
@@ -505,7 +535,7 @@ pub fn create_protostone_transaction(
         witness: Witness::new(),
     };
 
-    let address: Address<NetworkChecked> = get_address(&ADDRESS1);
+    let address: Address<NetworkChecked> = get_address(&ADDRESS1().as_str());
 
     let script_pubkey = address.script_pubkey();
 
@@ -582,7 +612,7 @@ pub fn create_multiple_protomessage_from_edict_tx(
         })
         .collect::<Vec<TxIn>>();
 
-    let address: Address<NetworkChecked> = get_address(&ADDRESS1);
+    let address: Address<NetworkChecked> = get_address(&ADDRESS1().as_str());
 
     let mut outs = previous_outputs
         .into_iter()
@@ -667,7 +697,7 @@ pub fn create_protomessage_from_edict_tx(
         witness: Witness::new(),
     };
 
-    let address: Address<NetworkChecked> = get_address(&ADDRESS1);
+    let address: Address<NetworkChecked> = get_address(&ADDRESS1().as_str());
 
     let txout0 = TxOut {
         value: Amount::from_sat(1),

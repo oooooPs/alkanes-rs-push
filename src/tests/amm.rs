@@ -149,7 +149,7 @@ fn insert_add_liquidity_split_tx(
     input_outpoint: OutPoint,
 ) {
     let address: Address<NetworkChecked> =
-        protorune::test_helpers::get_address(&protorune::test_helpers::ADDRESS1);
+        protorune::test_helpers::get_address(&protorune::test_helpers::ADDRESS1().as_str());
     let script_pubkey = address.script_pubkey();
     let split = alkane_helpers::create_protostone_tx_with_inputs(
         vec![TxIn {
@@ -255,7 +255,7 @@ fn insert_remove_liquidity_txs(
     input_outpoint: OutPoint,
 ) {
     let address: Address<NetworkChecked> =
-        protorune::test_helpers::get_address(&protorune::test_helpers::ADDRESS1);
+        protorune::test_helpers::get_address(&protorune::test_helpers::ADDRESS1().as_str());
     let script_pubkey = address.script_pubkey();
     let split = alkane_helpers::create_protostone_tx_with_inputs(
         vec![TxIn {

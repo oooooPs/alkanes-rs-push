@@ -223,7 +223,7 @@ mod tests {
             witness: Witness::new(),
         };
 
-        let address: Address<NetworkChecked> = get_address(&ADDRESS1);
+        let address: Address<NetworkChecked> = get_address(&ADDRESS1().as_str());
 
         let script_pubkey = address.script_pubkey();
 

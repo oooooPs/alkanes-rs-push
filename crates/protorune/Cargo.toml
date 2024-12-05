@@ -12,7 +12,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 test-utils = []
-regtest = []
+mainnet = []
 
 [dependencies]
 anyhow = "1.0.89"

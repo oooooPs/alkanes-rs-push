@@ -117,7 +117,7 @@ pub fn create_protostone_tx_with_inputs_and_default_pointer(
         value: Amount::from_sat(0),
         script_pubkey: runestone,
     };
-    let address: Address<NetworkChecked> = get_address(&ADDRESS1);
+    let address: Address<NetworkChecked> = get_address(&ADDRESS1().as_str());
     let _script_pubkey = address.script_pubkey();
     let mut _outputs = outputs.clone();
     _outputs.push(op_return);
@@ -208,7 +208,7 @@ pub fn create_multiple_cellpack_with_witness_and_in(
         value: Amount::from_sat(0),
         script_pubkey: runestone,
     };
-    let address: Address<NetworkChecked> = get_address(&ADDRESS1);
+    let address: Address<NetworkChecked> = get_address(&ADDRESS1().as_str());
 
     let script_pubkey = address.script_pubkey();
     let txout = TxOut {

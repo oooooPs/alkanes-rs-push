@@ -1,8 +1,9 @@
-use bitcoin::{Script};
+use bitcoin::{Address, Network, Script};
 use metashrew_support::address::{AddressEncoding, Payload};
-use bech32::{Hrp};
+use bech32::Hrp;
 static mut _NETWORK: Option<NetworkParams> = None;
 
+#[derive(Debug)]
 pub struct NetworkParams {
   pub bech32_prefix: String,
   pub p2pkh_prefix: u8,
@@ -21,10 +22,10 @@ pub fn get_network() -> &'static NetworkParams {
 
 pub fn to_address_str(script: &Script) -> Option<String> {
     let config = get_network();
-    Some(format!("{}", AddressEncoding {
+    Some(AddressEncoding {
       p2pkh_prefix: config.p2pkh_prefix,
       p2sh_prefix: config.p2sh_prefix,
       hrp: Hrp::parse_unchecked(&config.bech32_prefix),
       payload: &Payload::from_script(script).ok()?
-    }))
+    }.to_string())
 }
