@@ -107,7 +107,10 @@ pub fn get_statics(id: &AlkaneId) -> (String, String) {
 pub fn to_alkanes_balances(balances: protorune_support::proto::protorune::BalanceSheet) -> protorune_support::proto::protorune::BalanceSheet {
   let mut clone = balances.clone();
   for entry in &mut clone.entries {
-    (entry.rune.as_mut().unwrap().name, entry.rune.as_mut().unwrap().symbol) = get_statics(&from_protobuf(entry.rune.runeId.clone().unwrap()));
+    let block: u128 = entry.rune.clone().unwrap().runeId.height.clone().unwrap().into();
+    if block == 2 || block == 4 {
+      (entry.rune.as_mut().unwrap().name, entry.rune.as_mut().unwrap().symbol) = get_statics(&from_protobuf(entry.rune.runeId.clone().unwrap()));
+    }
   }
   clone
 }
