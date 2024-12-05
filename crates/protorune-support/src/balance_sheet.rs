@@ -25,6 +25,24 @@ pub trait RuneIdentifier {
     fn to_pair(&self) -> (u128, u128);
 }
 
+impl From<crate::proto::protorune::ProtoruneRuneId> for ProtoruneRuneId {
+  fn from(v: crate::proto::protorune::ProtoruneRuneId) -> ProtoruneRuneId {
+    ProtoruneRuneId {
+      block: v.height.unwrap().into(),
+      tx: v.txindex.unwrap().into()
+    }
+  }
+}
+
+impl From<ProtoruneRuneId> for crate::proto::protorune::ProtoruneRuneId {
+  fn from(v: ProtoruneRuneId) -> crate::proto::protorune::ProtoruneRuneId {
+    let mut result = crate::proto::protorune::ProtoruneRuneId::new();
+    result.height = MessageField::some(v.block.into());
+    result.txindex = MessageField::some(v.tx.into());
+    result
+  }
+}
+
 impl From<crate::proto::protorune::BalanceSheet> for BalanceSheet {
     fn from(balance_sheet: crate::proto::protorune::BalanceSheet) -> BalanceSheet {
         BalanceSheet {
@@ -57,10 +75,10 @@ impl From<BalanceSheet> for crate::proto::protorune::BalanceSheet {
                             height: MessageField::some(k.block.into()),
                             txindex: MessageField::some(k.tx.into()),
                         }),
-                        name: "name".as_bytes().to_vec(),
+                        name: "UNKNOWN".to_owned(),
                         divisibility: 1,
                         spacers: 1,
-                        symbol: 'Z' as char as u32,
+                        symbol: "0".to_owned()
                     }),
                     balance: MessageField::some((*v).into()),
                 })

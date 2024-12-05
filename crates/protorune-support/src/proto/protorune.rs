@@ -313,13 +313,13 @@ pub struct Rune {
     // @@protoc_insertion_point(field:protorune.Rune.runeId)
     pub runeId: ::protobuf::MessageField<ProtoruneRuneId>,
     // @@protoc_insertion_point(field:protorune.Rune.name)
-    pub name: ::std::vec::Vec<u8>,
+    pub name: ::std::string::String,
     // @@protoc_insertion_point(field:protorune.Rune.divisibility)
     pub divisibility: u32,
     // @@protoc_insertion_point(field:protorune.Rune.spacers)
     pub spacers: u32,
     // @@protoc_insertion_point(field:protorune.Rune.symbol)
-    pub symbol: u32,
+    pub symbol: ::std::string::String,
     // special fields
     // @@protoc_insertion_point(special_field:protorune.Rune.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
@@ -386,7 +386,7 @@ impl ::protobuf::Message for Rune {
                     ::protobuf::rt::read_singular_message_into_field(is, &mut self.runeId)?;
                 },
                 18 => {
-                    self.name = is.read_bytes()?;
+                    self.name = is.read_string()?;
                 },
                 24 => {
                     self.divisibility = is.read_uint32()?;
@@ -394,8 +394,8 @@ impl ::protobuf::Message for Rune {
                 32 => {
                     self.spacers = is.read_uint32()?;
                 },
-                40 => {
-                    self.symbol = is.read_uint32()?;
+                42 => {
+                    self.symbol = is.read_string()?;
                 },
                 tag => {
                     ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
@@ -414,7 +414,7 @@ impl ::protobuf::Message for Rune {
             my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
         }
         if !self.name.is_empty() {
-            my_size += ::protobuf::rt::bytes_size(2, &self.name);
+            my_size += ::protobuf::rt::string_size(2, &self.name);
         }
         if self.divisibility != 0 {
             my_size += ::protobuf::rt::uint32_size(3, self.divisibility);
@@ -422,8 +422,8 @@ impl ::protobuf::Message for Rune {
         if self.spacers != 0 {
             my_size += ::protobuf::rt::uint32_size(4, self.spacers);
         }
-        if self.symbol != 0 {
-            my_size += ::protobuf::rt::uint32_size(5, self.symbol);
+        if !self.symbol.is_empty() {
+            my_size += ::protobuf::rt::string_size(5, &self.symbol);
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
         self.special_fields.cached_size().set(my_size as u32);
@@ -435,7 +435,7 @@ impl ::protobuf::Message for Rune {
             ::protobuf::rt::write_message_field_with_cached_size(1, v, os)?;
         }
         if !self.name.is_empty() {
-            os.write_bytes(2, &self.name)?;
+            os.write_string(2, &self.name)?;
         }
         if self.divisibility != 0 {
             os.write_uint32(3, self.divisibility)?;
@@ -443,8 +443,8 @@ impl ::protobuf::Message for Rune {
         if self.spacers != 0 {
             os.write_uint32(4, self.spacers)?;
         }
-        if self.symbol != 0 {
-            os.write_uint32(5, self.symbol)?;
+        if !self.symbol.is_empty() {
+            os.write_string(5, &self.symbol)?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -467,17 +467,17 @@ impl ::protobuf::Message for Rune {
         self.name.clear();
         self.divisibility = 0;
         self.spacers = 0;
-        self.symbol = 0;
+        self.symbol.clear();
         self.special_fields.clear();
     }
 
     fn default_instance() -> &'static Rune {
         static instance: Rune = Rune {
             runeId: ::protobuf::MessageField::none(),
-            name: ::std::vec::Vec::new(),
+            name: ::std::string::String::new(),
             divisibility: 0,
             spacers: 0,
-            symbol: 0,
+            symbol: ::std::string::String::new(),
             special_fields: ::protobuf::SpecialFields::new(),
         };
         &instance
@@ -3168,9 +3168,9 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x0b2\x12.protorune.uint128R\x06height\x12,\n\x07txindex\x18\x02\x20\x01\
     (\x0b2\x12.protorune.uint128R\x07txindex\"\xa4\x01\n\x04Rune\x122\n\x06r\
     uneId\x18\x01\x20\x01(\x0b2\x1a.protorune.ProtoruneRuneIdR\x06runeId\x12\
-    \x12\n\x04name\x18\x02\x20\x01(\x0cR\x04name\x12\"\n\x0cdivisibility\x18\
+    \x12\n\x04name\x18\x02\x20\x01(\tR\x04name\x12\"\n\x0cdivisibility\x18\
     \x03\x20\x01(\rR\x0cdivisibility\x12\x18\n\x07spacers\x18\x04\x20\x01(\r\
-    R\x07spacers\x12\x16\n\x06symbol\x18\x05\x20\x01(\rR\x06symbol\"e\n\x10B\
+    R\x07spacers\x12\x16\n\x06symbol\x18\x05\x20\x01(\tR\x06symbol\"e\n\x10B\
     alanceSheetItem\x12#\n\x04rune\x18\x01\x20\x01(\x0b2\x0f.protorune.RuneR\
     \x04rune\x12,\n\x07balance\x18\x02\x20\x01(\x0b2\x12.protorune.uint128R\
     \x07balance\"E\n\x0cBalanceSheet\x125\n\x07entries\x18\x01\x20\x03(\x0b2\

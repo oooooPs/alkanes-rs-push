@@ -1,4 +1,4 @@
-use bitcoin::{Address, Network, Script};
+use bitcoin::{Script};
 use metashrew_support::address::{AddressEncoding, Payload};
 use bech32::Hrp;
 static mut _NETWORK: Option<NetworkParams> = None;

@@ -142,7 +142,7 @@ pub fn genesis(block: &Block) -> Result<()> {
         vout: 0,
         runtime_balances: Box::<BalanceSheet>::new(BalanceSheet::default()),
     };
-    let (response, _gas_used) = simulate_parcel(&parcel)?;
+    let (response, _gas_used) = simulate_parcel(&parcel, u64::MAX)?;
     <AlkaneTransferParcel as Into<BalanceSheet>>::into(response.alkanes.into()).save(
         &mut atomic.derive(
             &RuneTable::for_protocol(AlkaneMessageContext::protocol_tag())

@@ -18,18 +18,11 @@ use metashrew::index_pointer::{ AtomicPointer, IndexPointer };
 #[allow(unused_imports)]
 use metashrew::{ flush, input, println, stdio::{ stdout, Write } };
 use metashrew_support::index_pointer::KeyValuePointer;
-use metashrew_support::{
-    compat::{ to_arraybuffer_layout, to_passback_ptr, to_ptr },
-    utils::{ consume_sized_int, consume_to_end },
-};
 use ordinals::Etching;
 use ordinals::{ Artifact, Runestone };
 use protobuf::{ Message, SpecialFields };
 use protorune_support::proto::protorune::{
-    OutpointResponse,
-    Output,
-    RunesResponse,
-    WalletResponse,
+    Output
 };
 use protorune_support::network::{to_address_str};
 use protorune_support::{
@@ -38,7 +31,6 @@ use protorune_support::{
     utils::{ consensus_encode, field_to_name, outpoint_encode },
 };
 use std::collections::HashMap;
-use std::io::Cursor;
 use std::ops::Sub;
 use std::sync::Arc;
 

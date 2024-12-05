@@ -5,17 +5,150 @@ use crate::vm::runtime::AlkanesRuntimeContext;
 use crate::vm::utils::{prepare_context, run_after_special, run_special_cellpacks};
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::parcel::AlkaneTransfer;
+use alkanes_support::id::{AlkaneId};
 use alkanes_support::proto;
 use alkanes_support::proto::alkanes::{AlkaneInventoryRequest, AlkaneInventoryResponse};
 use alkanes_support::response::ExtendedCallResponse;
 use anyhow::Result;
 use metashrew::index_pointer::{AtomicPointer, IndexPointer};
 use metashrew_support::index_pointer::KeyValuePointer;
-use protorune::message::MessageContextParcel;
+use protorune::message::{MessageContext, MessageContextParcel};
 use protorune_support::balance_sheet::BalanceSheet;
+use crate::message::{AlkaneMessageContext};
 use protorune_support::rune_transfer::RuneTransfer;
-use protorune_support::utils::decode_varint_list;
+use protorune_support::utils::{consensus_decode, decode_varint_list};
+use protorune_support::balance_sheet::ProtoruneRuneId;
+use bitcoin::hashes::Hash;
+use bitcoin::{Transaction, blockdata::block::{Header}, Block, BlockHash, CompactTarget, TxMerkleNode};
+use bitcoin::blockdata::transaction::{Version};
+use protorune::view;
+use protobuf::{Message, MessageField};
 use std::io::Cursor;
+
+pub fn parcel_from_protobuf(v: proto::alkanes::MessageContextParcel) -> MessageContextParcel {
+    let mut result = MessageContextParcel::default();
+    result.height = v.height;
+    result.block = if v.block.len() > 0 {
+        consensus_decode::<Block>(&mut Cursor::new(v.block)).unwrap()
+    } else {
+        default_block()
+    };
+    result.transaction = if v.transaction.len() > 0 {
+        consensus_decode::<Transaction>(&mut Cursor::new(v.transaction)).unwrap()
+    } else {
+        default_transaction()
+    };
+    result.vout = v.vout;
+    result.calldata = v.calldata;
+    result.runes = v
+        .alkanes
+        .into_iter()
+        .map(|v| RuneTransfer {
+            id: v.id.into_option().unwrap().clone().into(),
+            value: v.value.into_option().unwrap().into(),
+        })
+        .collect::<Vec<RuneTransfer>>();
+    result.pointer = v.pointer;
+    result.refund_pointer = v.refund_pointer;
+    result
+}
+
+fn default_transaction() -> Transaction {
+    Transaction {
+        version: Version::non_standard(0),
+        lock_time: bitcoin::absolute::LockTime::from_consensus(0),
+        input: vec![],
+        output: vec![],
+    }
+}
+
+fn default_block() -> Block {
+    Block {
+        header: Header {
+            version: bitcoin::blockdata::block::Version::ONE,
+            prev_blockhash: BlockHash::all_zeros(),
+            merkle_root: TxMerkleNode::all_zeros(),
+            time: 0,
+            bits: CompactTarget::from_consensus(0),
+            nonce: 0,
+        },
+        txdata: vec![],
+    }
+}
+
+pub fn plain_parcel_from_cellpack(cellpack: Cellpack) -> MessageContextParcel {
+    let mut result = MessageContextParcel::default();
+    result.block = default_block();
+    result.transaction = default_transaction();
+    result.calldata = cellpack.encipher();
+    result
+}
+
+pub fn call_view(id: &AlkaneId, inputs: &Vec<u128>, fuel: u64) -> Result<Vec<u8>> {
+  let (response, _gas_used) = simulate_parcel(&plain_parcel_from_cellpack(Cellpack {
+    target: id.clone(),
+    inputs: inputs.clone()
+  }), fuel)?;
+  Ok(response.data)
+}
+
+pub const STATIC_FUEL: u64 = 100_000;
+pub const NAME_OPCODE: u128 = 99;
+pub const SYMBOL_OPCODE: u128 = 100;
+
+pub fn get_statics(id: &AlkaneId) -> (String, String) {
+  let name = call_view(id, &vec![NAME_OPCODE], STATIC_FUEL).and_then(|v| Ok(String::from_utf8(v))).unwrap_or_else(|_| Ok(String::from("{REVERT}"))).unwrap();
+  let symbol = call_view(id, &vec![SYMBOL_OPCODE], STATIC_FUEL).and_then(|v| Ok(String::from_utf8(v))).unwrap_or_else(|_| Ok(String::from("{REVERT}"))).unwrap();
+  (name, symbol)
+}
+
+pub fn to_alkanes_balances(balances: protorune_support::proto::protorune::BalanceSheet) -> protorune_support::proto::protorune::BalanceSheet {
+  let mut clone = balances.clone();
+  for entry in &mut clone.entries {
+    (entry.rune.as_mut().unwrap().name, entry.rune.as_mut().unwrap().symbol) = get_statics(&from_protobuf(entry.rune.runeId.clone().unwrap()));
+  }
+  clone
+}
+
+pub fn from_protobuf(v: protorune_support::proto::protorune::ProtoruneRuneId) -> AlkaneId {
+  let protorune_rune_id: ProtoruneRuneId = v.into();
+  protorune_rune_id.into()
+}
+
+fn into_u128(v: protorune_support::proto::protorune::Uint128) -> u128 {
+  v.into()
+}
+
+pub fn protorunes_by_outpoint(input: &Vec<u8>) -> Result<protorune_support::proto::protorune::OutpointResponse> {
+    let request = protorune_support::proto::protorune::OutpointWithProtocol::parse_from_bytes(input)?;
+    view::protorunes_by_outpoint(input).and_then(|mut response| {
+      if into_u128(request.protocol.unwrap()) == AlkaneMessageContext::protocol_tag() {
+        response.balances = MessageField::some(to_alkanes_balances(response.balances.unwrap().clone()));
+      }
+      Ok(response)
+      
+    })
+}
+
+pub fn to_alkanes_outpoints(v: Vec<protorune_support::proto::protorune::OutpointResponse>) -> Vec<protorune_support::proto::protorune::OutpointResponse> {
+  let mut cloned = v.clone();
+  for item in &mut cloned {
+    item.balances = MessageField::some(to_alkanes_balances(item.balances.clone().unwrap().clone()));
+  }
+  cloned
+}
+
+
+pub fn protorunes_by_address(input: &Vec<u8>) -> Result<protorune_support::proto::protorune::WalletResponse> {
+    let request = protorune_support::proto::protorune::ProtorunesWalletRequest::parse_from_bytes(input)?;
+    view::protorunes_by_address(input).and_then(|mut response| {
+      if into_u128(request.protocol_tag.unwrap()) == AlkaneMessageContext::protocol_tag() {
+        response.outpoints = to_alkanes_outpoints(response.outpoints.clone());
+        response.balances = MessageField::some(to_alkanes_balances(response.balances.unwrap().clone()));
+      }
+      Ok(response)
+    })
+}
 
 pub fn alkane_inventory(req: &AlkaneInventoryRequest) -> Result<AlkaneInventoryResponse> {
     let mut result: AlkaneInventoryResponse = AlkaneInventoryResponse::new();
@@ -44,7 +177,7 @@ pub fn alkane_inventory(req: &AlkaneInventoryRequest) -> Result<AlkaneInventoryR
     Ok(result)
 }
 
-pub fn simulate_parcel(parcel: &MessageContextParcel) -> Result<(ExtendedCallResponse, u64)> {
+pub fn simulate_parcel(parcel: &MessageContextParcel, fuel: u64) -> Result<(ExtendedCallResponse, u64)> {
     let cellpack: Cellpack =
         decode_varint_list(&mut Cursor::new(parcel.calldata.clone()))?.try_into()?;
     let mut context = AlkanesRuntimeContext::from_parcel_and_cellpack(parcel, &cellpack);
@@ -52,7 +185,7 @@ pub fn simulate_parcel(parcel: &MessageContextParcel) -> Result<(ExtendedCallRes
     let (caller, myself, binary) = run_special_cellpacks(&mut context, &cellpack)?;
     credit_balances(&mut atomic, &myself, &parcel.runes);
     prepare_context(&mut context, &caller, &myself, false);
-    let (response, gas_used) = run_after_special(context, binary, u64::MAX)?;
+    let (response, gas_used) = run_after_special(context, binary, fuel)?;
     pipe_storagemap_to(
         &response.storage,
         &mut atomic.derive(&IndexPointer::from_keyword("/alkanes/").select(&myself.clone().into())),

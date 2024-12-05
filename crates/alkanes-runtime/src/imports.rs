@@ -60,7 +60,7 @@ mod exports {
         panic!("abort");
     }
     pub fn __load_storage(k: i32, v: i32) -> i32 {
-        0
+        v
     }
     pub fn __request_storage(k: i32) -> i32 {
         0

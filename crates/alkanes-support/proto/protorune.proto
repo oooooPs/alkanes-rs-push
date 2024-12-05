@@ -18,6 +18,7 @@ message Rune {
   uint32 divisibility = 3;
   uint32 spacers = 4;
   string symbol = 5;
+  uint32 runes_symbol = 6;
 }
 
 message BalanceSheetItem {
