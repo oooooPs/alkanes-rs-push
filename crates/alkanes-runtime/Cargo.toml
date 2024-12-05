@@ -7,6 +7,9 @@ license = "MIT"
 repository = "https://github.com/kungfuflex/alkanes-rs"
 resolver = "2"
 
+[features]
+test-utils = []
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -14,3 +17,5 @@ crate-type = ["cdylib", "rlib"]
 alkanes-support = { path = "../alkanes-support" }
 anyhow = "1.0.90"
 metashrew-support = { path = "../metashrew-support"  }
+wasm-bindgen = "0.2.93"
+wasm-bindgen-test = "0.3.43"

@@ -68,6 +68,8 @@ dependencies = [
  "alkanes-support",
  "anyhow",
  "metashrew-support",
+ "wasm-bindgen",
+ "wasm-bindgen-test",
 ]
 
 [[package]]

@@ -30,7 +30,7 @@ pub fn genesis_alkane_bytes() -> Vec<u8> {
 }
 
 //use if regtest
-#[cfg(all(not(feature="mainnet"), not(feature="dogecoin"), not(feature="bellscoin"), not(feature="fractal"), not(feature="luckycoin"))))]
+#[cfg(all(not(feature="mainnet"), not(feature="dogecoin"), not(feature="bellscoin"), not(feature="fractal"), not(feature="luckycoin")))]
 pub fn genesis_alkane_bytes() -> Vec<u8> {
     alkanes_std_genesis_alkane_regtest_build::get_bytes()
 }
