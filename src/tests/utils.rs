@@ -3,11 +3,11 @@ mod tests {
     use anyhow::Result;
     #[allow(unused_imports)]
     use metashrew::{
-        clear,
         index_pointer::IndexPointer,
         println,
         stdio::{stdout, Write},
     };
+    use crate::tests::helpers::clear;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[wasm_bindgen_test]
