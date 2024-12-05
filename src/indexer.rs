@@ -59,8 +59,8 @@ pub fn configure_network() {
 pub fn configure_network() {
     set_network(NetworkParams {
         bech32_prefix: String::from("bel"),
-        p2pkh_hash: 0x6f,
-        p2sh_hash: 0xc4,
+        p2pkh_hash: 0x19,
+        p2sh_hash: 0x1e,
     });
 }
 
