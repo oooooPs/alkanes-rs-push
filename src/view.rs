@@ -110,6 +110,7 @@ pub fn to_alkanes_balances(balances: protorune_support::proto::protorune::Balanc
     let block: u128 = entry.rune.clone().unwrap().runeId.height.clone().unwrap().into();
     if block == 2 || block == 4 {
       (entry.rune.as_mut().unwrap().name, entry.rune.as_mut().unwrap().symbol) = get_statics(&from_protobuf(entry.rune.runeId.clone().unwrap()));
+      entry.rune.as_mut().unwrap().spacers = 0;
     }
   }
   clone
