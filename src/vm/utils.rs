@@ -9,11 +9,12 @@ use alkanes_support::{
 use anyhow::{anyhow, Result};
 use metashrew::index_pointer::{AtomicPointer, IndexPointer};
 #[allow(unused_imports)]
-use metashrew::{println, stdio::stdout};
+use metashrew::{println, stdio::stdout, clear as clear_base};
 use metashrew_support::index_pointer::KeyValuePointer;
 
 use std::sync::Arc;
 use wasmi::*;
+
 
 pub fn read_arraybuffer(data: &[u8], data_start: i32) -> Result<Vec<u8>> {
     if data_start < 4 {
