@@ -6,3 +6,4 @@ pub mod auth_token;
 pub mod genesis;
 pub mod std;
 pub mod utils;
+pub mod address;
