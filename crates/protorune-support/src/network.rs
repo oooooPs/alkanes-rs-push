@@ -3,7 +3,7 @@ use metashrew_support::address::{AddressEncoding, Payload};
 use bech32::Hrp;
 static mut _NETWORK: Option<NetworkParams> = None;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct NetworkParams {
   pub bech32_prefix: String,
   pub p2pkh_prefix: u8,
@@ -18,6 +18,10 @@ pub fn set_network(params: NetworkParams) {
 
 pub fn get_network() -> &'static NetworkParams {
   unsafe { _NETWORK.as_ref().unwrap() }
+}
+
+pub fn get_network_option() -> Option<&'static NetworkParams> {
+  unsafe { _NETWORK.as_ref().clone() }
 }
 
 pub fn to_address_str(script: &Script) -> Option<String> {
