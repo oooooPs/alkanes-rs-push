@@ -1,5 +1,6 @@
 use crate::view::simulate_parcel;
 use alkanes_support::proto;
+use crate::indexer::{configure_network};
 use bitcoin::hashes::Hash;
 use bitcoin::{Transaction, blockdata::block::{Header}, Block, BlockHash, CompactTarget, TxMerkleNode};
 use bitcoin::blockdata::transaction::{Version};
@@ -9,6 +10,7 @@ use metashrew::{
     stdio::{stdout, Write},
 };
 use metashrew_support::block::AuxpowBlock;
+use metashrew_support::utils::{consume_sized_int, consume_to_end};
 use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
 use protobuf::{Message, MessageField};
 use protorune::message::MessageContextParcel;
@@ -79,6 +81,7 @@ pub fn parcel_from_protobuf(v: proto::alkanes::MessageContextParcel) -> MessageC
 
 #[no_mangle]
 pub fn simulate() -> i32 {
+    configure_network();
     let data = input();
     let _height = u32::from_le_bytes((&data[0..4]).try_into().unwrap());
     let reader = &data[4..];
@@ -98,6 +101,48 @@ pub fn simulate() -> i32 {
         result.write_to_bytes().unwrap().as_ref(),
     ))
 }
+
+#[no_mangle]
+pub fn runesbyaddress() -> i32 {
+    configure_network();
+    let mut data: Cursor<Vec<u8>> = Cursor::new(input());
+    let _height = consume_sized_int::<u32>(&mut data).unwrap();
+    let result: protorune_support::proto::protorune::WalletResponse = protorune::view::runes_by_address(&consume_to_end(&mut data).unwrap())
+        .unwrap();
+    to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(result.write_to_bytes().unwrap().as_ref()))
+}
+
+#[no_mangle]
+pub fn protorunesbyaddress() -> i32 {
+    configure_network();
+    let mut data: Cursor<Vec<u8>> = Cursor::new(input());
+    let _height = consume_sized_int::<u32>(&mut data).unwrap();
+    let result: protorune_support::proto::protorune::WalletResponse = protorune::view::protorunes_by_address(&consume_to_end(&mut data).unwrap())
+        .unwrap();
+    to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(&result.write_to_bytes().unwrap()))
+}
+
+#[no_mangle]
+pub fn protorunesbyoutpoint() -> i32 {
+    configure_network();
+    let mut data: Cursor<Vec<u8>> = Cursor::new(input());
+    let _height = consume_sized_int::<u32>(&mut data).unwrap();
+    let result: protorune_support::proto::protorune::OutpointResponse = protorune::view
+        ::protorunes_by_outpoint(&consume_to_end(&mut data).unwrap())
+        .unwrap();
+    to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(&result.write_to_bytes().unwrap()))
+}
+
+#[no_mangle]
+pub fn runesbyheight() -> i32 {
+    configure_network();
+    let mut data: Cursor<Vec<u8>> = Cursor::new(input());
+    let _height = consume_sized_int::<u32>(&mut data).unwrap();
+    let result: protorune_support::proto::protorune::RunesResponse = protorune::view::runes_by_height(&consume_to_end(&mut data).unwrap()).unwrap();
+    let buffer: Vec<u8> = result.write_to_bytes().unwrap();
+    to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(buffer.as_ref()))
+}
+
 
 // #[no_mangle]
 // pub fn alkane_balance_sheet() -> i32 {

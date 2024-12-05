@@ -78,42 +78,6 @@ pub fn num_non_op_return_outputs(tx: &Transaction) -> usize {
         .count()
 }
 
-#[no_mangle]
-pub fn runesbyaddress() -> i32 {
-    let mut data: Cursor<Vec<u8>> = Cursor::new(input());
-    let result: WalletResponse = view
-        ::runes_by_address(&consume_to_end(&mut data).unwrap())
-        .unwrap();
-    to_ptr(&mut to_arraybuffer_layout::<&[u8]>(result.write_to_bytes().unwrap().as_ref())) + 4
-}
-
-#[no_mangle]
-pub fn protorunesbyaddress() -> i32 {
-    let mut data: Cursor<Vec<u8>> = Cursor::new(input());
-    let result: WalletResponse = view
-        ::protorunes_by_address(&consume_to_end(&mut data).unwrap())
-        .unwrap();
-    to_ptr(&mut to_arraybuffer_layout::<&[u8]>(&result.write_to_bytes().unwrap())) + 4
-}
-
-#[no_mangle]
-pub fn protorunesbyoutpoint() -> i32 {
-    let mut data: Cursor<Vec<u8>> = Cursor::new(input());
-    let _height = consume_sized_int::<u32>(&mut data);
-    let result: OutpointResponse = view
-        ::protorunes_by_outpoint(&consume_to_end(&mut data).unwrap())
-        .unwrap();
-    to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(&result.write_to_bytes().unwrap()))
-}
-
-#[no_mangle]
-pub fn runesbyheight() -> i32 {
-    let mut data: Cursor<Vec<u8>> = Cursor::new(input());
-    let result: RunesResponse = view::runes_by_height(&consume_to_end(&mut data).unwrap()).unwrap();
-    let buffer: Vec<u8> = result.write_to_bytes().unwrap();
-    to_ptr(&mut to_arraybuffer_layout::<&[u8]>(buffer.as_ref())) + 4
-}
-
 impl Protorune {
     pub fn index_runestone<T: MessageContext>(
         atomic: &mut AtomicPointer,

@@ -8,13 +8,13 @@ use protorune::{message::MessageContext, Protorune};
 use protorune_support::network::{set_network, NetworkParams};
 use protorune_support::protostone::Protostone;
 
-#[cfg(not(all(
-    feature = "mainnet",
-    feature = "testnet",
-    feature = "luckycoin",
-    feature = "dogecoin",
-    feature = "bellscoin"
-)))]
+#[cfg(all(
+    not(feature = "mainnet"),
+    not(feature = "testnet"),
+    not(feature = "luckycoin"),
+    not(feature = "dogecoin"),
+    not(feature = "bellscoin")
+))]
 pub fn configure_network() {
     set_network(NetworkParams {
         bech32_prefix: String::from("bcrt"),
