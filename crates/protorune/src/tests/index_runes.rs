@@ -7,7 +7,7 @@ mod tests {
         OutpointResponse, Rune as RuneProto, RunesByHeightRequest, WalletRequest,
     };
 
-    use crate::test_helpers::{self as helpers, RunesTestingConfig};
+    use crate::test_helpers::{self as helpers, RunesTestingConfig, ADDRESS1, ADDRESS2};
     use crate::test_helpers::{display_list_as_hex, display_vec_as_hex};
     use crate::Protorune;
     use crate::{message::MessageContextParcel, tables, view};
@@ -21,6 +21,8 @@ mod tests {
     use hex;
 
     use helpers::clear;
+    #[allow(unused_imports)]
+    use metashrew::{println, stdio::{stdout, Write}};
     use metashrew_support::index_pointer::KeyValuePointer;
     use ordinals::{Edict, Rune, RuneId};
 
@@ -70,7 +72,7 @@ mod tests {
         let test_block = helpers::create_block_with_sample_tx();
         let _ = Protorune::index_block::<MyMessageContext>(test_block.clone(), 840001);
         tables::OUTPOINTS_FOR_ADDRESS
-            .keyword("bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu")
+            .keyword(&ADDRESS1())
             .set(Arc::new(Vec::new()));
         // let outpoint: OutPoint = OutPoint {
         //     txid: Txid::from_str(
@@ -84,14 +86,12 @@ mod tests {
         //     .get();
         // let addr_str = display_vec_as_hex(test_val.to_vec());
         let _addr_str: String = display_vec_as_hex(
-            "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
-                .to_string()
+                ADDRESS1()
                 .into_bytes(),
         );
 
         let _view_test = view::runes_by_address(
-            &"bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
-                .to_string()
+            &ADDRESS1()
                 .into_bytes(),
         );
 
@@ -113,13 +113,13 @@ mod tests {
         let _ = Protorune::index_block::<MyMessageContext>(test_block.clone(), 840001);
         let outpoint: OutPoint = OutPoint {
             txid: Txid::from_str(
-                "a440cb400062f14cff5f76fbbd3881c426820171180c67c103a36d12c89fbd32",
+                "20e06c645f2dba1b9cf3ed1dbe46c59402fa2ac5c6b06a97e6697fe07d55f43e",
             )
             .unwrap(),
             vout: 0,
         };
         let test_val = tables::OUTPOINTS_FOR_ADDRESS
-            .keyword("bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu")
+            .keyword(&helpers::ADDRESS1())
             .get_list();
         let list_str: String = display_list_as_hex(test_val);
 
@@ -135,7 +135,7 @@ mod tests {
         let (test_block, _) = helpers::create_block_with_rune_tx();
         let _ = Protorune::index_block::<MyMessageContext>(test_block.clone(), 840001);
         let req = (WalletRequest {
-            wallet: "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
+            wallet: helpers::ADDRESS1()
                 .as_bytes()
                 .to_vec(),
             special_fields: SpecialFields::new(),
@@ -144,6 +144,7 @@ mod tests {
         .unwrap();
         let test_val = view::runes_by_address(&req).unwrap();
         let runes: Vec<OutpointResponse> = test_val.clone().outpoints;
+        println!("{:?}", runes);
         assert_eq!(runes[0].height, 840001);
         assert_eq!(runes[0].txindex, 0);
     }
@@ -248,8 +249,8 @@ mod tests {
     ) {
         clear();
         let config = RunesTestingConfig::new(
-            "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu",
-            "bc1qwml3ckq4gtmxe7hwvs38nvt5j63gwnwwmvk5r5",
+            ADDRESS1().as_str(),
+            ADDRESS2().as_str(),
             "TESTER",
             "Z",
             840001,

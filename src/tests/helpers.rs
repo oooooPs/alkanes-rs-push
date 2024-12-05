@@ -13,16 +13,79 @@ use metashrew::index_pointer::IndexPointer;
 use metashrew::{
     println,
     stdio::{stdout, Write},
+    clear as clear_base
 };
 use metashrew_support::index_pointer::KeyValuePointer;
 use protorune::protostone::Protostones;
 use protorune::test_helpers::{create_block_with_coinbase_tx, get_address, ADDRESS1};
 use protorune_support::protostone::Protostone;
+use protorune_support::network::{set_network, NetworkParams};
 
 use ordinals::{Etching, Rune, Runestone};
 use std::str::FromStr;
 
 use super::std::alkanes_std_test_build;
+
+#[cfg(not(all(
+    feature = "mainnet",
+    feature = "testnet",
+    feature = "luckycoin",
+    feature = "dogecoin",
+    feature = "bellscoin"
+)))]
+pub fn configure_network() {
+    set_network(NetworkParams {
+        bech32_prefix: String::from("bcrt"),
+        p2pkh_prefix: 0x64,
+        p2sh_prefix: 0xc4,
+    });
+}
+#[cfg(feature = "mainnet")]
+pub fn configure_network() {
+    set_network(NetworkParams {
+        bech32_prefix: String::from("bc"),
+        p2sh_prefix: 0x05,
+        p2pkh_prefix: 0x00,
+    });
+}
+#[cfg(feature = "testnet")]
+pub fn configure_network() {
+    set_network(NetworkParams {
+        bech32_prefix: String::from("tb"),
+        p2pkh_hash: 0x6f,
+        p2sh_hash: 0xc4,
+    });
+}
+#[cfg(feature = "luckycoin")]
+pub fn configure_network() {
+    set_network(NetworkParams {
+        bech32_prefix: String::from("tb"),
+        p2pkh_hash: 0x6f,
+        p2sh_hash: 0xc4,
+    });
+}
+
+#[cfg(feature = "dogecoin")]
+pub fn configure_network() {
+    set_network(NetworkParams {
+        bech32_prefix: String::from("dc"),
+        p2pkh_hash: 0x6f,
+        p2sh_hash: 0xc4,
+    });
+}
+#[cfg(feature = "bellscoin")]
+pub fn configure_network() {
+    set_network(NetworkParams {
+        bech32_prefix: String::from("bel"),
+        p2pkh_hash: 0x6f,
+        p2sh_hash: 0xc4,
+    });
+}
+
+pub fn clear() {
+    clear_base();
+    configure_network();
+}
 
 pub fn init_test_with_cellpack(cellpack: Cellpack) -> Block {
     let block_height = 840000;
@@ -117,7 +180,7 @@ pub fn create_protostone_tx_with_inputs_and_default_pointer(
         value: Amount::from_sat(0),
         script_pubkey: runestone,
     };
-    let address: Address<NetworkChecked> = get_address(&ADDRESS1);
+    let address: Address<NetworkChecked> = get_address(&ADDRESS1().as_str());
     let _script_pubkey = address.script_pubkey();
     let mut _outputs = outputs.clone();
     _outputs.push(op_return);
@@ -208,7 +271,7 @@ pub fn create_multiple_cellpack_with_witness_and_in(
         value: Amount::from_sat(0),
         script_pubkey: runestone,
     };
-    let address: Address<NetworkChecked> = get_address(&ADDRESS1);
+    let address: Address<NetworkChecked> = get_address(&ADDRESS1().as_str());
 
     let script_pubkey = address.script_pubkey();
     let txout = TxOut {

@@ -26,7 +26,8 @@ impl Token for GenesisAlkane {
     }
 }
 
-#[cfg(feature = "regtest")]
+//use if regtest
+#[cfg(not(all(feature="mainnet", feature="dogecoin", feature="bellscoin", feature="fractal", feature="luckycoin")))]
 impl ChainConfiguration for GenesisAlkane {
     fn block_reward(&self, n: u64) -> u128 {
         return (50e8 as u128) / (1u128 << ((n as u128) / 210000u128));

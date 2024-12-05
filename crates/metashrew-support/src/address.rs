@@ -188,6 +188,7 @@ impl Payload {
 
 /// A utility struct to encode an address payload with the given parameters.
 /// This is a low-level utility struct. Consider using `Address` instead.
+#[derive(Debug)]
 pub struct AddressEncoding<'a> {
     /// The address payload to encode.
     pub payload: &'a Payload,
@@ -229,4 +230,3 @@ impl<'a> fmt::Display for AddressEncoding<'a> {
         }
     }
 }
-
