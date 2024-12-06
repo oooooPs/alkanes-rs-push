@@ -8,7 +8,7 @@ use metashrew::{
     stdio::{stdout, Write},
 };
 use metashrew_support::block::AuxpowBlock;
-use metashrew_support::utils::{consume_sized_int, consume_to_end};
+use metashrew_support::utils::{consensus_decode, consume_sized_int, consume_to_end};
 use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
 use protobuf::{Message, MessageField};
 use std::io::Cursor;
@@ -21,6 +21,7 @@ pub mod tests;
 pub mod utils;
 pub mod view;
 pub mod vm;
+pub mod block;
 use crate::indexer::{index_block};
 
 
@@ -110,9 +111,12 @@ pub fn _start() {
     let data = input();
     let height = u32::from_le_bytes((&data[0..4]).try_into().unwrap());
     let reader = &data[4..];
+    #[cfg(any(feature = "dogecoin", feature = "luckycoin", feature = "bellscoin"))]
     let block: Block = AuxpowBlock::parse(&mut Cursor::<Vec<u8>>::new(reader.to_vec()))
         .unwrap()
         .to_consensus();
+    #[cfg(not(any(feature = "dogecoin", feature = "luckycoin", feature = "bellscoin")))]
+    let block: Block = consensus_decode::<Block>(&mut Cursor::<Vec<u8>>::new(reader.to_vec())).unwrap();
     index_block(&block, height).unwrap();
     flush();
 }
