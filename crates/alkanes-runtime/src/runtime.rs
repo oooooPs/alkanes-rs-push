@@ -2,7 +2,7 @@
 use crate::imports::{
     __balance, __call, __delegatecall, __fuel, __height, __load_block, __load_context,
     __load_storage, __load_transaction, __log, __request_block, __request_context,
-    __request_storage, __request_transaction, __returndatacopy, __sequence, __staticcall, abort,
+    __request_storage, __request_transaction, __returndatacopy, __sequence, __staticcall, abort, __load_output, __request_output
 };
 #[allow(unused_imports)]
 use crate::{
@@ -13,7 +13,9 @@ use anyhow::anyhow;
 #[allow(unused_imports)]
 use anyhow::Result;
 use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr, to_ptr};
+use metashrew_support::utils::{consensus_encode};
 use std::io::Cursor;
+use bitcoin::{OutPoint};
 
 use crate::compat::panic_hook;
 
@@ -121,7 +123,7 @@ pub trait AlkaneResponder {
         }
     }
     fn output(&self, v: &OutPoint) -> Result<Vec<u8>> {
-        let buffer = to_arraybuffer_layout(consensus_encode(v)?);
+        let mut buffer = to_arraybuffer_layout(consensus_encode(v)?);
         let serialized = to_passback_ptr(&mut buffer);
         unsafe {
             let mut result: Vec<u8> =

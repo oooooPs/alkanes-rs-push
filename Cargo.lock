@@ -67,6 +67,7 @@ version = "0.1.0"
 dependencies = [
  "alkanes-support",
  "anyhow",
+ "bitcoin 0.32.4",
  "metashrew-support",
  "wasm-bindgen",
  "wasm-bindgen-test",
