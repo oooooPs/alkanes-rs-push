@@ -34,6 +34,14 @@ extern "C" {
         checkpoint: i32,
         start_fuel: u64,
     ) -> i32;
+    pub fn __load_output(
+      outpoint: i32
+    ) -> i32;
+    pub fn __request_output(
+      outpoint: i32,
+      output: i32
+    ) -> i32;
+
 }
 
 #[cfg(feature = "test-utils")]

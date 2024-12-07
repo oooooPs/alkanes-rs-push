@@ -120,6 +120,22 @@ pub trait AlkaneResponder {
             (&buffer[4..]).to_vec()
         }
     }
+    fn output(&self, v: &OutPoint) -> Result<Vec<u8>> {
+        let buffer = to_arraybuffer_layout(consensus_encode(v)?);
+        let serialized = to_passback_ptr(&mut buffer);
+        unsafe {
+            let mut result: Vec<u8> =
+                to_arraybuffer_layout(vec![0; __request_output(serialized) as usize]);
+            let sz = __load_output(serialized, to_passback_ptr(&mut result));
+            if sz == i32::MAX {
+              Err(anyhow!("error fetching output"))
+            } else if sz == 0 {
+              Err(anyhow!("output not found"))
+            } else {
+              Ok((&result[4..]).to_vec())
+            }
+        }
+    }
     fn load(&self, k: Vec<u8>) -> Vec<u8> {
         unsafe {
             if _CACHE.as_ref().unwrap().0.contains_key(&k) {
