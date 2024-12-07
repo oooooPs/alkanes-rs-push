@@ -1,7 +1,9 @@
 use crate::utils::{
     alkane_inventory_pointer, balance_pointer, credit_balances, debit_balances, pipe_storagemap_to,
 };
+#[allow(unused_imports)]
 use metashrew::{println, stdio::{stdout}};
+#[allow(unused_imports)]
 use std::fmt::{Write};
 use crate::vm::runtime::AlkanesRuntimeContext;
 use crate::vm::utils::{prepare_context, run_after_special, run_special_cellpacks};
@@ -147,7 +149,6 @@ pub fn to_alkanes_outpoints(v: Vec<protorune_support::proto::protorune::Outpoint
 
 pub fn protorunes_by_address(input: &Vec<u8>) -> Result<protorune_support::proto::protorune::WalletResponse> {
     let request = protorune_support::proto::protorune::ProtorunesWalletRequest::parse_from_bytes(input)?;
-    println!("request: {:?}", request);
     view::protorunes_by_address(input).and_then(|mut response| {
       if into_u128(request.protocol_tag.unwrap()) == AlkaneMessageContext::protocol_tag() {
         response.outpoints = to_alkanes_outpoints(response.outpoints.clone());

@@ -227,6 +227,28 @@ impl AlkanesInstance {
         )?;
         linker.func_wrap(
             "env",
+            "__request_output",
+            |mut caller: Caller<'_, AlkanesState>, outpoint: i32| -> i32 {
+                match AlkanesHostFunctionsImpl::request_output(&mut caller, outpoint) {
+                  Err(_e) => {
+                    AlkanesHostFunctionsImpl::_abort(caller);
+                    -1
+                  }
+                  Ok(v) => v
+                }
+            },
+        )?;
+        linker.func_wrap(
+            "env",
+            "__load_output",
+            |mut caller: Caller<'_, AlkanesState>, outpoint: i32, output: i32| {
+                if let Err(_e) = AlkanesHostFunctionsImpl::load_output(&mut caller, outpoint, output) {
+                    AlkanesHostFunctionsImpl::_abort(caller);
+                }
+            },
+        )?;
+        linker.func_wrap(
+            "env",
             "__request_block",
             |mut caller: Caller<'_, AlkanesState>| match AlkanesHostFunctionsImpl::request_block(
                 &mut caller,

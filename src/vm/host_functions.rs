@@ -137,6 +137,38 @@ impl AlkanesHostFunctionsImpl {
         )?;
         Ok(result)
     }
+    pub(super) fn request_output(caller: &mut Caller<'_, AlkanesState>, outpoint: i32) -> Result<i32> {
+        let mem = get_memory(caller)?;
+        let key = {
+          let data = mem.data(&caller);
+          read_arraybuffer(data, outpoint)?
+        };
+        Ok(caller
+                .data_mut()
+                .context
+                .lock()
+                .unwrap()
+                .message
+                .atomic
+                .derive(&*protorune::tables::OUTPOINT_TO_OUTPUT)
+                .select(&key).get().as_ref().len() as i32)
+    }
+    pub(super) fn load_output(caller: &mut Caller<'_, AlkanesState>, outpoint: i32, output: i32) -> Result<i32> {
+        let mem = get_memory(caller)?;
+        let key = {
+          let data = mem.data(&caller);
+          read_arraybuffer(data, outpoint)?
+        };
+        let value = caller.data_mut()
+                .context
+                .lock()
+                .unwrap()
+                .message
+                .atomic
+                .derive(&*protorune::tables::OUTPOINT_TO_OUTPUT)
+                .select(&key).get().as_ref().clone();
+        Ok(send_to_arraybuffer(caller, output.try_into()?, &value)?)
+    }
     pub(super) fn returndatacopy(caller: &mut Caller<'_, AlkanesState>, output: i32) -> Result<()> {
         let returndata: Vec<u8> = caller.data_mut().context.lock().unwrap().returndata.clone();
         consume_fuel(
