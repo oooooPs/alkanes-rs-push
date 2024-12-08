@@ -7,6 +7,7 @@ use metashrew::{
     flush, input, println,
     stdio::{stdout, Write},
 };
+#[allow(unused_imports)]
 use metashrew_support::block::AuxpowBlock;
 use metashrew_support::utils::{consensus_decode, consume_sized_int, consume_to_end};
 use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
