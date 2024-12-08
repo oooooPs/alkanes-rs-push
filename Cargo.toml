@@ -14,6 +14,7 @@ crate-type = ["cdylib", "rlib"]
 members = [".", "crates/*"]
 
 [features]
+test-utils = []
 test = []
 testnet = []
 dogecoin = []

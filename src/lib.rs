@@ -16,7 +16,7 @@ pub mod message;
 pub mod indexer;
 pub mod network;
 pub mod precompiled;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 pub mod tests;
 pub mod utils;
 pub mod view;
