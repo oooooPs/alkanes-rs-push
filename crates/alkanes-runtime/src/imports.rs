@@ -1,10 +1,10 @@
-#[cfg(feature = "test-utils")]
+#[cfg(test)]//feature = "test-utils")]
 use alkanes_support::context::Context;
-#[cfg(feature = "test-utils")]
+#[cfg(test)]//feature = "test-utils")]
 use wasm_bindgen::prelude::*;
 
+//#[cfg(not(feature = "test-utils"))]
 #[link(wasm_import_module = "env")]
-#[cfg(not(feature = "test-utils"))]
 extern "C" {
     pub fn abort() -> i32;
     pub fn __load_storage(k: i32, v: i32) -> i32;
@@ -44,7 +44,7 @@ extern "C" {
 
 }
 
-#[cfg(feature = "test-utils")]
+#[cfg(test)]//feature = "test-utils")]
 pub mod externs {
     pub use wasm_bindgen::prelude::*;
     #[wasm_bindgen(js_namespace = ["process", "stdout"])]
@@ -53,10 +53,10 @@ pub mod externs {
     }
 }
 
-#[cfg(feature = "test-utils")]
+#[cfg(test)]//feature = "test-utils")]
 pub static mut _CONTEXT: Option<Context> = None;
 
-#[cfg(feature = "test-utils")]
+#[cfg(test)]//feature = "test-utils")]
 mod exports {
     pub use super::externs;
     use super::_CONTEXT;
@@ -134,5 +134,5 @@ mod exports {
     }
 }
 
-#[cfg(feature = "test-utils")]
+#[cfg(test)]//feature = "test-utils")]
 pub use exports::*;
