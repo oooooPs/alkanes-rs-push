@@ -225,6 +225,8 @@ impl AlkanesInstance {
                 }
             },
         )?;
+        /* removed below to prevent redundancy / requirement for archived chaindata */
+        /*
         linker.func_wrap(
             "env",
             "__request_output",
@@ -247,6 +249,7 @@ impl AlkanesInstance {
                 }
             },
         )?;
+        */
         linker.func_wrap(
             "env",
             "__request_block",

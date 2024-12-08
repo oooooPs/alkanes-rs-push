@@ -122,6 +122,7 @@ pub trait AlkaneResponder {
             (&buffer[4..]).to_vec()
         }
     }
+    /*
     fn output(&self, v: &OutPoint) -> Result<Vec<u8>> {
         let mut buffer = to_arraybuffer_layout(consensus_encode(v)?);
         let serialized = to_passback_ptr(&mut buffer);
@@ -138,6 +139,7 @@ pub trait AlkaneResponder {
             }
         }
     }
+    */
     fn load(&self, k: Vec<u8>) -> Vec<u8> {
         unsafe {
             if _CACHE.as_ref().unwrap().0.contains_key(&k) {

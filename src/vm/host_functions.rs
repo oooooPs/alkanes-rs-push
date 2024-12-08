@@ -137,6 +137,7 @@ impl AlkanesHostFunctionsImpl {
         )?;
         Ok(result)
     }
+    /*
     pub(super) fn request_output(caller: &mut Caller<'_, AlkanesState>, outpoint: i32) -> Result<i32> {
         let mem = get_memory(caller)?;
         let key = {
@@ -169,6 +170,7 @@ impl AlkanesHostFunctionsImpl {
                 .select(&key).get().as_ref().clone();
         Ok(send_to_arraybuffer(caller, output.try_into()?, &value)?)
     }
+    */
     pub(super) fn returndatacopy(caller: &mut Caller<'_, AlkanesState>, output: i32) -> Result<()> {
         let returndata: Vec<u8> = caller.data_mut().context.lock().unwrap().returndata.clone();
         consume_fuel(
