@@ -87,6 +87,7 @@ pub fn clear() {
     configure_network();
 }
 
+#[cfg(not(feature = "test-utils"))]
 pub fn init_test_with_cellpack(cellpack: Cellpack) -> Block {
     let block_height = 840000;
     let mut test_block = create_block_with_coinbase_tx(block_height);
