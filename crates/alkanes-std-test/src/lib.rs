@@ -1,5 +1,10 @@
 use alkanes_runtime::runtime::AlkaneResponder;
-use alkanes_support::{cellpack::Cellpack, response::CallResponse};
+#[allow(unused_imports)]
+use {
+  alkanes_runtime::{imports::{__request_transaction}, println, stdio::{stdout}},
+  std::fmt::Write
+};
+use alkanes_support::{utils::{shift},cellpack::Cellpack, response::CallResponse};
 use metashrew_support::compat::{to_arraybuffer_layout, to_ptr};
 use sha2::{Digest, Sha256};
 use hex;
@@ -10,7 +15,10 @@ struct LoggerAlkane(());
 impl AlkaneResponder for LoggerAlkane {
     fn execute(&self) -> CallResponse {
         let context = self.context().unwrap();
-        if context.inputs.len() > 0 && context.inputs[0] == 78 {
+        let mut inputs = context.inputs.clone();
+        let mut response = CallResponse::forward(&context.incoming_alkanes);
+        match shift(&mut inputs).unwrap() {
+          78 => {
             let mut data = vec![0x01, 0x02];
             loop {
                 let mut hasher = Sha256::new();
@@ -21,24 +29,21 @@ impl AlkaneResponder for LoggerAlkane {
                     break;
                 }
             }
+          }
+          50 => {
+              /*
+            println!("request_transaction: {}", unsafe { __request_transaction() });
+            println!("transaction: {}", hex::encode(self.transaction()));
+              */
+            println!("test");
+          }
+          5 => {
+            response.data = vec![0x05, 0x06, 0x07, 0x08];
+          }
+          _ => {
+            response.data = vec![0x01, 0x02, 0x03, 0x04];
+          }
         }
-        println!("{}", context.myself.clone());
-        if context.inputs.len() > 0 && context.inputs[0] == 1 {
-            let cellpack = Cellpack {
-                target: context.myself,
-                inputs: vec![5],
-            };
-            let _r = self
-                .call(&cellpack, &context.incoming_alkanes, self.fuel())
-                .unwrap();
-            ()
-        } else if context.inputs.len() > 0 && context.inputs[0] == 50 {
-          println!("{}", hex::encode(self.transaction.unwrap()));
-        } else if context.inputs.len() > 0 && context.inputs[0] == 5 {
-          ()
-        }
-        let mut response = CallResponse::forward(&context.incoming_alkanes);
-        response.data = vec![0x01, 0x02];
         response
     }
 }

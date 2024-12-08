@@ -1,5 +1,10 @@
 use std::fmt;
 
+#[allow(unused_imports)]
+use {
+  std::fmt::Write,
+  metashrew::{println, stdio::{stdout}}
+};
 use alkanes_support::{cellpack::Cellpack, id::AlkaneId, parcel::AlkaneTransferParcel};
 
 use protorune::message::MessageContextParcel;

@@ -9,5 +9,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 alkanes-runtime = { path = "../alkanes-runtime" }
 alkanes-support = { path = "../alkanes-support" }
+hex = "0.4.3"
 metashrew-support = { path = "../metashrew-support" }
 sha2 = "0.10.8"

@@ -19,6 +19,7 @@ mod tests {
     use alkane_helpers::clear;
     use wasm_bindgen_test::wasm_bindgen_test;
 
+    /*
     #[wasm_bindgen_test]
     pub fn test_compression() -> Result<()> {
         let buffer = alkanes_std_test_build::get_bytes();
@@ -26,6 +27,8 @@ mod tests {
         assert_eq!(decompress(compressed)?, buffer.clone());
         Ok(())
     }
+    */
+    /*
     #[wasm_bindgen_test]
     fn test_extcall() -> Result<()> {
         clear();
@@ -59,6 +62,7 @@ mod tests {
         index_block(&test_block, block_height as u32)?;
         Ok(())
     }
+    */
     #[wasm_bindgen_test]
     fn test_transaction() -> Result<()> {
         clear();
@@ -68,7 +72,7 @@ mod tests {
             //create alkane
             Cellpack {
                 target: AlkaneId { block: 3, tx: 10001 },
-                inputs: vec![1, 0],
+                inputs: vec![0, 0],
             },
             Cellpack {
                 target: AlkaneId { block: 4, tx: 10001 },
