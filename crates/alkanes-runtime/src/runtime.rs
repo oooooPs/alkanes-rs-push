@@ -116,7 +116,6 @@ pub trait AlkaneResponder {
     }
     fn transaction(&self) -> Vec<u8> {
         unsafe {
-            println!("len: {}", __request_transaction());
             let mut buffer: Vec<u8> =
                 to_arraybuffer_layout(vec![0; __request_transaction() as usize]);
             __load_transaction(to_ptr(&mut buffer) + 4);

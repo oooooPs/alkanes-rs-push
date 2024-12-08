@@ -31,11 +31,7 @@ impl AlkaneResponder for LoggerAlkane {
             }
           }
           50 => {
-              /*
-            println!("request_transaction: {}", unsafe { __request_transaction() });
-            println!("transaction: {}", hex::encode(self.transaction()));
-              */
-            println!("test");
+            self.transaction();
           }
           5 => {
             response.data = vec![0x05, 0x06, 0x07, 0x08];
