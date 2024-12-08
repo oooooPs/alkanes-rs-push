@@ -206,7 +206,7 @@ impl AlkanesInstance {
         linker.func_wrap(
             "env",
             "__request_transaction",
-            |mut caller: Caller<'_, AlkanesState>| {
+            |mut caller: Caller<'_, AlkanesState>| -> i32 {
                 match AlkanesHostFunctionsImpl::request_transaction(&mut caller) {
                     Ok(v) => v,
                     Err(_e) => {

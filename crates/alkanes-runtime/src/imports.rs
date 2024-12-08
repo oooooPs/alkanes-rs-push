@@ -1,6 +1,6 @@
-#[cfg(test)]//feature = "test-utils")]
+#[cfg(feature = "test-utils")]
 use alkanes_support::context::Context;
-#[cfg(test)]//feature = "test-utils")]
+#[cfg(feature = "test-utils")]
 use wasm_bindgen::prelude::*;
 
 //#[cfg(not(feature = "test-utils"))]
@@ -44,7 +44,7 @@ extern "C" {
 
 }
 
-#[cfg(test)]//feature = "test-utils")]
+#[cfg(feature = "test-utils")]
 pub mod externs {
     pub use wasm_bindgen::prelude::*;
     #[wasm_bindgen(js_namespace = ["process", "stdout"])]
@@ -53,10 +53,10 @@ pub mod externs {
     }
 }
 
-#[cfg(test)]//feature = "test-utils")]
+#[cfg(feature = "test-utils")]
 pub static mut _CONTEXT: Option<Context> = None;
 
-#[cfg(test)]//feature = "test-utils")]
+#[cfg(feature = "test-utils")]
 mod exports {
     pub use super::externs;
     use super::_CONTEXT;
@@ -134,5 +134,5 @@ mod exports {
     }
 }
 
-#[cfg(test)]//feature = "test-utils")]
+#[cfg(feature = "test-utils")]
 pub use exports::*;

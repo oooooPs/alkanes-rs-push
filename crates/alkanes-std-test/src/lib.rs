@@ -2,6 +2,7 @@ use alkanes_runtime::runtime::AlkaneResponder;
 use alkanes_support::{cellpack::Cellpack, response::CallResponse};
 use metashrew_support::compat::{to_arraybuffer_layout, to_ptr};
 use sha2::{Digest, Sha256};
+use hex;
 
 #[derive(Default)]
 struct LoggerAlkane(());
@@ -21,17 +22,20 @@ impl AlkaneResponder for LoggerAlkane {
                 }
             }
         }
+        println!("{}", context.myself.clone());
         if context.inputs.len() > 0 && context.inputs[0] == 1 {
             let cellpack = Cellpack {
                 target: context.myself,
-                inputs: vec![],
+                inputs: vec![5],
             };
             let _r = self
                 .call(&cellpack, &context.incoming_alkanes, self.fuel())
                 .unwrap();
             ()
-        } else {
-            ()
+        } else if context.inputs.len() > 0 && context.inputs[0] == 50 {
+          println!("{}", hex::encode(self.transaction.unwrap()));
+        } else if context.inputs.len() > 0 && context.inputs[0] == 5 {
+          ()
         }
         let mut response = CallResponse::forward(&context.incoming_alkanes);
         response.data = vec![0x01, 0x02];

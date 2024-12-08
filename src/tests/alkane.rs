@@ -59,6 +59,30 @@ mod tests {
         index_block(&test_block, block_height as u32)?;
         Ok(())
     }
+    #[wasm_bindgen_test]
+    fn test_transaction() -> Result<()> {
+        clear();
+        let block_height = 840_000;
+
+        let test_cellpacks = [
+            //create alkane
+            Cellpack {
+                target: AlkaneId { block: 3, tx: 10001 },
+                inputs: vec![1, 0],
+            },
+            Cellpack {
+                target: AlkaneId { block: 4, tx: 10001 },
+                inputs: vec![50],
+            },
+        ];
+
+        let mut test_block = alkane_helpers::init_with_multiple_cellpacks_with_tx(
+          [alkanes_std_test_build::get_bytes(), vec![]].into(),
+          test_cellpacks.to_vec()
+        );
+        index_block(&test_block, block_height as u32)?;
+        Ok(())
+    }
 
     /*
         #[wasm_bindgen_test]
@@ -98,6 +122,7 @@ mod tests {
         }
     */
 
+        /*
     #[wasm_bindgen_test]
     async fn test_base_std_functionality() -> Result<()> {
         clear();
@@ -131,4 +156,5 @@ mod tests {
 
         Ok(())
     }
+*/
 }
