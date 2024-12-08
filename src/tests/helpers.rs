@@ -24,6 +24,7 @@ use protorune_support::network::{set_network, NetworkParams};
 use ordinals::{Etching, Rune, Runestone};
 use std::str::FromStr;
 
+#[cfg(not(feature = "test-utils"))]
 use super::std::alkanes_std_test_build;
 
 #[cfg(not(all(
