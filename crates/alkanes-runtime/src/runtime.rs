@@ -2,7 +2,7 @@
 use crate::imports::{
     __balance, __call, __delegatecall, __fuel, __height, __load_block, __load_context,
     __load_storage, __load_transaction, __log, __request_block, __request_context,
-    __request_storage, __request_transaction, __returndatacopy, __sequence, __staticcall, abort, __load_output, __request_output
+    __request_storage, __request_transaction, __returndatacopy, __sequence, __staticcall, abort /*, __load_output, __request_output */
 };
 #[allow(unused_imports)]
 use crate::{
