@@ -19,6 +19,7 @@ const TOTAL_FUEL: u64 = 50_000_000;
 
 static mut MESSAGE_COUNT: u64 = 0;
 
+pub const MINIMUM_FUEL: u64 = 90_000;
 pub const FUEL_PER_REQUEST_BYTE: u64 = 1;
 pub const FUEL_PER_LOAD_BYTE: u64 = 2;
 pub const FUEL_PER_STORE_BYTE: u64 = 8;
@@ -58,7 +59,7 @@ pub fn set_message_count(v: u64) {
 }
 
 pub fn start_fuel() -> u64 {
-    TOTAL_FUEL / std::cmp::max(1, unsafe { MESSAGE_COUNT })
+    std::cmp::max(TOTAL_FUEL / std::cmp::max(1, unsafe { MESSAGE_COUNT }), MINIMUM_FUEL)
 }
 
 pub fn compute_extcall_fuel(savecount: u64) -> Result<u64> {
