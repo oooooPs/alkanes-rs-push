@@ -221,7 +221,9 @@ pub fn runes_by_height(input: &Vec<u8>) -> Result<RunesResponse> {
             );
             _rune.spacers = tables::RUNES.SPACERS.select(&rune).get_value::<u32>();
 
-            _rune.symbol = String::from_utf8(tables::RUNES.SYMBOL.select(&rune).get().as_ref().clone())?;
+            _rune.symbol =
+                String::from_utf8(tables::RUNES.SYMBOL.select(&rune).get().as_ref().clone())?;
+            _rune.symbol = _rune.symbol.replace('\0', "");
             _rune.divisibility = tables::RUNES.DIVISIBILITY.select(&rune).get_value::<u8>() as u32;
             result.runes.push(_rune);
         }

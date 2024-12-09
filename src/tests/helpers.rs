@@ -11,15 +11,14 @@ use bitcoin::{Block, Transaction};
 use metashrew::index_pointer::IndexPointer;
 #[allow(unused_imports)]
 use metashrew::{
-    println,
+    clear as clear_base, println,
     stdio::{stdout, Write},
-    clear as clear_base
 };
 use metashrew_support::index_pointer::KeyValuePointer;
 use protorune::protostone::Protostones;
 use protorune::test_helpers::{create_block_with_coinbase_tx, get_address, ADDRESS1};
-use protorune_support::protostone::Protostone;
 use protorune_support::network::{set_network, NetworkParams};
+use protorune_support::protostone::Protostone;
 
 use ordinals::{Etching, Rune, Runestone};
 use std::str::FromStr;
@@ -247,7 +246,7 @@ pub fn create_multiple_cellpack_with_witness_and_in(
         Some(Etching {
             divisibility: Some(2),
             premine: Some(1000),
-            rune: Some(Rune::from_str("TESTTESTTEST").unwrap()),
+            rune: Some(Rune::from_str("TESTTESTTESTTEST").unwrap()),
             spacers: Some(0),
             symbol: Some(char::from_str("A").unwrap()),
             turbo: true,
@@ -315,7 +314,7 @@ pub fn assert_binary_deployed_to_id(token_id: AlkaneId, binary: Vec<u8>) -> Resu
         .clone();
     let binary_2: Vec<u8> = compress(binary)?;
     assert_eq!(binary_1.len(), binary_2.len());
-//    assert_eq!(binary_1, binary_2);
+    //    assert_eq!(binary_1, binary_2);
     return Ok(());
 }
 
