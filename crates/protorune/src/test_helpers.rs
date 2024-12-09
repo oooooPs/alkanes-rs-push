@@ -194,8 +194,8 @@ pub fn create_test_transaction_with_witness(script: Vec<u8>) -> Transaction {
 pub struct RunesTestingConfig {
     pub address1: String,
     pub address2: String,
-    pub rune_name: String,
-    pub rune_symbol: String,
+    pub rune_name: Option<String>,
+    pub rune_symbol: Option<String>,
     pub rune_etch_height: u64,
     pub rune_etch_vout: u32,
     // pub outpoints: Vec<OutPoint>,
@@ -205,16 +205,22 @@ impl RunesTestingConfig {
     pub fn new(
         address1: &str,
         address2: &str,
-        rune_name: &str,
-        rune_symbol: &str,
+        rune_name: Option<&str>,
+        rune_symbol: Option<&str>,
         rune_etch_height: u64,
         rune_etch_vout: u32,
     ) -> RunesTestingConfig {
         RunesTestingConfig {
-            address1: String::from(address1),
-            address2: String::from(address2),
-            rune_name: String::from(rune_name),
-            rune_symbol: String::from(rune_symbol),
+            address1: address1.into(),
+            address2: address2.into(),
+            rune_name: match rune_name {
+                Some(_name) => Some(_name.into()),
+                None => None,
+            },
+            rune_symbol: match rune_symbol {
+                Some(_symbol) => Some(_symbol.into()),
+                None => None,
+            },
             rune_etch_height,
             rune_etch_vout,
             // outpoints: vec![OutPoint {
@@ -274,13 +280,23 @@ pub fn create_rune_etching_transaction(config: &RunesTestingConfig) -> Transacti
         script_pubkey,
     };
 
+    let rune = match &config.rune_name {
+        Some(rune_name) => Some(Rune::from_str(rune_name).unwrap()),
+        None => None,
+    };
+
+    let symbol = match &config.rune_symbol {
+        Some(rune_symbol) => Some(char::from_str(rune_symbol).unwrap()),
+        None => None,
+    };
+
     let runestone: ScriptBuf = (Runestone {
         etching: Some(Etching {
             divisibility: Some(2),
             premine: Some(1000),
-            rune: Some(Rune::from_str(&config.rune_name).unwrap()),
+            rune,
             spacers: Some(0),
-            symbol: Some(char::from_str(&config.rune_symbol).unwrap()),
+            symbol,
             turbo: true,
             terms: None,
         }),
@@ -401,8 +417,8 @@ pub fn create_block_with_rune_tx(
     let final_config = config.unwrap_or(RunesTestingConfig::new(
         ADDRESS1().as_str(),
         ADDRESS2().as_str(),
-        "AAAAAAAAAAAAATESTER",
-        "Z",
+        Some("AAAAAAAAAAAAATESTER"),
+        Some("Z"),
         840001,
         0,
     ));

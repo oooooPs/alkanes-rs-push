@@ -379,11 +379,12 @@ impl Protorune {
                     .set_value(offset_end);
             }
         }
-        if let Some(symbol) = etching.symbol {
-            atomic
-                .derive(&tables::RUNES.SYMBOL.select(&indexer_rune_name))
-                .set_value(symbol as u32);
-        }
+
+        // runes spec states this is the default symbol if symbol is omitted
+        let symbol = etching.symbol.unwrap_or('¤');
+        atomic
+            .derive(&tables::RUNES.SYMBOL.select(&indexer_rune_name))
+            .set_value(symbol as u32);
 
         if let Some(spacers) = etching.spacers {
             atomic

@@ -221,9 +221,21 @@ pub fn runes_by_height(input: &Vec<u8>) -> Result<RunesResponse> {
             );
             _rune.spacers = tables::RUNES.SPACERS.select(&rune).get_value::<u32>();
 
-            _rune.symbol =
-                String::from_utf8(tables::RUNES.SYMBOL.select(&rune).get().as_ref().clone())?;
-            _rune.symbol = _rune.symbol.replace('\0', "");
+            let symbol_bytes = tables::RUNES.SYMBOL.select(&rune).get().as_ref().clone();
+            if symbol_bytes.len() != 4 {
+                return Err(anyhow!("INDEXER HAS STORED THE SYMBOL INCORRECTLY!"));
+            }
+
+            let symbol_unicode = u32::from_ne_bytes([
+                symbol_bytes[0],
+                symbol_bytes[1],
+                symbol_bytes[2],
+                symbol_bytes[3],
+            ]);
+
+            println!("ne unicode {}", symbol_unicode);
+
+            _rune.symbol = char::from_u32(symbol_unicode).unwrap().to_string();
             _rune.divisibility = tables::RUNES.DIVISIBILITY.select(&rune).get_value::<u8>() as u32;
             result.runes.push(_rune);
         }

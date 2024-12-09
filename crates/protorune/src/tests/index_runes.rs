@@ -189,8 +189,8 @@ mod tests {
         let runes: Vec<RuneProto> = runes_by_height_test_template(Some(RunesTestingConfig::new(
             ADDRESS1().as_str(),
             ADDRESS2().as_str(),
-            "AAAAAAAAAAAAA",
-            "Z",
+            Some("AAAAAAAAAAAAA"),
+            Some("Z"),
             840000,
             0,
         )));
@@ -205,8 +205,8 @@ mod tests {
             ADDRESS1().as_str(),
             ADDRESS2().as_str(),
             // most 12 character runes are not unlocked yet at 840000
-            "AAZZZZZZZZZZ",
-            "Z",
+            Some("AAZZZZZZZZZZ"),
+            Some("Z"),
             840000,
             0,
         )));
@@ -220,8 +220,8 @@ mod tests {
         let runes: Vec<RuneProto> = runes_by_height_test_template(Some(RunesTestingConfig::new(
             ADDRESS1().as_str(),
             ADDRESS2().as_str(),
-            "AAAAAAAAAAAA",
-            "Z",
+            Some("AAAAAAAAAAAA"),
+            Some("Z"),
             857500,
             0,
         )));
@@ -230,17 +230,37 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
+    fn rune_name_test_trying_to_use_reserved_name() {
+        clear();
+        let runes: Vec<RuneProto> = runes_by_height_test_template(Some(RunesTestingConfig::new(
+            ADDRESS1().as_str(),
+            ADDRESS2().as_str(),
+            Some("AAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+            Some("Z"),
+            840001,
+            0,
+        )));
+        assert_eq!(runes.len(), 0);
+    }
+
+    #[wasm_bindgen_test]
     fn rune_name_test_reserved_name() {
         clear();
         let runes: Vec<RuneProto> = runes_by_height_test_template(Some(RunesTestingConfig::new(
             ADDRESS1().as_str(),
             ADDRESS2().as_str(),
-            "AAAAAAAAAAAAAAAAAAAAAAAAAAA",
-            "Z",
+            None,
+            None,
             840001,
             0,
         )));
-        assert_eq!(runes.len(), 0);
+        assert_eq!(runes.len(), 1);
+        let symbol = runes[0].symbol.clone();
+        let name = runes[0].name.clone();
+        // default symbol as described in spec
+        assert_eq!(symbol, "¤");
+        // default allocated name
+        assert_eq!(name, "AAAAAAAAAAAAAAAAZOMKALPTKDC");
     }
 
     #[wasm_bindgen_test]
@@ -264,7 +284,7 @@ mod tests {
             .select(&rune_id.into())
             .get();
         let cached_name: String = String::from_utf8(test_val.to_vec()).unwrap();
-        assert_eq!(cached_name, config.rune_name);
+        assert_eq!(cached_name, config.rune_name.unwrap());
     }
 
     #[wasm_bindgen_test]
@@ -306,8 +326,8 @@ mod tests {
         let config = RunesTestingConfig::new(
             ADDRESS1().as_str(),
             ADDRESS2().as_str(),
-            "TESTTESTTESTTEST",
-            "Z",
+            Some("TESTTESTTESTTEST"),
+            Some("Z"),
             840001,
             0,
         );
