@@ -236,7 +236,7 @@ mod tests {
             etching: Some(Etching {
                 divisibility: Some(2),
                 premine: Some(1000),
-                rune: Some(Rune::from_str("TESTTESTTEST").unwrap()),
+                rune: Some(Rune::from_str("TESTTESTTESTTEST").unwrap()),
                 spacers: Some(0),
                 symbol: Some(char::from_str("A").unwrap()),
                 turbo: true,

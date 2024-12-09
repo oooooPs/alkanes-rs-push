@@ -22,7 +22,10 @@ mod tests {
 
     use helpers::clear;
     #[allow(unused_imports)]
-    use metashrew::{println, stdio::{stdout, Write}};
+    use metashrew::{
+        println,
+        stdio::{stdout, Write},
+    };
     use metashrew_support::index_pointer::KeyValuePointer;
     use ordinals::{Edict, Rune, RuneId};
 
@@ -85,15 +88,9 @@ mod tests {
         //     .select(&serialize(&outpoint))
         //     .get();
         // let addr_str = display_vec_as_hex(test_val.to_vec());
-        let _addr_str: String = display_vec_as_hex(
-                ADDRESS1()
-                .into_bytes(),
-        );
+        let _addr_str: String = display_vec_as_hex(ADDRESS1().into_bytes());
 
-        let _view_test = view::runes_by_address(
-            &ADDRESS1()
-                .into_bytes(),
-        );
+        let _view_test = view::runes_by_address(&ADDRESS1().into_bytes());
 
         //println!("{:?}", view_test);
         let mut outpoint_vec: Vec<String> = Vec::new();
@@ -132,12 +129,10 @@ mod tests {
     #[wasm_bindgen_test]
     fn runes_by_address_test() {
         clear();
-        let (test_block, _) = helpers::create_block_with_rune_tx();
+        let (test_block, _) = helpers::create_block_with_rune_tx(None);
         let _ = Protorune::index_block::<MyMessageContext>(test_block.clone(), 840001);
         let req = (WalletRequest {
-            wallet: helpers::ADDRESS1()
-                .as_bytes()
-                .to_vec(),
+            wallet: helpers::ADDRESS1().as_bytes().to_vec(),
             special_fields: SpecialFields::new(),
         })
         .write_to_bytes()
@@ -161,31 +156,117 @@ mod tests {
     //     // assert_eq!(runes[0].txindex, 0);
     // }
 
-    #[wasm_bindgen_test]
-    fn runes_by_height_test() {
-        clear();
-        let (test_block, _) = helpers::create_block_with_rune_tx();
-        let _ = Protorune::index_block::<MyMessageContext>(test_block.clone(), 840001);
-        let height: u64 = 840001;
+    fn runes_by_height_test_template(config: Option<RunesTestingConfig>) -> Vec<RuneProto> {
+        let (test_block, config) = helpers::create_block_with_rune_tx(config);
+        let _ =
+            Protorune::index_block::<MyMessageContext>(test_block.clone(), config.rune_etch_height);
         let req: Vec<u8> = (RunesByHeightRequest {
-            height,
+            height: config.rune_etch_height,
             special_fields: SpecialFields::new(),
         })
         .write_to_bytes()
         .unwrap();
         let test_val = view::runes_by_height(&req).unwrap();
         let runes: Vec<RuneProto> = test_val.clone().runes;
-        let symbol = char::from_u32(runes[0].clone().symbol).unwrap();
-        let name = String::from_utf8(runes[0].name.clone()).unwrap();
+        return runes;
+    }
+
+    #[wasm_bindgen_test]
+    fn runes_by_height_test() {
+        clear();
+        let runes: Vec<RuneProto> = runes_by_height_test_template(None);
+        let symbol = runes[0].symbol.clone();
+        let name = runes[0].name.clone();
         assert_eq!(runes[0].divisibility, 2 as u32);
-        assert_eq!(symbol, 'Z');
-        assert_eq!(name, "TESTER");
+        assert_eq!(symbol, "Z");
+        assert_eq!(name, "AAAAAAAAAAAAATESTER");
+    }
+
+    #[wasm_bindgen_test]
+    fn rune_name_test_minimum_name_valid() {
+        clear();
+
+        let runes: Vec<RuneProto> = runes_by_height_test_template(Some(RunesTestingConfig::new(
+            ADDRESS1().as_str(),
+            ADDRESS2().as_str(),
+            Some("AAAAAAAAAAAAA"),
+            Some("Z"),
+            840000,
+            0,
+        )));
+        assert_eq!(runes.len(), 1);
+        assert_eq!(runes[0].name, "AAAAAAAAAAAAA");
+    }
+
+    #[wasm_bindgen_test]
+    fn rune_name_test_minimum_name_invalid() {
+        clear();
+        let runes: Vec<RuneProto> = runes_by_height_test_template(Some(RunesTestingConfig::new(
+            ADDRESS1().as_str(),
+            ADDRESS2().as_str(),
+            // most 12 character runes are not unlocked yet at 840000
+            Some("AAZZZZZZZZZZ"),
+            Some("Z"),
+            840000,
+            0,
+        )));
+        assert_eq!(runes.len(), 0);
+    }
+
+    #[wasm_bindgen_test]
+    fn rune_name_test_minimum_name_unlocks() {
+        clear();
+
+        let runes: Vec<RuneProto> = runes_by_height_test_template(Some(RunesTestingConfig::new(
+            ADDRESS1().as_str(),
+            ADDRESS2().as_str(),
+            Some("AAAAAAAAAAAA"),
+            Some("Z"),
+            857500,
+            0,
+        )));
+        assert_eq!(runes.len(), 1);
+        assert_eq!(runes[0].name, "AAAAAAAAAAAA");
+    }
+
+    #[wasm_bindgen_test]
+    fn rune_name_test_trying_to_use_reserved_name() {
+        clear();
+        let runes: Vec<RuneProto> = runes_by_height_test_template(Some(RunesTestingConfig::new(
+            ADDRESS1().as_str(),
+            ADDRESS2().as_str(),
+            Some("AAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+            Some("Z"),
+            840001,
+            0,
+        )));
+        assert_eq!(runes.len(), 0);
+    }
+
+    #[wasm_bindgen_test]
+    fn rune_name_test_reserved_name() {
+        clear();
+        let runes: Vec<RuneProto> = runes_by_height_test_template(Some(RunesTestingConfig::new(
+            ADDRESS1().as_str(),
+            ADDRESS2().as_str(),
+            None,
+            None,
+            840001,
+            0,
+        )));
+        assert_eq!(runes.len(), 1);
+        let symbol = runes[0].symbol.clone();
+        let name = runes[0].name.clone();
+        // default symbol as described in spec
+        assert_eq!(symbol, "¤");
+        // default allocated name
+        assert_eq!(name, "AAAAAAAAAAAAAAAAZOMKALPTKDC");
     }
 
     #[wasm_bindgen_test]
     fn index_runestone() {
         clear();
-        let (test_block, config) = helpers::create_block_with_rune_tx();
+        let (test_block, config) = helpers::create_block_with_rune_tx(None);
         tables::OUTPOINTS_FOR_ADDRESS
             .keyword(&config.address1)
             .set(Arc::new(Vec::new()));
@@ -202,20 +283,14 @@ mod tests {
             .RUNE_ID_TO_ETCHING
             .select(&rune_id.into())
             .get();
-        let cache_hex: String = display_vec_as_hex(test_val.to_vec());
-        let rune = Rune::from_str(&config.rune_name)
-            .unwrap()
-            .0
-            .to_string()
-            .into_bytes();
-        let rune_hex: String = display_vec_as_hex(rune);
-        assert_eq!(rune_hex, cache_hex);
+        let cached_name: String = String::from_utf8(test_val.to_vec()).unwrap();
+        assert_eq!(cached_name, config.rune_name.unwrap());
     }
 
     #[wasm_bindgen_test]
     fn correct_balance_sheet() {
         clear();
-        let (test_block, config) = helpers::create_block_with_rune_tx();
+        let (test_block, config) = helpers::create_block_with_rune_tx(None);
         let _ =
             Protorune::index_block::<MyMessageContext>(test_block.clone(), config.rune_etch_height);
         let outpoint: OutPoint = OutPoint {
@@ -251,8 +326,8 @@ mod tests {
         let config = RunesTestingConfig::new(
             ADDRESS1().as_str(),
             ADDRESS2().as_str(),
-            "TESTER",
-            "Z",
+            Some("TESTTESTTESTTEST"),
+            Some("Z"),
             840001,
             0,
         );
