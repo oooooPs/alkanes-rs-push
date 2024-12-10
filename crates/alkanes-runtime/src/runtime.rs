@@ -9,13 +9,10 @@ use crate::{
     println,
     stdio::{stdout, Write},
 };
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 #[allow(unused_imports)]
-use anyhow::Result;
 use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr, to_ptr};
-use metashrew_support::utils::{consensus_encode};
 use std::io::Cursor;
-use bitcoin::{OutPoint};
 
 use crate::compat::panic_hook;
 
@@ -29,6 +26,10 @@ use alkanes_support::{
     storage::StorageMap,
 };
 use std::panic;
+
+fn _abort() {
+  unsafe { abort(0, 0, 0, 0); }
+}
 
 static mut _CACHE: Option<StorageMap> = None;
 
@@ -228,20 +229,43 @@ pub trait AlkaneResponder {
     ) -> Result<CallResponse> {
         self.extcall::<Staticcall>(cellpack, outgoing_alkanes, fuel)
     }
+    fn run(&self) -> Vec<u8> {
+        let extended: ExtendedCallResponse = match self.initialize().execute() {
+          Ok(v) => {
+            let mut response: ExtendedCallResponse = v.into();
+            response.storage = unsafe { _CACHE.as_ref().unwrap().clone() };
+            response
+          }
+          Err(e) => {
+            let mut response = CallResponse::default();
+            let mut data: Vec<u8> = vec![0x08, 0xc3, 0x79, 0xa0];
+            data.extend(e.to_string().as_bytes());
+            response.data = data;
+            _abort();
+            response.into()
+          }
+        };
+        extended.serialize()
+    }
     fn run_and_forward(&self) -> Vec<u8> {
         let context = self.context().unwrap();
-        let mut extended: ExtendedCallResponse = self.initialize().execute().into();
-        extended
-            .alkanes
-            .0
-            .append(&mut context.incoming_alkanes.0.clone());
-        extended.storage = unsafe { _CACHE.as_ref().unwrap().clone() };
+        let extended: ExtendedCallResponse = match self.initialize().execute() {
+          Ok(v) => {
+            let mut response: ExtendedCallResponse = v.into();
+            response.storage = unsafe { _CACHE.as_ref().unwrap().clone() };
+            response.alkanes.0.append(&mut context.incoming_alkanes.0.clone());
+            response
+          }
+          Err(e) => {
+            let mut response = CallResponse::default();
+            let mut data: Vec<u8> = vec![0x08, 0xc3, 0x79, 0xa0];
+            data.extend(e.to_string().as_bytes());
+            response.data = data;
+            _abort();
+            response.into()
+          }
+        };
         extended.serialize()
     }
-    fn run(&self) -> Vec<u8> {
-        let mut extended: ExtendedCallResponse = self.initialize().execute().into();
-        extended.storage = unsafe { _CACHE.as_ref().unwrap().clone() };
-        extended.serialize()
-    }
-    fn execute(&self) -> CallResponse;
+    fn execute(&self) -> Result<CallResponse>;
 }

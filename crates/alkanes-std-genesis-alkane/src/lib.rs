@@ -1,7 +1,7 @@
 use alkanes_runtime::{runtime::AlkaneResponder, storage::StoragePointer, token::Token};
 use alkanes_support::utils::overflow_error;
 use alkanes_support::{
-    context::Context, parcel::AlkaneTransfer, response::CallResponse, utils::shift,
+    context::Context, parcel::AlkaneTransfer, response::CallResponse, utils::shift_or_err,
 };
 use anyhow::{anyhow, Result};
 use bitcoin::hashes::Hash;
@@ -186,22 +186,22 @@ impl GenesisAlkane {
 }
 
 impl AlkaneResponder for GenesisAlkane {
-    fn execute(&self) -> CallResponse {
-        let context = self.context().unwrap();
+    fn execute(&self) -> Result<CallResponse> {
+        let context = self.context()?;
         let mut inputs = context.inputs.clone();
         let mut response = CallResponse::forward(&context.incoming_alkanes);
-        match shift(&mut inputs).unwrap() {
+        match shift_or_err(&mut inputs)? {
             0 => {
-                self.observe_initialization().unwrap();
-                let premine = self.premine().unwrap();
+                self.observe_initialization()?;
+                let premine = self.premine()?;
                 response.alkanes.0.push(AlkaneTransfer {
                     id: context.myself.clone(),
                     value: premine,
                 });
-                self.increase_total_supply(premine).unwrap();
+                self.increase_total_supply(premine)?;
             }
             77 => {
-                response.alkanes.0.push(self.mint(&context).unwrap());
+                response.alkanes.0.push(self.mint(&context)?);
             }
             99 => {
                 response.data = self.name().into_bytes().to_vec();
@@ -213,10 +213,10 @@ impl AlkaneResponder for GenesisAlkane {
                 response.data = (&self.total_supply().to_le_bytes()).to_vec();
             }
             _ => {
-                panic!("unrecognized opcode");
+                return Err(anyhow!("unrecognized opcode"));
             }
         }
-        response
+        Ok(response)
     }
 }
 

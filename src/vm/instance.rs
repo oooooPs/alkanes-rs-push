@@ -1,3 +1,4 @@
+use hex;
 use super::{
     extcall::*, read_arraybuffer, AlkanesExportsImpl, AlkanesHostFunctionsImpl,
     AlkanesRuntimeContext, AlkanesState, MEMORY_LIMIT,
@@ -352,7 +353,7 @@ impl AlkanesInstance {
             match AlkanesExportsImpl::execute(self) {
                 Ok(v) => {
                     if self.store.data().had_failure {
-                        (ExtendedCallResponse::default(), true)
+                        (v, true)
                     } else {
                         (v, false)
                     }
@@ -366,7 +367,9 @@ impl AlkanesInstance {
         self.reset();
         if had_failure {
             self.rollback();
-            if let Some(e) = err {
+            if &call_response.data[0..4] == &[0x08, 0xc3, 0x79, 0xa0] {
+              Err(anyhow!(format!("ALKANES: revert: {}", String::from_utf8((&call_response.data[4..]).to_vec()).unwrap_or_else(|_| hex::encode(&call_response.data[4..])))))
+            } else if let Some(e) = err {
                 Err(anyhow!(format!("ALKANES: revert: {:?}", e)))
             } else {
                 Err(anyhow!("ALKANES: revert"))

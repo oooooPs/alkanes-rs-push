@@ -1,5 +1,5 @@
 use alkanes_runtime::{runtime::AlkaneResponder, storage::StoragePointer, token::Token};
-use alkanes_support::{parcel::AlkaneTransfer, response::CallResponse, utils::shift};
+use alkanes_support::{parcel::AlkaneTransfer, response::CallResponse, utils::shift_or_err};
 use anyhow::{anyhow, Result};
 use hex_lit::hex;
 use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
@@ -44,13 +44,13 @@ impl Orbital {
 }
 
 impl AlkaneResponder for Orbital {
-    fn execute(&self) -> CallResponse {
-        let context = self.context().unwrap();
+    fn execute(&self) -> Result<CallResponse> {
+        let context = self.context()?;
         let mut inputs = context.inputs.clone();
         let mut response = CallResponse::forward(&context.incoming_alkanes);
-        match shift(&mut inputs).unwrap() {
+        match shift_or_err(&mut inputs)? {
             0 => {
-                self.observe_initialization().unwrap();
+                self.observe_initialization()?;
                 self.set_total_supply(1);
                 response.alkanes.0.push(AlkaneTransfer {
                     id: context.myself.clone(),
@@ -68,10 +68,10 @@ impl AlkaneResponder for Orbital {
             }
             1000 => response.data = self.data(),
             _ => {
-                panic!("unrecognized opcode");
+                return Err(anyhow!("unrecognized opcode"))
             }
         }
-        response
+        Ok(response)
     }
 }
 

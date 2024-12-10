@@ -1,23 +1,23 @@
 use alkanes_runtime::runtime::AlkaneResponder;
+use anyhow::{Result};
 #[allow(unused_imports)]
 use {
   alkanes_runtime::{imports::{__request_transaction}, println, stdio::{stdout}},
   std::fmt::Write
 };
-use alkanes_support::{utils::{shift},cellpack::Cellpack, response::CallResponse};
+use alkanes_support::{utils::{shift_or_err}, response::CallResponse};
 use metashrew_support::compat::{to_arraybuffer_layout, to_ptr};
 use sha2::{Digest, Sha256};
-use hex;
 
 #[derive(Default)]
 struct LoggerAlkane(());
 
 impl AlkaneResponder for LoggerAlkane {
-    fn execute(&self) -> CallResponse {
-        let context = self.context().unwrap();
+    fn execute(&self) -> Result<CallResponse> {
+        let context = self.context()?;
         let mut inputs = context.inputs.clone();
         let mut response = CallResponse::forward(&context.incoming_alkanes);
-        match shift(&mut inputs).unwrap() {
+        match shift_or_err(&mut inputs)? {
           78 => {
             let mut data = vec![0x01, 0x02];
             loop {
@@ -40,7 +40,7 @@ impl AlkaneResponder for LoggerAlkane {
             response.data = vec![0x01, 0x02, 0x03, 0x04];
           }
         }
-        response
+        Ok(response)
     }
 }
 

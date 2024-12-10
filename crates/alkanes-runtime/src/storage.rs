@@ -1,4 +1,5 @@
 use crate::runtime::AlkaneResponder;
+use anyhow::{Result};
 
 use alkanes_support::response::CallResponse;
 use metashrew_support::index_pointer::KeyValuePointer;
@@ -7,8 +8,8 @@ use std::sync::Arc;
 struct StorageHandle(());
 
 impl AlkaneResponder for StorageHandle {
-    fn execute(&self) -> CallResponse {
-        CallResponse::default()
+    fn execute(&self) -> Result<CallResponse> {
+        Ok(CallResponse::default())
     }
 }
 

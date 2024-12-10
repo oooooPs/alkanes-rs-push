@@ -15,22 +15,30 @@ pub fn shift_or_err(v: &mut Vec<u128>) -> Result<u128> {
         .map_err(|_| anyhow!("expected u128 value in list but list is exhausted"))
 }
 
-pub fn shift_id(v: &mut Vec<u128>) -> Result<AlkaneId> {
-    let block = shift_or_err(v)?;
-    let tx = shift_or_err(v)?;
-    Ok(AlkaneId { block, tx })
+pub fn shift_id(v: &mut Vec<u128>) -> Option<AlkaneId> {
+    let block = shift(v)?;
+    let tx = shift(v)?;
+    Some(AlkaneId { block, tx })
 }
 
-pub fn shift_as_long(v: &mut Vec<u128>) -> Result<u64> {
-    Ok(shift_or_err(v)?.try_into()?)
+pub fn shift_id_or_err(v: &mut Vec<u128>) -> Result<AlkaneId> {
+  shift_id(v).ok_or("").map_err(|_| anyhow!("failed to shift AlkaneId from list"))
+}
+
+pub fn shift_as_long(v: &mut Vec<u128>) -> Option<u64> {
+    Some(shift(v)?.try_into().ok()?)
+}
+
+pub fn shift_as_long_or_err(v: &mut Vec<u128>) -> Result<u64> {
+  shift_as_long(v).ok_or("").map_err(|_| anyhow!("failed to shift u64 from list"))
 }
 
 pub fn overflow_error<T>(v: Option<T>) -> Result<T> {
     v.ok_or("").map_err(|_| anyhow!("overflow error"))
 }
 
-pub fn shift_bytes32(v: &mut Vec<u128>) -> Result<Vec<u8>> {
-    Ok((&[
+pub fn shift_bytes32(v: &mut Vec<u128>) -> Option<Vec<u8>> {
+    Some((&[
         shift_as_long(v)?,
         shift_as_long(v)?,
         shift_as_long(v)?,
@@ -43,4 +51,8 @@ pub fn shift_bytes32(v: &mut Vec<u128>) -> Result<Vec<u8>> {
             r.extend(&v.to_be_bytes());
             r
         }))
+}
+
+pub fn shift_bytes32_or_err(v: &mut Vec<u128>) -> Result<Vec<u8>> {
+  shift_bytes32(v).ok_or("").map_err(|_| anyhow!("failed to shift bytes32 from list"))
 }

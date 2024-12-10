@@ -1,8 +1,8 @@
 use alkanes_runtime::{runtime::AlkaneResponder, storage::StoragePointer, token::Token};
 use alkanes_support::{
-    context::Context, id::AlkaneId, parcel::AlkaneTransfer, response::CallResponse, utils::shift,
+    context::Context, id::AlkaneId, parcel::AlkaneTransfer, response::CallResponse, utils::shift_or_err,
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
 use metashrew_support::index_pointer::KeyValuePointer;
 
@@ -49,16 +49,16 @@ impl GenesisProtorune {
 }
 
 impl AlkaneResponder for GenesisProtorune {
-    fn execute(&self) -> CallResponse {
-        let context = self.context().unwrap();
+    fn execute(&self) -> Result<CallResponse> {
+        let context = self.context()?;
         let mut inputs = context.inputs.clone();
         let mut response = CallResponse::forward(&context.incoming_alkanes);
-        match shift(&mut inputs).unwrap() {
+        match shift_or_err(&mut inputs)? {
             0 => {
                 // no initialization logic
             }
             77 => {
-                response.alkanes.0.push(self.mint(&context).unwrap());
+                response.alkanes.0.push(self.mint(&context)?);
             }
             99 => {
                 response.data = self.name().into_bytes().to_vec();
@@ -70,10 +70,10 @@ impl AlkaneResponder for GenesisProtorune {
                 response.data = (&self.total_supply().to_le_bytes()).to_vec();
             }
             _ => {
-                panic!("unrecognized opcode");
+                return Err(anyhow!("unrecognized opcode"));
             }
         }
-        response
+        Ok(response)
     }
 }
 

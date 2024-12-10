@@ -1,8 +1,8 @@
 use alkanes_runtime::auth::AuthenticatedResponder;
 use alkanes_runtime::{runtime::AlkaneResponder, storage::StoragePointer};
-use alkanes_support::utils::{shift, shift_id};
+use alkanes_support::utils::{shift_or_err, shift_id_or_err};
 use alkanes_support::{cellpack::Cellpack, id::AlkaneId, response::CallResponse};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use metashrew_support::compat::{to_arraybuffer_layout, to_ptr};
 use metashrew_support::index_pointer::KeyValuePointer;
 use std::sync::Arc;
@@ -26,37 +26,36 @@ impl Upgradeable {
 impl AuthenticatedResponder for Upgradeable {}
 
 impl AlkaneResponder for Upgradeable {
-    fn execute(&self) -> CallResponse {
-        let context = self.context().unwrap();
+    fn execute(&self) -> Result<CallResponse> {
+        let context = self.context()?;
         let mut inputs = context.inputs.clone();
-        let opcode = shift(&mut inputs).unwrap();
+        let opcode = shift_or_err(&mut inputs)?;
         if opcode == 0x7fff {
             let mut pointer = StoragePointer::from_keyword("/proxy-initialized");
             if pointer.get().len() != 0 {
-                self.set_alkane(shift_id(&mut inputs).unwrap());
-                let auth_token_units = shift(&mut inputs).unwrap();
+                self.set_alkane(shift_id_or_err(&mut inputs)?);
+                let auth_token_units = shift_or_err(&mut inputs)?;
                 let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
 
                 response
                     .alkanes
                     .0
-                    .push(self.deploy_auth_token(auth_token_units).unwrap());
+                    .push(self.deploy_auth_token(auth_token_units)?);
                 pointer.set(Arc::new(vec![0x01]));
-                response
+                Ok(response)
             } else {
-                panic!("already initialized");
+              Err(anyhow!("already initialized"))
             }
         } else if opcode == 0x7ffe {
-            self.only_owner().unwrap();
-            self.set_alkane(shift_id(&mut inputs).unwrap());
-            CallResponse::forward(&context.incoming_alkanes)
+            self.only_owner()?;
+            self.set_alkane(shift_id_or_err(&mut inputs)?);
+            Ok(CallResponse::forward(&context.incoming_alkanes))
         } else {
             let cellpack = Cellpack {
-                target: self.alkane().unwrap(),
+                target: self.alkane()?,
                 inputs: inputs.clone(),
             };
-            self.delegatecall(&cellpack, &context.incoming_alkanes, self.fuel())
-                .unwrap()
+            Ok(self.delegatecall(&cellpack, &context.incoming_alkanes, self.fuel())?)
         }
     }
 }

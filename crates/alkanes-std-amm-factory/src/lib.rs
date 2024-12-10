@@ -5,6 +5,7 @@ use alkanes_runtime::{
 };
 use alkanes_runtime::{runtime::AlkaneResponder, storage::StoragePointer};
 use alkanes_support::{
+    utils::{shift_or_err},
     cellpack::Cellpack,
     constants::AMM_FACTORY_ID,
     context::Context,
@@ -22,14 +23,6 @@ use std::sync::Arc;
 
 #[derive(Default)]
 struct AMMFactory(());
-
-fn shift<T>(v: &mut Vec<T>) -> Option<T> {
-    if v.is_empty() {
-        None
-    } else {
-        Some(v.remove(0))
-    }
-}
 
 pub fn take_two<T: Clone>(v: &Vec<T>) -> (T, T) {
     (v[0].clone(), v[1].clone())
@@ -87,17 +80,17 @@ impl AMMFactory {
 }
 
 impl AlkaneResponder for AMMFactory {
-    fn execute(&self) -> CallResponse {
-        let context = self.context().unwrap();
+    fn execute(&self) -> Result<CallResponse> {
+        let context = self.context()?;
         let mut inputs = context.inputs.clone();
-        match shift(&mut inputs).unwrap() {
+        match shift_or_err(&mut inputs)? {
             0 => {
                 let mut pointer = StoragePointer::from_keyword("/initialized");
                 if pointer.get().len() == 0 {
                     pointer.set(Arc::new(vec![0x01]));
-                    CallResponse::default()
+                    Ok(CallResponse::default())
                 } else {
-                    panic!("already initialized");
+                    Err(anyhow!("already initialized"))
                 }
             }
             1 => {
@@ -123,15 +116,14 @@ impl AlkaneResponder for AMMFactory {
                         ]),
                         self.fuel(),
                     )
-                    .unwrap()
                 }
             }
             2 => {
                 let mut response = CallResponse::default();
                 response.alkanes = context.incoming_alkanes.clone();
                 let (alkane_a, alkane_b) = (
-                    AlkaneId::new(shift(&mut inputs).unwrap(), shift(&mut inputs).unwrap()),
-                    AlkaneId::new(shift(&mut inputs).unwrap(), shift(&mut inputs).unwrap()),
+                    AlkaneId::new(shift_or_err(&mut inputs)?, shift_or_err(&mut inputs)?),
+                    AlkaneId::new(shift_or_err(&mut inputs)?, shift_or_err(&mut inputs)?),
                 );
                 let (a, b) = sort_alkanes((alkane_a, alkane_b));
                 let mut cursor = std::io::Cursor::<Vec<u8>>::new(
@@ -142,10 +134,10 @@ impl AlkaneResponder for AMMFactory {
                     consume_sized_int::<u128>(&mut cursor).unwrap(),
                 );
                 response.data = id.into();
-                response
+                Ok(response)
             }
             _ => {
-                panic!("unrecognized opcode");
+                Err(anyhow!("unrecognized opcode"))
             }
         }
     }

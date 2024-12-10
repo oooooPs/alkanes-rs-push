@@ -7,17 +7,10 @@ use anyhow::{anyhow, Result};
 use bitcoin::blockdata::transaction::Transaction;
 use metashrew_support::compat::{to_arraybuffer_layout, to_ptr};
 use protorune_support::utils::consensus_decode;
+use alkanes_support::utils::{shift_or_err};
 
 #[derive(Default)]
 struct Proxy(());
-
-fn shift<T>(v: &mut Vec<T>) -> Option<T> {
-    if v.is_empty() {
-        None
-    } else {
-        Some(v.remove(0))
-    }
-}
 
 impl Proxy {
     pub fn pull_incoming(&self, context: &mut Context) -> Option<AlkaneTransfer> {
@@ -45,12 +38,16 @@ impl Proxy {
     }
 }
 
+fn unwrap_auth(v: Option<AlkaneTransfer>) -> Result<AlkaneTransfer> {
+  v.ok_or("").map_err(|_| anyhow!("authentication token not present"))
+}
+
 impl AlkaneResponder for Proxy {
-    fn execute(&self) -> CallResponse {
-        let mut context = self.context().unwrap();
+    fn execute(&self) -> Result<CallResponse> {
+        let mut context = self.context()?;
         let mut inputs = context.inputs.clone();
         let auth = self.pull_incoming(&mut context);
-        match shift(&mut inputs).unwrap() {
+        match shift_or_err(&mut inputs)? {
             0 => {
                 if self.load("/initialized".as_bytes().to_vec()).len() != 0 {
                     let mut response: CallResponse = CallResponse::default();
@@ -60,63 +57,56 @@ impl AlkaneResponder for Proxy {
                         value: 1,
                     });
                     self.store("/initialized".as_bytes().to_vec(), vec![0x01]);
-                    response
+                    return Ok(response);
                 } else {
-                    panic!("already initialized");
+                    return Err(anyhow!("already initialized"));
                 }
             }
             1 => {
-                self.only_owner(auth.clone()).unwrap();
-                let witness_index = shift(&mut inputs).unwrap();
+                self.only_owner(auth.clone())?;
+                let witness_index = shift_or_err(&mut inputs)?;
                 let tx =
-                    consensus_decode::<Transaction>(&mut std::io::Cursor::new(self.transaction()))
-                        .unwrap();
+                    consensus_decode::<Transaction>(&mut std::io::Cursor::new(self.transaction()))?;
                 let cellpack = Cellpack::parse(&mut std::io::Cursor::new(
-                    find_witness_payload(&tx, witness_index.try_into().unwrap()).unwrap(),
-                ))
-                .unwrap();
+                    find_witness_payload(&tx, witness_index.try_into()?).ok_or("").map_err(|_| anyhow!("witness envelope not found"))?,
+                ))?;
                 let mut response: CallResponse = self
-                    .call(&cellpack, &context.incoming_alkanes, self.fuel())
-                    .unwrap();
-                response.alkanes.0.push(auth.unwrap());
-                response
+                    .call(&cellpack, &context.incoming_alkanes, self.fuel())?;
+                response.alkanes.0.push(unwrap_auth(auth)?);
+                Ok(response)
             }
             2 => {
-                self.only_owner(auth.clone()).unwrap();
-                let witness_index = shift(&mut inputs).unwrap();
+                self.only_owner(auth.clone())?;
+                let witness_index = shift_or_err(&mut inputs)?;
                 let tx =
-                    consensus_decode::<Transaction>(&mut std::io::Cursor::new(self.transaction()))
-                        .unwrap();
+                    consensus_decode::<Transaction>(&mut std::io::Cursor::new(self.transaction()))?;
                 let cellpack = Cellpack::parse(&mut std::io::Cursor::new(
-                    find_witness_payload(&tx, witness_index.try_into().unwrap()).unwrap(),
-                ))
-                .unwrap();
+                    find_witness_payload(&tx, witness_index.try_into()?).ok_or("").map_err(|_| anyhow!("witness envelope not found"))?,
+                ))?;
                 let mut response: CallResponse = self
-                    .delegatecall(&cellpack, &context.incoming_alkanes, self.fuel())
-                    .unwrap();
-                response.alkanes.0.push(auth.unwrap());
-                response
+                    .delegatecall(&cellpack, &context.incoming_alkanes, self.fuel())?;
+                    
+                response.alkanes.0.push(unwrap_auth(auth)?);
+                Ok(response)
             }
             3 => {
-                self.only_owner(auth.clone()).unwrap();
-                let cellpack: Cellpack = inputs.try_into().unwrap();
+                self.only_owner(auth.clone())?;
+                let cellpack: Cellpack = inputs.try_into()?;
                 let mut response: CallResponse = self
-                    .call(&cellpack, &context.incoming_alkanes, self.fuel())
-                    .unwrap();
-                response.alkanes.0.push(auth.unwrap());
-                response
+                    .call(&cellpack, &context.incoming_alkanes, self.fuel())?;
+                response.alkanes.0.push(unwrap_auth(auth)?);
+                Ok(response)
             }
             4 => {
-                self.only_owner(auth.clone()).unwrap();
-                let cellpack: Cellpack = inputs.try_into().unwrap();
+                self.only_owner(auth.clone())?;
+                let cellpack: Cellpack = inputs.try_into()?;
                 let mut response: CallResponse = self
-                    .delegatecall(&cellpack, &context.incoming_alkanes, self.fuel())
-                    .unwrap();
-                response.alkanes.0.push(auth.unwrap());
-                response
+                    .delegatecall(&cellpack, &context.incoming_alkanes, self.fuel())?;
+                response.alkanes.0.push(unwrap_auth(auth)?);
+                Ok(response)
             }
             _ => {
-                panic!("unrecognized opcode");
+                Err(anyhow!("unrecognized opcode"))
             }
         }
     }

@@ -4,7 +4,7 @@ use alkanes_support::{
     id::AlkaneId,
     parcel::AlkaneTransfer,
     response::CallResponse,
-    utils::{shift, shift_bytes32},
+    utils::{shift_or_err, shift_bytes32_or_err},
     witness::find_witness_payload,
 };
 use anyhow::{anyhow, Result};
@@ -117,10 +117,10 @@ impl MerkleDistributor {
 }
 
 impl AlkaneResponder for MerkleDistributor {
-    fn execute(&self) -> CallResponse {
-        let context = self.context().unwrap();
+    fn execute(&self) -> Result<CallResponse> {
+        let context = self.context()?;
         let mut inputs = context.inputs.clone();
-        match shift(&mut inputs).unwrap() {
+        match shift_or_err(&mut inputs)? {
             0 => {
                 let mut pointer = StoragePointer::from_keyword("/initialized");
                 if pointer.get().len() == 0 {
@@ -129,23 +129,23 @@ impl AlkaneResponder for MerkleDistributor {
                         panic!("must send 1 alkane to lock for distribution");
                     }
                     self.set_alkane(context.incoming_alkanes.0[0].id.clone());
-                    self.set_length(shift(&mut inputs).unwrap().try_into().unwrap());
-                    self.set_root(shift_bytes32(&mut inputs).unwrap());
-                    CallResponse::default()
+                    self.set_length(shift_or_err(&mut inputs)?.try_into().unwrap());
+                    self.set_root(shift_bytes32_or_err(&mut inputs)?);
+                    Ok(CallResponse::default())
                 } else {
-                    panic!("already initialized");
+                    Err(anyhow!("already initialized"))
                 }
             }
             1 => {
                 let mut response = CallResponse::forward(&context.incoming_alkanes);
                 response.alkanes.0.push(AlkaneTransfer {
-                    value: self.verify_output(context.vout).unwrap(),
-                    id: self.alkane().unwrap(),
+                    value: self.verify_output(context.vout)?,
+                    id: self.alkane()?
                 });
-                response
+                Ok(response)
             }
             _ => {
-                panic!("opcode not recognized");
+                Err(anyhow!("opcode not recognized"))
             }
         }
     }

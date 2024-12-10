@@ -1,5 +1,6 @@
 use alkanes_runtime::{runtime::AlkaneResponder, storage::StoragePointer};
 
+#[allow(unused_imports)]
 use alkanes_runtime::{
     println,
     stdio::{stdout, Write},
@@ -8,7 +9,7 @@ use alkanes_support::{
     id::AlkaneId,
     parcel::{AlkaneTransfer, AlkaneTransferParcel},
     response::CallResponse,
-    utils::{overflow_error, shift},
+    utils::{overflow_error, shift_or_err, shift},
 };
 use anyhow::{anyhow, Result};
 use metashrew_support::{
@@ -233,34 +234,36 @@ impl AMMPool {
         let b_tx = shift(v)?;
         Some((AlkaneId::new(a_block, a_tx), AlkaneId::new(b_block, b_tx)))
     }
+    pub fn pull_ids_or_err(&self, v: &mut Vec<u128>) -> Result<(AlkaneId, AlkaneId)> {
+      self.pull_ids(v).ok_or("").map_err(|_| anyhow!("AlkaneId values for pair missing from list"))
+    }
 }
 
 impl AlkaneResponder for AMMPool {
-    fn execute(&self) -> CallResponse {
-        let context = self.context().unwrap();
+    fn execute(&self) -> Result<CallResponse> {
+        let context = self.context()?;
         let mut inputs = context.inputs.clone();
-        match shift(&mut inputs).unwrap() {
+        match shift_or_err(&mut inputs)? {
             0 => {
                 let mut pointer = StoragePointer::from_keyword("/initialized");
                 if pointer.get().len() == 0 {
                     pointer.set(Arc::new(vec![0x01]));
-                    let (a, b) = self.pull_ids(&mut inputs).unwrap();
+                    let (a, b) = self.pull_ids_or_err(&mut inputs)?;
                     StoragePointer::from_keyword("/alkane/0").set(Arc::new(a.into()));
                     StoragePointer::from_keyword("/alkane/1").set(Arc::new(b.into()));
-                    self.mint(context.myself, context.incoming_alkanes).unwrap()
+                    self.mint(context.myself, context.incoming_alkanes)
                 } else {
-                    panic!("already initialized");
+                    Err(anyhow!("already initialized"))
                 }
             }
-            1 => self.mint(context.myself, context.incoming_alkanes).unwrap(),
-            2 => self.burn(context.myself, context.incoming_alkanes).unwrap(),
+            1 => self.mint(context.myself, context.incoming_alkanes),
+            2 => self.burn(context.myself, context.incoming_alkanes),
             3 => self
-                .swap(context.incoming_alkanes, shift(&mut inputs).unwrap())
-                .unwrap(),
-            50 => CallResponse::forward(&context.incoming_alkanes),
+                .swap(context.incoming_alkanes, shift_or_err(&mut inputs)?),
+            50 => Ok(CallResponse::forward(&context.incoming_alkanes)),
 
             _ => {
-                panic!("unrecognized opcode");
+                Err(anyhow!("unrecognized opcode"))
             }
         }
     }
