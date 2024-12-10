@@ -6,7 +6,7 @@ use wasm_bindgen::prelude::*;
 //#[cfg(not(feature = "test-utils"))]
 #[link(wasm_import_module = "env")]
 extern "C" {
-    pub fn abort(a: i32, b: i32, c: i32, d: i32) -> i32;
+    pub fn abort(a: i32, b: i32, c: i32, d: i32);
     pub fn __load_storage(k: i32, v: i32) -> i32;
     pub fn __request_storage(k: i32) -> i32;
     pub fn __log(v: i32);
