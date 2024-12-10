@@ -54,8 +54,7 @@ pub fn runesbyaddress() -> i32 {
     configure_network();
     let mut data: Cursor<Vec<u8>> = Cursor::new(input());
     let _height = consume_sized_int::<u32>(&mut data).unwrap();
-    let result: protorune_support::proto::protorune::WalletResponse = protorune::view::runes_by_address(&consume_to_end(&mut data).unwrap())
-        .unwrap();
+    let result: protorune_support::proto::protorune::WalletResponse = protorune::view::runes_by_address(&consume_to_end(&mut data).unwrap()).unwrap_or_else(|_| protorune_support::proto::protorune::WalletResponse::new());
     to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(result.write_to_bytes().unwrap().as_ref()))
 }
 
@@ -64,8 +63,7 @@ pub fn protorunesbyaddress() -> i32 {
     configure_network();
     let mut data: Cursor<Vec<u8>> = Cursor::new(input());
     let _height = consume_sized_int::<u32>(&mut data).unwrap();
-    let result: protorune_support::proto::protorune::WalletResponse = view::protorunes_by_address(&consume_to_end(&mut data).unwrap())
-        .unwrap();
+    let result: protorune_support::proto::protorune::WalletResponse = view::protorunes_by_address(&consume_to_end(&mut data).unwrap()).unwrap_or_else(|_| protorune_support::proto::protorune::WalletResponse::new());
     to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(&result.write_to_bytes().unwrap()))
 }
 
@@ -75,8 +73,8 @@ pub fn protorunesbyoutpoint() -> i32 {
     configure_network();
     let mut data: Cursor<Vec<u8>> = Cursor::new(input());
     let _height = consume_sized_int::<u32>(&mut data).unwrap();
-    let result: protorune_support::proto::protorune::OutpointResponse = view::protorunes_by_outpoint(&consume_to_end(&mut data).unwrap())
-        .unwrap();
+    let result: protorune_support::proto::protorune::OutpointResponse = view::protorunes_by_outpoint(&consume_to_end(&mut data).unwrap()).unwrap_or_else(|_| protorune_support::proto::protorune::OutpointResponse::new());
+  
     to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(&result.write_to_bytes().unwrap()))
 }
 
@@ -85,7 +83,7 @@ pub fn runesbyheight() -> i32 {
     configure_network();
     let mut data: Cursor<Vec<u8>> = Cursor::new(input());
     let _height = consume_sized_int::<u32>(&mut data).unwrap();
-    let result: protorune_support::proto::protorune::RunesResponse = protorune::view::runes_by_height(&consume_to_end(&mut data).unwrap()).unwrap();
+    let result: protorune_support::proto::protorune::RunesResponse = protorune::view::runes_by_height(&consume_to_end(&mut data).unwrap()).unwrap_or_else(|_| protorune_support::proto::protorune::RunesResponse::new());
     let buffer: Vec<u8> = result.write_to_bytes().unwrap();
     to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(buffer.as_ref()))
 }
