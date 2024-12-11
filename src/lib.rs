@@ -23,6 +23,7 @@ pub mod utils;
 pub mod view;
 pub mod vm;
 pub mod block;
+pub mod trace;
 use crate::indexer::{index_block};
 
 
