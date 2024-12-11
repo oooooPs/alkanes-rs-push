@@ -12,3 +12,8 @@ pub fn to_arraybuffer_layout<T: AsRef<[u8]>>(v: T) -> Vec<u8> {
     buffer.extend_from_slice(v.as_ref());
     return buffer;
 }
+
+pub fn export_bytes(v: Vec<u8>) -> i32 {
+  Box::leak(Box::<Vec<u8>>::new(to_arraybuffer_layout(&v))).as_mut_ptr() as usize as i32 + 4
+}
+

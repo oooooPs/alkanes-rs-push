@@ -39,6 +39,52 @@ message ExtendedCallResponse {
   bytes data = 3;
 }
 
+message Context {
+  AlkaneId myself = 1;
+  AlkaneId caller = 2;
+  uint32 vout = 3;
+  repeated AlkaneTransfer incoming_alkanes = 4;
+}
+
+message TraceContext {
+  Context inner = 1;
+  uint64 fuel = 2;
+}
+
+enum AlkanesTraceCallType {
+  NONE = 0;
+  CALL = 1;
+  DELEGATECALL = 2;
+  STATICCALL = 3;
+}
+
+enum AlkanesTraceStatusFlag {
+  SUCCESS = 0;
+  FAILURE = 1;
+}
+
+message AlkanesEnterContext {
+  AlkanesTraceCallType call_type = 1;
+  TraceContext context = 2;
+}
+
+message AlkanesExitContext {
+  AlkanesTraceStatusFlag status = 1;
+  ExtendedCallResponse response = 2;
+}
+
+message AlkanesCreate {
+  AlkaneId new_alkane = 1;
+}
+
+message AlkanesTraceEvent {
+  oneof event {
+    AlkanesEnterContext enter_context = 1;
+    AlkanesExitContext exit_context = 2;
+    AlkanesCreate create_alkane = 3;
+  }
+}
+
 message SimulateResponse {
   ExtendedCallResponse execution = 1;
   uint64 gas_used = 2;

@@ -10,7 +10,7 @@ use metashrew::{
 #[allow(unused_imports)]
 use metashrew_support::block::AuxpowBlock;
 use metashrew_support::utils::{consensus_decode, consume_sized_int, consume_to_end};
-use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
+use metashrew_support::compat::{export_bytes, to_arraybuffer_layout, to_passback_ptr};
 use protobuf::{Message, MessageField};
 use std::io::Cursor;
 pub mod message;
@@ -64,7 +64,7 @@ pub fn protorunesbyaddress() -> i32 {
     let mut data: Cursor<Vec<u8>> = Cursor::new(input());
     let _height = consume_sized_int::<u32>(&mut data).unwrap();
     let result: protorune_support::proto::protorune::WalletResponse = view::protorunes_by_address(&consume_to_end(&mut data).unwrap()).unwrap_or_else(|_| protorune_support::proto::protorune::WalletResponse::new());
-    to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(&result.write_to_bytes().unwrap()))
+    export_bytes(result.write_to_bytes().unwrap())
 }
 
 
@@ -75,7 +75,7 @@ pub fn protorunesbyoutpoint() -> i32 {
     let _height = consume_sized_int::<u32>(&mut data).unwrap();
     let result: protorune_support::proto::protorune::OutpointResponse = view::protorunes_by_outpoint(&consume_to_end(&mut data).unwrap()).unwrap_or_else(|_| protorune_support::proto::protorune::OutpointResponse::new());
   
-    to_passback_ptr(&mut to_arraybuffer_layout::<&[u8]>(&result.write_to_bytes().unwrap()))
+    export_bytes(result.write_to_bytes().unwrap())
 }
 
 #[no_mangle]
