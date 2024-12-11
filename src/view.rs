@@ -130,8 +130,8 @@ fn into_u128(v: protorune_support::proto::protorune::Uint128) -> u128 {
 pub fn protorunes_by_outpoint(input: &Vec<u8>) -> Result<protorune_support::proto::protorune::OutpointResponse> {
     let request = protorune_support::proto::protorune::OutpointWithProtocol::parse_from_bytes(input)?;
     view::protorunes_by_outpoint(input).and_then(|mut response| {
-      if into_u128(request.protocol.unwrap()) == AlkaneMessageContext::protocol_tag() {
-        response.balances = MessageField::some(to_alkanes_balances(response.balances.unwrap().clone()));
+      if into_u128(request.protocol.unwrap_or_else(|| <u128 as Into<protorune_support::proto::protorune::Uint128>>::into(1u128))) == AlkaneMessageContext::protocol_tag() {
+        response.balances = MessageField::some(to_alkanes_balances(response.balances.unwrap_or_else(|| protorune_support::proto::protorune::BalanceSheet::new())).clone());
       }
       Ok(response)
       
@@ -141,7 +141,7 @@ pub fn protorunes_by_outpoint(input: &Vec<u8>) -> Result<protorune_support::prot
 pub fn to_alkanes_outpoints(v: Vec<protorune_support::proto::protorune::OutpointResponse>) -> Vec<protorune_support::proto::protorune::OutpointResponse> {
   let mut cloned = v.clone();
   for item in &mut cloned {
-    item.balances = MessageField::some(to_alkanes_balances(item.balances.clone().unwrap().clone()));
+    item.balances = MessageField::some(to_alkanes_balances(item.balances.clone().unwrap_or_else(|| protorune_support::proto::protorune::BalanceSheet::new())).clone());
   }
   cloned
 }
@@ -150,7 +150,7 @@ pub fn to_alkanes_outpoints(v: Vec<protorune_support::proto::protorune::Outpoint
 pub fn protorunes_by_address(input: &Vec<u8>) -> Result<protorune_support::proto::protorune::WalletResponse> {
     let request = protorune_support::proto::protorune::ProtorunesWalletRequest::parse_from_bytes(input)?;
     view::protorunes_by_address(input).and_then(|mut response| {
-      if into_u128(request.protocol_tag.unwrap()) == AlkaneMessageContext::protocol_tag() {
+      if into_u128(request.protocol_tag.unwrap_or_else(|| <u128 as Into<protorune_support::proto::protorune::Uint128>>::into(1u128))) == AlkaneMessageContext::protocol_tag() {
         response.outpoints = to_alkanes_outpoints(response.outpoints.clone());
       }
       Ok(response)
