@@ -14,6 +14,7 @@ use anyhow::{anyhow, Result};
 use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr, to_ptr};
 use std::io::Cursor;
 
+#[cfg(feature = "panic-hook")]
 use crate::compat::panic_hook;
 
 #[allow(unused_imports)]
@@ -25,6 +26,7 @@ use alkanes_support::{
     response::{CallResponse, ExtendedCallResponse},
     storage::StorageMap,
 };
+#[cfg(feature = "panic-hook")]
 use std::panic;
 
 fn _abort() {
@@ -110,6 +112,7 @@ pub trait AlkaneResponder {
         unsafe {
             if _CACHE.is_none() {
                 _CACHE = Some(StorageMap::default());
+                #[cfg(feature = "panic-hook")]
                 panic::set_hook(Box::new(panic_hook));
             }
             self

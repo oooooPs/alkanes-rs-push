@@ -9,6 +9,7 @@ resolver = "2"
 
 [features]
 test-utils = []
+panic-hook = []
 
 [lib]
 crate-type = ["cdylib", "rlib"]

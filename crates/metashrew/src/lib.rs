@@ -3,9 +3,11 @@ use protobuf::Message;
 use std::collections::HashMap;
 #[allow(unused_imports)]
 use std::fmt::Write;
+#[cfg(feature = "panic-hook")]
 use std::panic;
 use std::sync::Arc;
 
+#[cfg(feature = "panic-hook")]
 pub mod compat;
 pub mod imports;
 pub mod index_pointer;
@@ -14,6 +16,7 @@ pub mod stdio;
 #[cfg(test)]
 pub mod tests;
 
+#[cfg(feature = "panic-hook")]
 use crate::compat::panic_hook;
 use crate::imports::{__flush, __get, __get_len, __host_len, __load_input};
 use crate::proto::metashrew::KeyValueFlush;
@@ -89,6 +92,7 @@ pub fn initialize() -> () {
         if CACHE.is_none() {
             reset();
             CACHE = Some(HashMap::<Arc<Vec<u8>>, Arc<Vec<u8>>>::new());
+            #[cfg(feature = "panic-hook")]
             panic::set_hook(Box::new(panic_hook));
         }
     }

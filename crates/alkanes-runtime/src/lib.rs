@@ -1,4 +1,5 @@
 pub mod auth;
+#[cfg(feature = "panic-hook")]
 pub mod compat;
 pub mod imports;
 pub mod runtime;

@@ -7,6 +7,8 @@ license = "MIT"
 edition = "2021"
 resolver = "2"
 
+
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -29,3 +31,4 @@ protoc-bin-vendored = "3.0.0"
 
 [features]
 test-utils = []
+panic-hook = []
