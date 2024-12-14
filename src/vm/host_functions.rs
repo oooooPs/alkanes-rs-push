@@ -6,6 +6,7 @@ use crate::utils::{balance_pointer, pipe_storagemap_to, transfer_from};
 use crate::vm::{run_after_special, run_special_cellpacks};
 use alkanes_support::{
     cellpack::Cellpack, id::AlkaneId, parcel::AlkaneTransferParcel, response::CallResponse,
+    trace::{TraceEvent, TraceResponse, TraceContext},
     storage::StorageMap, utils::overflow_error,
 };
 use anyhow::Result;
@@ -23,6 +24,7 @@ use crate::vm::fuel::{
 };
 use protorune_support::utils::consensus_encode;
 use std::io::Cursor;
+use std::sync::{Mutex, Arc};
 use wasmi::*;
 
 pub struct AlkanesHostFunctionsImpl(());
@@ -297,35 +299,37 @@ impl AlkanesHostFunctionsImpl {
                 storage_map_len as u64,
             )
         };
-        let (subcontext, binary_rc) = {
+        let (mut subcontext, binary_rc) = {
             if cellpack.target.is_deployment() {
                 caller.consume_fuel(FUEL_EXTCALL_DEPLOY)?;
             }
-            let mut context = caller.data_mut().context.lock().unwrap();
-            context.message.atomic.checkpoint();
-            let (_subcaller, submyself, binary) = run_special_cellpacks(&mut context, &cellpack)?;
+            let mut context = caller.data_mut().context.clone();
+            context.lock().unwrap().message.atomic.checkpoint();
+            let myself = context.lock().unwrap().myself.clone();
+            let (_subcaller, submyself, binary) = run_special_cellpacks(context.clone(), &cellpack)?;
             pipe_storagemap_to(
                 &storage_map,
-                &mut context.message.atomic.derive(
-                    &IndexPointer::from_keyword("/alkanes/").select(&context.myself.into()),
+                &mut context.lock().unwrap().message.atomic.derive(
+                    &IndexPointer::from_keyword("/alkanes/").select(&myself.clone().into()),
                 ),
             );
             if let Err(_) = transfer_from(
                 &incoming_alkanes,
-                &mut context.message.atomic.derive(&IndexPointer::default()),
-                &context.myself,
+                &mut context.lock().unwrap().message.atomic.derive(&IndexPointer::default()),
+                &myself,
                 &submyself,
             ) {
-                context.message.atomic.rollback();
-                context.returndata = Vec::<u8>::new();
+                context.lock().unwrap().message.atomic.rollback();
+                context.lock().unwrap().returndata = Vec::<u8>::new();
                 return Ok(0);
             }
-            let mut subbed = (&*context).clone();
-            subbed.message.atomic = context.message.atomic.derive(&IndexPointer::default());
+            let mut subbed = context.lock().unwrap().clone();
+            subbed.message.atomic = context.lock().unwrap().message.atomic.derive(&IndexPointer::default());
+            let caller = context.lock().unwrap().caller.clone();
             (subbed.caller, subbed.myself) = T::change_context(
                 submyself.clone(),
-                context.caller.clone(),
-                context.myself.clone(),
+                caller,
+                myself.clone()
             );
             subbed.returndata = vec![];
             subbed.incoming_alkanes = incoming_alkanes.clone();
@@ -338,9 +342,16 @@ impl AlkanesHostFunctionsImpl {
                 FUEL_PER_STORE_BYTE.checked_mul(storage_map_len),
             )?))?,
         )?;
-        run_after_special(subcontext.clone(), binary_rc, start_fuel)
+        let mut trace_context: TraceContext = subcontext.flat().into();
+        trace_context.fuel = start_fuel;
+        let event: TraceEvent = T::event(trace_context);
+        subcontext.trace.clock(event);
+        run_after_special(Arc::new(Mutex::new(subcontext.clone())), binary_rc, start_fuel)
             .and_then(|(response, gas_used)| {
                 caller.set_fuel(overflow_error(start_fuel.checked_sub(gas_used))?)?;
+                let mut return_context: TraceResponse = response.clone().into();
+                return_context.fuel_used = gas_used;
+                subcontext.trace.clock(TraceEvent::ReturnContext(return_context));
                 let mut context = caller.data().context.lock().unwrap();
                 let mut saveable: SaveableExtendedCallResponse = response.clone().into();
                 saveable.associate(&subcontext);
@@ -356,8 +367,12 @@ impl AlkanesHostFunctionsImpl {
                 T::handle_atomic(&mut context.message.atomic);
                 Ok(len)
             })
-            .or_else(|_| {
+            .or_else(|e| {
                 let mut context = caller.data_mut().context.lock().unwrap();
+                let mut revert_context: TraceResponse = TraceResponse::default();
+                revert_context.inner.data = vec![0x08, 0xc3, 0x79, 0xa0];
+                revert_context.inner.data.extend(e.to_string().as_bytes());
+                context.trace.clock(TraceEvent::RevertContext(revert_context));
                 context.message.atomic.rollback();
                 context.returndata = vec![];
                 Ok(0)

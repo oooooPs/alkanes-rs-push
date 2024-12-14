@@ -7,6 +7,7 @@ use metashrew::{println, stdio::{stdout}};
 use std::fmt::{Write};
 use crate::vm::runtime::AlkanesRuntimeContext;
 use crate::vm::utils::{prepare_context, run_after_special, run_special_cellpacks};
+use crate::tables::{TRACES};
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::parcel::AlkaneTransfer;
 use alkanes_support::id::{AlkaneId};
@@ -15,7 +16,7 @@ use alkanes_support::proto::alkanes::{AlkaneInventoryRequest, AlkaneInventoryRes
 use alkanes_support::response::ExtendedCallResponse;
 use anyhow::Result;
 use metashrew::index_pointer::{AtomicPointer, IndexPointer};
-use metashrew_support::index_pointer::KeyValuePointer;
+use metashrew_support::{utils::{consensus_encode}, index_pointer::KeyValuePointer};
 use protorune::message::{MessageContext, MessageContextParcel};
 use protorune_support::balance_sheet::BalanceSheet;
 use crate::message::{AlkaneMessageContext};
@@ -23,11 +24,12 @@ use protorune_support::rune_transfer::RuneTransfer;
 use protorune_support::utils::{consensus_decode, decode_varint_list};
 use protorune_support::balance_sheet::ProtoruneRuneId;
 use bitcoin::hashes::Hash;
-use bitcoin::{Transaction, blockdata::block::{Header}, Block, BlockHash, CompactTarget, TxMerkleNode};
+use bitcoin::{OutPoint, Transaction, blockdata::block::{Header}, Block, BlockHash, CompactTarget, TxMerkleNode};
 use bitcoin::blockdata::transaction::{Version};
 use protorune::view;
 use protobuf::{Message, MessageField};
 use std::io::Cursor;
+use std::sync::{Arc, Mutex};
 
 pub fn parcel_from_protobuf(v: proto::alkanes::MessageContextParcel) -> MessageContextParcel {
     let mut result = MessageContextParcel::default();
@@ -184,15 +186,19 @@ pub fn alkane_inventory(req: &AlkaneInventoryRequest) -> Result<AlkaneInventoryR
     Ok(result)
 }
 
+pub fn trace(outpoint: &OutPoint) -> Result<Vec<u8>> {
+  Ok(TRACES.select(&consensus_encode::<OutPoint>(&outpoint)?).get().as_ref().clone())
+}
+
 pub fn simulate_parcel(parcel: &MessageContextParcel, fuel: u64) -> Result<(ExtendedCallResponse, u64)> {
     let cellpack: Cellpack =
         decode_varint_list(&mut Cursor::new(parcel.calldata.clone()))?.try_into()?;
-    let mut context = AlkanesRuntimeContext::from_parcel_and_cellpack(parcel, &cellpack);
+    let mut context = Arc::new(Mutex::new(AlkanesRuntimeContext::from_parcel_and_cellpack(parcel, &cellpack)));
     let mut atomic = parcel.atomic.derive(&IndexPointer::default());
-    let (caller, myself, binary) = run_special_cellpacks(&mut context, &cellpack)?;
+    let (caller, myself, binary) = run_special_cellpacks(context.clone(), &cellpack)?;
     credit_balances(&mut atomic, &myself, &parcel.runes);
-    prepare_context(&mut context, &caller, &myself, false);
-    let (response, gas_used) = run_after_special(context, binary, fuel)?;
+    prepare_context(context.clone(), &caller, &myself, false);
+    let (response, gas_used) = run_after_special(context.clone(), binary, fuel)?;
     pipe_storagemap_to(
         &response.storage,
         &mut atomic.derive(&IndexPointer::from_keyword("/alkanes/").select(&myself.clone().into())),

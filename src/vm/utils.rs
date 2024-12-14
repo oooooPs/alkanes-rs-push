@@ -11,8 +11,9 @@ use metashrew::index_pointer::{AtomicPointer, IndexPointer};
 #[allow(unused_imports)]
 use metashrew::{println, stdio::stdout, clear as clear_base};
 use metashrew_support::index_pointer::KeyValuePointer;
+use alkanes_support::trace::{TraceEvent};
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use wasmi::*;
 
 
@@ -40,15 +41,16 @@ pub fn sequence_pointer(ptr: &AtomicPointer) -> AtomicPointer {
 }
 
 pub fn run_special_cellpacks(
-    context: &mut AlkanesRuntimeContext,
+    context: Arc<Mutex<AlkanesRuntimeContext>>,
     cellpack: &Cellpack,
 ) -> Result<(AlkaneId, AlkaneId, Arc<Vec<u8>>)> {
     let mut payload = cellpack.clone();
     let mut binary = Arc::<Vec<u8>>::new(vec![]);
-    let mut next_sequence_pointer = sequence_pointer(&context.message.atomic);
+    let mut next_sequence_pointer = sequence_pointer(&mut context.lock().unwrap().message.atomic);
     let next_sequence = next_sequence_pointer.get_value::<u128>();
+    let original_target = cellpack.target.clone();
     if cellpack.target.is_created(next_sequence) {
-        let wasm_payload = context
+        let wasm_payload = context.lock().unwrap()
             .message
             .atomic
             .keyword("/alkanes/")
@@ -57,7 +59,7 @@ pub fn run_special_cellpacks(
         binary = Arc::new(decompress(wasm_payload.as_ref().clone())?);
     } else if cellpack.target.is_create() {
         let wasm_payload = Arc::new(
-            find_witness_payload(&context.message.transaction, 0)
+            find_witness_payload(&context.lock().unwrap().message.transaction.clone(), 0)
                 .ok_or("finding witness payload failed for creation of alkane")
                 .map_err(|_| anyhow!("used CREATE cellpack but no binary found in witness"))?,
         );
@@ -65,7 +67,7 @@ pub fn run_special_cellpacks(
             block: 2,
             tx: next_sequence,
         };
-        let mut pointer = context
+        let mut pointer = context.lock().unwrap()
             .message
             .atomic
             .keyword("/alkanes/")
@@ -75,7 +77,7 @@ pub fn run_special_cellpacks(
         next_sequence_pointer.set_value(next_sequence + 1);
     } else if let Some(number) = cellpack.target.reserved() {
         let wasm_payload = Arc::new(
-            find_witness_payload(&context.message.transaction, 0)
+            find_witness_payload(&context.lock().unwrap().message.transaction.clone(), 0)
                 .ok_or("finding witness payload failed for creation of alkane")
                 .map_err(|_| {
                     anyhow!("used CREATERESERVED cellpack but no binary found in witness")
@@ -85,7 +87,7 @@ pub fn run_special_cellpacks(
             block: 4,
             tx: number,
         };
-        let mut ptr = context
+        let mut ptr = context.lock().unwrap()
             .message
             .atomic
             .keyword("/alkanes/")
@@ -102,7 +104,7 @@ pub fn run_special_cellpacks(
     } else if let Some(factory) = cellpack.target.factory() {
         payload.target = AlkaneId::new(2, next_sequence);
         next_sequence_pointer.set_value(next_sequence + 1);
-        let context_binary: Vec<u8> = context
+        let context_binary: Vec<u8> = context.lock().unwrap()
             .message
             .atomic
             .keyword("/alkanes/")
@@ -111,7 +113,7 @@ pub fn run_special_cellpacks(
             .as_ref()
             .clone();
         let rc = Arc::new(context_binary);
-        context
+        context.lock().unwrap()
             .message
             .atomic
             .keyword("/alkanes/")
@@ -119,8 +121,11 @@ pub fn run_special_cellpacks(
             .set(rc.clone());
         binary = Arc::new(decompress(rc.as_ref().clone())?);
     }
+    if &original_target != &payload.target {
+      context.lock().unwrap().trace.clock(TraceEvent::CreateAlkane(payload.target.clone()));
+    }
     Ok((
-        context.myself.clone(),
+        context.lock().unwrap().myself.clone(),
         payload.target.clone(),
         binary.clone(),
     ))
@@ -185,11 +190,11 @@ pub trait Saveable {
 }
 
 pub fn run_after_special(
-    context: AlkanesRuntimeContext,
+    context: Arc<Mutex<AlkanesRuntimeContext>>,
     binary: Arc<Vec<u8>>,
     start_fuel: u64,
 ) -> Result<(ExtendedCallResponse, u64)> {
-    let mut instance = AlkanesInstance::from_alkane(context, binary.clone(), start_fuel)?;
+    let mut instance = AlkanesInstance::from_alkane(context.clone(), binary.clone(), start_fuel)?;
     let response = instance.execute()?;
     let storage_len = response.storage.serialize().len() as u64;
     let fuel_used = overflow_error(
@@ -204,25 +209,26 @@ pub fn run_after_special(
     Ok((response, fuel_used))
 }
 pub fn prepare_context(
-    context: &mut AlkanesRuntimeContext,
+    context: Arc<Mutex<AlkanesRuntimeContext>>,
     caller: &AlkaneId,
     myself: &AlkaneId,
     delegate: bool,
 ) {
     if !delegate {
-        context.caller = caller.clone();
-        context.myself = myself.clone();
+        let mut inner = context.lock().unwrap();
+        inner.caller = caller.clone();
+        inner.myself = myself.clone();
     }
 }
 
 pub fn run(
-    mut context: AlkanesRuntimeContext,
+    context: Arc<Mutex<AlkanesRuntimeContext>>,
     cellpack: &Cellpack,
     start_fuel: u64,
     delegate: bool,
 ) -> Result<(ExtendedCallResponse, u64)> {
-    let (caller, myself, binary) = run_special_cellpacks(&mut context, cellpack)?;
-    prepare_context(&mut context, &caller, &myself, delegate);
+    let (caller, myself, binary) = run_special_cellpacks(context.clone(), cellpack)?;
+    prepare_context(context.clone(), &caller, &myself, delegate);
     run_after_special(context, binary, start_fuel)
 }
 

@@ -2088,6 +2088,129 @@ pub mod alkanes_trace_event {
     }
 }
 
+// @@protoc_insertion_point(message:alkanes.AlkanesTrace)
+#[derive(PartialEq,Clone,Default,Debug)]
+pub struct AlkanesTrace {
+    // message fields
+    // @@protoc_insertion_point(field:alkanes.AlkanesTrace.events)
+    pub events: ::std::vec::Vec<AlkanesTraceEvent>,
+    // special fields
+    // @@protoc_insertion_point(special_field:alkanes.AlkanesTrace.special_fields)
+    pub special_fields: ::protobuf::SpecialFields,
+}
+
+impl<'a> ::std::default::Default for &'a AlkanesTrace {
+    fn default() -> &'a AlkanesTrace {
+        <AlkanesTrace as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl AlkanesTrace {
+    pub fn new() -> AlkanesTrace {
+        ::std::default::Default::default()
+    }
+
+    fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
+        let mut fields = ::std::vec::Vec::with_capacity(1);
+        let mut oneofs = ::std::vec::Vec::with_capacity(0);
+        fields.push(::protobuf::reflect::rt::v2::make_vec_simpler_accessor::<_, _>(
+            "events",
+            |m: &AlkanesTrace| { &m.events },
+            |m: &mut AlkanesTrace| { &mut m.events },
+        ));
+        ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<AlkanesTrace>(
+            "AlkanesTrace",
+            fields,
+            oneofs,
+        )
+    }
+}
+
+impl ::protobuf::Message for AlkanesTrace {
+    const NAME: &'static str = "AlkanesTrace";
+
+    fn is_initialized(&self) -> bool {
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
+        while let Some(tag) = is.read_raw_tag_or_eof()? {
+            match tag {
+                10 => {
+                    self.events.push(is.read_message()?);
+                },
+                tag => {
+                    ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u64 {
+        let mut my_size = 0;
+        for value in &self.events {
+            let len = value.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
+        };
+        my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
+        self.special_fields.cached_size().set(my_size as u32);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
+        for v in &self.events {
+            ::protobuf::rt::write_message_field_with_cached_size(1, v, os)?;
+        };
+        os.write_unknown_fields(self.special_fields.unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn special_fields(&self) -> &::protobuf::SpecialFields {
+        &self.special_fields
+    }
+
+    fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
+        &mut self.special_fields
+    }
+
+    fn new() -> AlkanesTrace {
+        AlkanesTrace::new()
+    }
+
+    fn clear(&mut self) {
+        self.events.clear();
+        self.special_fields.clear();
+    }
+
+    fn default_instance() -> &'static AlkanesTrace {
+        static instance: AlkanesTrace = AlkanesTrace {
+            events: ::std::vec::Vec::new(),
+            special_fields: ::protobuf::SpecialFields::new(),
+        };
+        &instance
+    }
+}
+
+impl ::protobuf::MessageFull for AlkanesTrace {
+    fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
+        descriptor.get(|| file_descriptor().message_by_package_relative_name("AlkanesTrace").unwrap()).clone()
+    }
+}
+
+impl ::std::fmt::Display for AlkanesTrace {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for AlkanesTrace {
+    type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
+}
+
 // @@protoc_insertion_point(message:alkanes.SimulateResponse)
 #[derive(PartialEq,Clone,Default,Debug)]
 pub struct SimulateResponse {
@@ -2664,16 +2787,18 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x0b2\x1c.alkanes.AlkanesEnterContextH\0R\x0centerContext\x12@\n\x0cexit\
     _context\x18\x02\x20\x01(\x0b2\x1b.alkanes.AlkanesExitContextH\0R\x0bexi\
     tContext\x12=\n\rcreate_alkane\x18\x03\x20\x01(\x0b2\x16.alkanes.Alkanes\
-    CreateH\0R\x0ccreateAlkaneB\x07\n\x05event\"\x80\x01\n\x10SimulateRespon\
-    se\x12;\n\texecution\x18\x01\x20\x01(\x0b2\x1d.alkanes.ExtendedCallRespo\
-    nseR\texecution\x12\x19\n\x08gas_used\x18\x02\x20\x01(\x04R\x07gasUsed\
-    \x12\x14\n\x05error\x18\x03\x20\x01(\tR\x05error\";\n\x16AlkaneInventory\
-    Request\x12!\n\x02id\x18\x01\x20\x01(\x0b2\x11.alkanes.AlkaneIdR\x02id\"\
-    L\n\x17AlkaneInventoryResponse\x121\n\x07alkanes\x18\x01\x20\x03(\x0b2\
-    \x17.alkanes.AlkaneTransferR\x07alkanes*L\n\x14AlkanesTraceCallType\x12\
-    \x08\n\x04NONE\x10\0\x12\x08\n\x04CALL\x10\x01\x12\x10\n\x0cDELEGATECALL\
-    \x10\x02\x12\x0e\n\nSTATICCALL\x10\x03*2\n\x16AlkanesTraceStatusFlag\x12\
-    \x0b\n\x07SUCCESS\x10\0\x12\x0b\n\x07FAILURE\x10\x01b\x06proto3\
+    CreateH\0R\x0ccreateAlkaneB\x07\n\x05event\"B\n\x0cAlkanesTrace\x122\n\
+    \x06events\x18\x01\x20\x03(\x0b2\x1a.alkanes.AlkanesTraceEventR\x06event\
+    s\"\x80\x01\n\x10SimulateResponse\x12;\n\texecution\x18\x01\x20\x01(\x0b\
+    2\x1d.alkanes.ExtendedCallResponseR\texecution\x12\x19\n\x08gas_used\x18\
+    \x02\x20\x01(\x04R\x07gasUsed\x12\x14\n\x05error\x18\x03\x20\x01(\tR\x05\
+    error\";\n\x16AlkaneInventoryRequest\x12!\n\x02id\x18\x01\x20\x01(\x0b2\
+    \x11.alkanes.AlkaneIdR\x02id\"L\n\x17AlkaneInventoryResponse\x121\n\x07a\
+    lkanes\x18\x01\x20\x03(\x0b2\x17.alkanes.AlkaneTransferR\x07alkanes*L\n\
+    \x14AlkanesTraceCallType\x12\x08\n\x04NONE\x10\0\x12\x08\n\x04CALL\x10\
+    \x01\x12\x10\n\x0cDELEGATECALL\x10\x02\x12\x0e\n\nSTATICCALL\x10\x03*2\n\
+    \x16AlkanesTraceStatusFlag\x12\x0b\n\x07SUCCESS\x10\0\x12\x0b\n\x07FAILU\
+    RE\x10\x01b\x06proto3\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file
@@ -2691,7 +2816,7 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
     file_descriptor.get(|| {
         let generated_file_descriptor = generated_file_descriptor_lazy.get(|| {
             let mut deps = ::std::vec::Vec::with_capacity(0);
-            let mut messages = ::std::vec::Vec::with_capacity(15);
+            let mut messages = ::std::vec::Vec::with_capacity(16);
             messages.push(Uint128::generated_message_descriptor_data());
             messages.push(AlkaneId::generated_message_descriptor_data());
             messages.push(AlkaneTransfer::generated_message_descriptor_data());
@@ -2704,6 +2829,7 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
             messages.push(AlkanesExitContext::generated_message_descriptor_data());
             messages.push(AlkanesCreate::generated_message_descriptor_data());
             messages.push(AlkanesTraceEvent::generated_message_descriptor_data());
+            messages.push(AlkanesTrace::generated_message_descriptor_data());
             messages.push(SimulateResponse::generated_message_descriptor_data());
             messages.push(AlkaneInventoryRequest::generated_message_descriptor_data());
             messages.push(AlkaneInventoryResponse::generated_message_descriptor_data());

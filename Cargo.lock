@@ -45,6 +45,7 @@ dependencies = [
  "metashrew",
  "metashrew-support",
  "num",
+ "once_cell",
  "ordinals 0.0.10",
  "protobuf 3.7.1",
  "protobuf-codegen 3.7.1",
@@ -166,6 +167,19 @@ dependencies = [
  "hex",
  "hex_lit",
  "metashrew-support",
+ "protorune-support",
+]
+
+[[package]]
+name = "alkanes-std-owned-token"
+version = "0.1.0"
+dependencies = [
+ "alkanes-runtime",
+ "alkanes-support",
+ "anyhow",
+ "bitcoin 0.32.4",
+ "metashrew-support",
+ "ordinals 0.0.10",
  "protorune-support",
 ]
 

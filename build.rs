@@ -126,6 +126,8 @@ fn main() {
                 build_alkane(wasm_str, vec!["luckycoin"])?;
               } else if let Some(_) = env::var("CARGO_FEATURE_BELLSCOIN").ok() {
                 build_alkane(wasm_str, vec!["bellscoin"])?;
+              } else {
+                build_alkane(wasm_str, vec!["regtest"])?;
               }
             } else {
               build_alkane(wasm_str, vec![])?;

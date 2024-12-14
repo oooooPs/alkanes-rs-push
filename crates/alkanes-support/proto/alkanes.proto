@@ -85,6 +85,10 @@ message AlkanesTraceEvent {
   }
 }
 
+message AlkanesTrace {
+  repeated AlkanesTraceEvent events = 1;
+}
+
 message SimulateResponse {
   ExtendedCallResponse execution = 1;
   uint64 gas_used = 2;

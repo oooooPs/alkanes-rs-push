@@ -69,7 +69,7 @@ impl AlkanesInstance {
             .rollback();
     }
     pub fn from_alkane(
-        context: AlkanesRuntimeContext,
+        context: Arc<Mutex<AlkanesRuntimeContext>>,
         binary: Arc<Vec<u8>>,
         start_fuel: u64,
     ) -> Result<Self> {
@@ -89,7 +89,7 @@ impl AlkanesInstance {
             AlkanesState {
                 had_failure: false,
                 limiter: StoreLimitsBuilder::new().memory_size(MEMORY_LIMIT).build(),
-                context: Arc::new(Mutex::new(context)),
+                context: context.clone()
             },
         );
         store.limiter(|state| &mut state.limiter);

@@ -1,7 +1,7 @@
 use crate::view::{simulate_parcel, parcel_from_protobuf};
 use alkanes_support::proto;
 use crate::indexer::{configure_network};
-use bitcoin::{Block};
+use bitcoin::{Block, OutPoint};
 #[allow(unused_imports)]
 use metashrew::{
     flush, input, println,
@@ -20,6 +20,7 @@ pub mod precompiled;
 #[cfg(any(test, feature = "test-utils"))]
 pub mod tests;
 pub mod utils;
+pub mod tables;
 pub mod view;
 pub mod vm;
 pub mod block;
@@ -68,6 +69,15 @@ pub fn protorunesbyaddress() -> i32 {
     export_bytes(result.write_to_bytes().unwrap())
 }
 
+
+#[no_mangle]
+pub fn trace() -> i32 {
+  configure_network();
+  let mut data: Cursor<Vec<u8>> = Cursor::new(input());
+  let _height = consume_sized_int::<u32>(&mut data).unwrap();
+  let outpoint: OutPoint = protorune_support::proto::protorune::Outpoint::parse_from_bytes(&consume_to_end(&mut data).unwrap()).unwrap().try_into().unwrap();
+  export_bytes(view::trace(&outpoint).unwrap_or_else(|_| alkanes_support::proto::alkanes::AlkanesTrace::new().write_to_bytes().unwrap()))
+}
 
 #[no_mangle]
 pub fn protorunesbyoutpoint() -> i32 {

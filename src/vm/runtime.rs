@@ -5,7 +5,7 @@ use {
   std::fmt::Write,
   metashrew::{println, stdio::{stdout}}
 };
-use alkanes_support::{cellpack::Cellpack, id::AlkaneId, parcel::AlkaneTransferParcel};
+use alkanes_support::{context::{Context}, trace::{Trace}, cellpack::Cellpack, id::AlkaneId, parcel::AlkaneTransferParcel};
 
 use protorune::message::MessageContextParcel;
 
@@ -17,6 +17,7 @@ pub struct AlkanesRuntimeContext {
     pub returndata: Vec<u8>,
     pub inputs: Vec<u128>,
     pub message: Box<MessageContextParcel>,
+    pub trace: Trace
 }
 
 impl fmt::Debug for AlkanesRuntimeContext {
@@ -44,6 +45,7 @@ impl AlkanesRuntimeContext {
             incoming_alkanes,
             myself: AlkaneId::default(),
             caller: AlkaneId::default(),
+            trace: Trace::default(),
             inputs: cloned.inputs,
         }
     }
@@ -76,5 +78,14 @@ impl AlkanesRuntimeContext {
             .flatten()
             .collect::<Vec<u8>>();
         result
+    }
+    pub fn flat(&self) -> Context {
+      Context {
+        myself: self.myself.clone(),
+        caller: self.caller.clone(),
+        vout: self.message.vout,
+        incoming_alkanes: self.incoming_alkanes.clone(),
+        inputs: self.inputs.clone()
+      }
     }
 }

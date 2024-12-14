@@ -1,4 +1,5 @@
 use crate::tests::std::{alkanes_std_amm_pool_build, alkanes_std_auth_token_build};
+use hex;
 use alkanes::message::AlkaneMessageContext;
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::constants::{AMM_FACTORY_ID, AUTH_TOKEN_FACTORY_ID};
@@ -17,6 +18,7 @@ use protorune_support::protostone::ProtostoneEdict;
 use protorune_support::utils::consensus_encode;
 
 use crate::index_block;
+use crate::view;
 use crate::tests::helpers::{
     self as alkane_helpers, assert_binary_deployed_to_id, assert_token_id_has_no_deployment,
 };
@@ -376,6 +378,18 @@ fn get_sheet_for_outpoint(test_block: &Block, tx_num: usize, vout: u32) -> Resul
     );
     Ok(sheet)
 }
+fn get_trace_for_outpoint(test_block: &Block, tx_num: usize, vout: u32) -> Result<Vec<u8>> {
+    let outpoint = OutPoint {
+        txid: test_block.txdata[tx_num].compute_txid(),
+        vout,
+    };
+    let trace = view::trace(&outpoint).unwrap();
+    println!(
+        "trace at outpoint tx {} vout {}: {:?}",
+        tx_num, vout, hex::encode(&trace)
+    );
+    Ok(trace)
+}
 
 fn get_last_outpoint_sheet(test_block: &Block) -> Result<BalanceSheet> {
     let len = test_block.txdata.len();
@@ -385,6 +399,10 @@ fn get_last_outpoint_sheet(test_block: &Block) -> Result<BalanceSheet> {
 fn get_sheet_with_remaining_lp_after_burn(test_block: &Block) -> Result<BalanceSheet> {
     let len = test_block.txdata.len();
     get_sheet_for_outpoint(test_block, len - 2, 1)
+}
+fn get_trace_after_burn(test_block: &Block) -> Result<Vec<u8>> {
+    let len = test_block.txdata.len();
+    get_trace_for_outpoint(test_block, len - 2, 3)
 }
 
 fn check_init_liquidity_lp_balance(
@@ -477,6 +495,7 @@ fn test_amm_burn_fixture(amount_burn: u128) -> Result<()> {
     index_block(&test_block, block_height)?;
 
     let sheet = get_sheet_with_remaining_lp_after_burn(&test_block)?;
+    get_trace_after_burn(&test_block)?;
     let amount_burned_true = std::cmp::min(amount_burn, total_lp);
     assert_eq!(
         sheet.get(&deployment_ids.amm_pool_deployment.into()),
