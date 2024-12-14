@@ -170,6 +170,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "alkanes-std-owned-token"
+version = "0.1.0"
+dependencies = [
+ "alkanes-runtime",
+ "alkanes-support",
+ "anyhow",
+ "bitcoin 0.32.4",
+ "metashrew-support",
+ "ordinals 0.0.10",
+ "protorune-support",
+]
+
+[[package]]
 name = "alkanes-std-proxy"
 version = "0.1.0"
 dependencies = [
