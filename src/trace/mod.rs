@@ -5,10 +5,13 @@ use alkanes_support::response::{ExtendedCallResponse};
 //use metashrew::index_pointer::{IndexPointer};
 //use metashrew_support::utils::{consensus_encode};
 //use bitcoin::{Txid, OutPoint};
-use alkanes_support::proto;
-use protobuf::{Message, MessageField};
+#[allow(unused_imports)]
+use {
+  protobuf::{Message, MessageField},
+  alkanes_support::proto
+};
 
-
+#[allow(dead_code)]
 #[derive(Debug, Clone, Default)]
 pub struct TraceContext {
   inner: Context,
@@ -16,12 +19,14 @@ pub struct TraceContext {
   fuel: u64
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Default)]
 pub struct TraceResponse {
   pub inner: ExtendedCallResponse,
   pub fuel_used: u64
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 enum TraceEvent {
   EnterDelegatecall(TraceContext),

@@ -26,10 +26,12 @@ use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr, to_ptr};
 static mut CACHE: Option<HashMap<Arc<Vec<u8>>, Arc<Vec<u8>>>> = None;
 static mut TO_FLUSH: Option<Vec<Arc<Vec<u8>>>> = None;
 
+#[allow(static_mut_refs)]
 pub fn get_cache() -> &'static HashMap<Arc<Vec<u8>>, Arc<Vec<u8>>> {
     unsafe { CACHE.as_ref().unwrap() }
 }
 
+#[allow(static_mut_refs)]
 pub fn get(v: Arc<Vec<u8>>) -> Arc<Vec<u8>> {
     unsafe {
         initialize();
@@ -50,6 +52,7 @@ pub fn get(v: Arc<Vec<u8>>) -> Arc<Vec<u8>> {
     }
 }
 
+#[allow(static_mut_refs)]
 pub fn set(k: Arc<Vec<u8>>, v: Arc<Vec<u8>>) {
     unsafe {
         initialize();
@@ -58,6 +61,7 @@ pub fn set(k: Arc<Vec<u8>>, v: Arc<Vec<u8>>) {
     }
 }
 
+#[allow(static_mut_refs)]
 pub fn flush() {
     unsafe {
         initialize();
@@ -87,6 +91,7 @@ pub fn input() -> Vec<u8> {
     }
 }
 
+#[allow(static_mut_refs)]
 pub fn initialize() -> () {
     unsafe {
         if CACHE.is_none() {
