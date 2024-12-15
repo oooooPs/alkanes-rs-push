@@ -20,11 +20,13 @@ use std::fmt::Write;
 
 static mut PROTOCOLS: Option<HashSet<u128>> = None;
 
+#[allow(static_mut_refs)]
 pub fn initialized_protocol_index() -> Result<()> {
     unsafe { PROTOCOLS = Some(HashSet::new()) }
     Ok(())
 }
 
+#[allow(static_mut_refs)]
 pub fn add_to_indexable_protocols(protocol_tag: u128) -> Result<()> {
     unsafe {
         if let Some(set) = PROTOCOLS.as_mut() {
