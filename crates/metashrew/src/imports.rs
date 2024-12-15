@@ -5,6 +5,7 @@ use wasm_bindgen::prelude::*;
 use metashrew_support::utils::ptr_to_vec;
 static mut _INPUT: Option<Vec<u8>> = None;
 
+#[allow(static_mut_refs)]
 #[cfg(feature = "test-utils")]
 pub fn __set_input(v: Vec<u8>) {
     unsafe {
@@ -23,6 +24,7 @@ extern "C" {
     pub fn __log(ptr: i32);
 }
 
+#[allow(static_mut_refs)]
 #[cfg(feature = "test-utils")]
 pub fn __host_len() -> i32 {
     unsafe {
@@ -33,6 +35,7 @@ pub fn __host_len() -> i32 {
     }
 }
 
+#[allow(static_mut_refs)]
 #[cfg(feature = "test-utils")]
 pub fn __load_input(ptr: i32) -> () {
     unsafe {

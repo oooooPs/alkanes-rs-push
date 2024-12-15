@@ -76,7 +76,7 @@ pub fn trace() -> i32 {
   let mut data: Cursor<Vec<u8>> = Cursor::new(input());
   let _height = consume_sized_int::<u32>(&mut data).unwrap();
   let outpoint: OutPoint = protorune_support::proto::protorune::Outpoint::parse_from_bytes(&consume_to_end(&mut data).unwrap()).unwrap().try_into().unwrap();
-  export_bytes(view::trace(&outpoint).unwrap_or_else(|_| alkanes_support::proto::alkanes::AlkanesTrace::new().write_to_bytes().unwrap()))
+  export_bytes(view::trace(&outpoint).unwrap())//.unwrap_or_else(|_| alkanes_support::proto::alkanes::AlkanesTrace::new().write_to_bytes().unwrap()))
 }
 
 #[no_mangle]

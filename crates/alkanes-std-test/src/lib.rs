@@ -5,7 +5,7 @@ use {
   alkanes_runtime::{imports::{__request_transaction}, println, stdio::{stdout}},
   std::fmt::Write
 };
-use alkanes_support::{utils::{shift_or_err}, response::CallResponse};
+use alkanes_support::{parcel::AlkaneTransferParcel, cellpack::{Cellpack}, utils::{shift_or_err}, response::CallResponse};
 use metashrew_support::compat::{to_arraybuffer_layout, to_ptr};
 use sha2::{Digest, Sha256};
 
@@ -18,6 +18,12 @@ impl AlkaneResponder for LoggerAlkane {
         let mut inputs = context.inputs.clone();
         let mut response = CallResponse::forward(&context.incoming_alkanes);
         match shift_or_err(&mut inputs)? {
+          2 => {
+            response.data = self.call(&Cellpack {
+              target: context.myself.clone(),
+              inputs: vec![50]
+            }, &AlkaneTransferParcel::default(), self.fuel())?.data;
+          }
           78 => {
             let mut data = vec![0x01, 0x02];
             loop {

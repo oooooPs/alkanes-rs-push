@@ -1,6 +1,5 @@
 syntax = "proto3";
 package alkanes;
-
 message uint128 {
   uint64 lo = 1;
   uint64 hi = 2;
@@ -42,8 +41,9 @@ message ExtendedCallResponse {
 message Context {
   AlkaneId myself = 1;
   AlkaneId caller = 2;
-  uint32 vout = 3;
-  repeated AlkaneTransfer incoming_alkanes = 4;
+  repeated uint128 inputs = 3;
+  uint32 vout = 4;
+  repeated AlkaneTransfer incoming_alkanes = 5;
 }
 
 message TraceContext {

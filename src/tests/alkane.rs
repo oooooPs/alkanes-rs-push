@@ -27,8 +27,6 @@ mod tests {
         assert_eq!(decompress(compressed)?, buffer.clone());
         Ok(())
     }
-    */
-    /*
     #[wasm_bindgen_test]
     fn test_extcall() -> Result<()> {
         clear();
@@ -40,18 +38,14 @@ mod tests {
                 target: AlkaneId { block: 1, tx: 0 },
                 inputs: vec![1],
             },
-            /*
-            //create second alkane
             Cellpack {
                 target: AlkaneId { block: 1, tx: 0 },
                 inputs: vec![0],
             },
-            //target second alkane to be called with custom opcode
             Cellpack {
                 target: AlkaneId { block: 2, tx: 0 },
-                inputs: vec![1, 1],
+                inputs: vec![50, 1],
             },
-            */
         ];
 
         let test_block = alkane_helpers::init_with_multiple_cellpacks(
@@ -62,7 +56,7 @@ mod tests {
         index_block(&test_block, block_height as u32)?;
         Ok(())
     }
-    */
+*/
     #[wasm_bindgen_test]
     fn test_transaction() -> Result<()> {
         clear();

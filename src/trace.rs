@@ -16,7 +16,9 @@ use std::sync::{Arc};
 
 pub fn save_trace(outpoint: &OutPoint, height: u64, trace: Trace) -> Result<()> {
   println!("save trace: {:?}", outpoint);
+/*
   println!("trace dump: {:?}", trace.0.lock().unwrap().clone());
+*/
   let buffer: Vec<u8> = consensus_encode::<OutPoint>(outpoint)?;
   TRACES.select(&buffer).set(Arc::<Vec<u8>>::new(<Trace as Into<proto::alkanes::AlkanesTrace>>::into(trace).write_to_bytes()?));
   TRACES_BY_HEIGHT.select_value(height).append(Arc::new(buffer));

@@ -26,6 +26,6 @@ impl Context {
         Ok(result)
     }
     pub fn serialize(&self) -> Vec<u8> {
-      vec![]
+        vec![]
     }
 }

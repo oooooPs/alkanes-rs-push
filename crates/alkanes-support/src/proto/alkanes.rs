@@ -1023,6 +1023,8 @@ pub struct Context {
     pub myself: ::protobuf::MessageField<AlkaneId>,
     // @@protoc_insertion_point(field:alkanes.Context.caller)
     pub caller: ::protobuf::MessageField<AlkaneId>,
+    // @@protoc_insertion_point(field:alkanes.Context.inputs)
+    pub inputs: ::std::vec::Vec<Uint128>,
     // @@protoc_insertion_point(field:alkanes.Context.vout)
     pub vout: u32,
     // @@protoc_insertion_point(field:alkanes.Context.incoming_alkanes)
@@ -1044,7 +1046,7 @@ impl Context {
     }
 
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
-        let mut fields = ::std::vec::Vec::with_capacity(4);
+        let mut fields = ::std::vec::Vec::with_capacity(5);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
         fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, AlkaneId>(
             "myself",
@@ -1055,6 +1057,11 @@ impl Context {
             "caller",
             |m: &Context| { &m.caller },
             |m: &mut Context| { &mut m.caller },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_vec_simpler_accessor::<_, _>(
+            "inputs",
+            |m: &Context| { &m.inputs },
+            |m: &mut Context| { &mut m.inputs },
         ));
         fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
             "vout",
@@ -1090,10 +1097,13 @@ impl ::protobuf::Message for Context {
                 18 => {
                     ::protobuf::rt::read_singular_message_into_field(is, &mut self.caller)?;
                 },
-                24 => {
+                26 => {
+                    self.inputs.push(is.read_message()?);
+                },
+                32 => {
                     self.vout = is.read_uint32()?;
                 },
-                34 => {
+                42 => {
                     self.incoming_alkanes.push(is.read_message()?);
                 },
                 tag => {
@@ -1116,8 +1126,12 @@ impl ::protobuf::Message for Context {
             let len = v.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
         }
+        for value in &self.inputs {
+            let len = value.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
+        };
         if self.vout != 0 {
-            my_size += ::protobuf::rt::uint32_size(3, self.vout);
+            my_size += ::protobuf::rt::uint32_size(4, self.vout);
         }
         for value in &self.incoming_alkanes {
             let len = value.compute_size();
@@ -1135,11 +1149,14 @@ impl ::protobuf::Message for Context {
         if let Some(v) = self.caller.as_ref() {
             ::protobuf::rt::write_message_field_with_cached_size(2, v, os)?;
         }
+        for v in &self.inputs {
+            ::protobuf::rt::write_message_field_with_cached_size(3, v, os)?;
+        };
         if self.vout != 0 {
-            os.write_uint32(3, self.vout)?;
+            os.write_uint32(4, self.vout)?;
         }
         for v in &self.incoming_alkanes {
-            ::protobuf::rt::write_message_field_with_cached_size(4, v, os)?;
+            ::protobuf::rt::write_message_field_with_cached_size(5, v, os)?;
         };
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -1160,6 +1177,7 @@ impl ::protobuf::Message for Context {
     fn clear(&mut self) {
         self.myself.clear();
         self.caller.clear();
+        self.inputs.clear();
         self.vout = 0;
         self.incoming_alkanes.clear();
         self.special_fields.clear();
@@ -1169,6 +1187,7 @@ impl ::protobuf::Message for Context {
         static instance: Context = Context {
             myself: ::protobuf::MessageField::none(),
             caller: ::protobuf::MessageField::none(),
+            inputs: ::std::vec::Vec::new(),
             vout: 0,
             incoming_alkanes: ::std::vec::Vec::new(),
             special_fields: ::protobuf::SpecialFields::new(),
@@ -2769,36 +2788,37 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x18\x02\x20\x01(\x0cR\x05value\"\x8e\x01\n\x14ExtendedCallResponse\x121\
     \n\x07alkanes\x18\x01\x20\x03(\x0b2\x17.alkanes.AlkaneTransferR\x07alkan\
     es\x12/\n\x07storage\x18\x02\x20\x03(\x0b2\x15.alkanes.KeyValuePairR\x07\
-    storage\x12\x12\n\x04data\x18\x03\x20\x01(\x0cR\x04data\"\xb7\x01\n\x07C\
+    storage\x12\x12\n\x04data\x18\x03\x20\x01(\x0cR\x04data\"\xe1\x01\n\x07C\
     ontext\x12)\n\x06myself\x18\x01\x20\x01(\x0b2\x11.alkanes.AlkaneIdR\x06m\
     yself\x12)\n\x06caller\x18\x02\x20\x01(\x0b2\x11.alkanes.AlkaneIdR\x06ca\
-    ller\x12\x12\n\x04vout\x18\x03\x20\x01(\rR\x04vout\x12B\n\x10incoming_al\
-    kanes\x18\x04\x20\x03(\x0b2\x17.alkanes.AlkaneTransferR\x0fincomingAlkan\
-    es\"J\n\x0cTraceContext\x12&\n\x05inner\x18\x01\x20\x01(\x0b2\x10.alkane\
-    s.ContextR\x05inner\x12\x12\n\x04fuel\x18\x02\x20\x01(\x04R\x04fuel\"\
-    \x82\x01\n\x13AlkanesEnterContext\x12:\n\tcall_type\x18\x01\x20\x01(\x0e\
-    2\x1d.alkanes.AlkanesTraceCallTypeR\x08callType\x12/\n\x07context\x18\
-    \x02\x20\x01(\x0b2\x15.alkanes.TraceContextR\x07context\"\x88\x01\n\x12A\
-    lkanesExitContext\x127\n\x06status\x18\x01\x20\x01(\x0e2\x1f.alkanes.Alk\
-    anesTraceStatusFlagR\x06status\x129\n\x08response\x18\x02\x20\x01(\x0b2\
-    \x1d.alkanes.ExtendedCallResponseR\x08response\"A\n\rAlkanesCreate\x120\
-    \n\nnew_alkane\x18\x01\x20\x01(\x0b2\x11.alkanes.AlkaneIdR\tnewAlkane\"\
-    \xe2\x01\n\x11AlkanesTraceEvent\x12C\n\renter_context\x18\x01\x20\x01(\
-    \x0b2\x1c.alkanes.AlkanesEnterContextH\0R\x0centerContext\x12@\n\x0cexit\
-    _context\x18\x02\x20\x01(\x0b2\x1b.alkanes.AlkanesExitContextH\0R\x0bexi\
-    tContext\x12=\n\rcreate_alkane\x18\x03\x20\x01(\x0b2\x16.alkanes.Alkanes\
-    CreateH\0R\x0ccreateAlkaneB\x07\n\x05event\"B\n\x0cAlkanesTrace\x122\n\
-    \x06events\x18\x01\x20\x03(\x0b2\x1a.alkanes.AlkanesTraceEventR\x06event\
-    s\"\x80\x01\n\x10SimulateResponse\x12;\n\texecution\x18\x01\x20\x01(\x0b\
-    2\x1d.alkanes.ExtendedCallResponseR\texecution\x12\x19\n\x08gas_used\x18\
-    \x02\x20\x01(\x04R\x07gasUsed\x12\x14\n\x05error\x18\x03\x20\x01(\tR\x05\
-    error\";\n\x16AlkaneInventoryRequest\x12!\n\x02id\x18\x01\x20\x01(\x0b2\
-    \x11.alkanes.AlkaneIdR\x02id\"L\n\x17AlkaneInventoryResponse\x121\n\x07a\
-    lkanes\x18\x01\x20\x03(\x0b2\x17.alkanes.AlkaneTransferR\x07alkanes*L\n\
-    \x14AlkanesTraceCallType\x12\x08\n\x04NONE\x10\0\x12\x08\n\x04CALL\x10\
-    \x01\x12\x10\n\x0cDELEGATECALL\x10\x02\x12\x0e\n\nSTATICCALL\x10\x03*2\n\
-    \x16AlkanesTraceStatusFlag\x12\x0b\n\x07SUCCESS\x10\0\x12\x0b\n\x07FAILU\
-    RE\x10\x01b\x06proto3\
+    ller\x12(\n\x06inputs\x18\x03\x20\x03(\x0b2\x10.alkanes.uint128R\x06inpu\
+    ts\x12\x12\n\x04vout\x18\x04\x20\x01(\rR\x04vout\x12B\n\x10incoming_alka\
+    nes\x18\x05\x20\x03(\x0b2\x17.alkanes.AlkaneTransferR\x0fincomingAlkanes\
+    \"J\n\x0cTraceContext\x12&\n\x05inner\x18\x01\x20\x01(\x0b2\x10.alkanes.\
+    ContextR\x05inner\x12\x12\n\x04fuel\x18\x02\x20\x01(\x04R\x04fuel\"\x82\
+    \x01\n\x13AlkanesEnterContext\x12:\n\tcall_type\x18\x01\x20\x01(\x0e2\
+    \x1d.alkanes.AlkanesTraceCallTypeR\x08callType\x12/\n\x07context\x18\x02\
+    \x20\x01(\x0b2\x15.alkanes.TraceContextR\x07context\"\x88\x01\n\x12Alkan\
+    esExitContext\x127\n\x06status\x18\x01\x20\x01(\x0e2\x1f.alkanes.Alkanes\
+    TraceStatusFlagR\x06status\x129\n\x08response\x18\x02\x20\x01(\x0b2\x1d.\
+    alkanes.ExtendedCallResponseR\x08response\"A\n\rAlkanesCreate\x120\n\nne\
+    w_alkane\x18\x01\x20\x01(\x0b2\x11.alkanes.AlkaneIdR\tnewAlkane\"\xe2\
+    \x01\n\x11AlkanesTraceEvent\x12C\n\renter_context\x18\x01\x20\x01(\x0b2\
+    \x1c.alkanes.AlkanesEnterContextH\0R\x0centerContext\x12@\n\x0cexit_cont\
+    ext\x18\x02\x20\x01(\x0b2\x1b.alkanes.AlkanesExitContextH\0R\x0bexitCont\
+    ext\x12=\n\rcreate_alkane\x18\x03\x20\x01(\x0b2\x16.alkanes.AlkanesCreat\
+    eH\0R\x0ccreateAlkaneB\x07\n\x05event\"B\n\x0cAlkanesTrace\x122\n\x06eve\
+    nts\x18\x01\x20\x03(\x0b2\x1a.alkanes.AlkanesTraceEventR\x06events\"\x80\
+    \x01\n\x10SimulateResponse\x12;\n\texecution\x18\x01\x20\x01(\x0b2\x1d.a\
+    lkanes.ExtendedCallResponseR\texecution\x12\x19\n\x08gas_used\x18\x02\
+    \x20\x01(\x04R\x07gasUsed\x12\x14\n\x05error\x18\x03\x20\x01(\tR\x05erro\
+    r\";\n\x16AlkaneInventoryRequest\x12!\n\x02id\x18\x01\x20\x01(\x0b2\x11.\
+    alkanes.AlkaneIdR\x02id\"L\n\x17AlkaneInventoryResponse\x121\n\x07alkane\
+    s\x18\x01\x20\x03(\x0b2\x17.alkanes.AlkaneTransferR\x07alkanes*L\n\x14Al\
+    kanesTraceCallType\x12\x08\n\x04NONE\x10\0\x12\x08\n\x04CALL\x10\x01\x12\
+    \x10\n\x0cDELEGATECALL\x10\x02\x12\x0e\n\nSTATICCALL\x10\x03*2\n\x16Alka\
+    nesTraceStatusFlag\x12\x0b\n\x07SUCCESS\x10\0\x12\x0b\n\x07FAILURE\x10\
+    \x01b\x06proto3\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file

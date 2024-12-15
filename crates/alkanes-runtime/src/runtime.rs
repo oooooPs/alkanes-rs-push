@@ -37,6 +37,7 @@ static mut _CACHE: Option<StorageMap> = None;
 
 pub trait Extcall {
     fn __call(cellpack: i32, outgoing_alkanes: i32, checkpoint: i32, fuel: u64) -> i32;
+    #[allow(static_mut_refs)]
     fn call(
         cellpack: &Cellpack,
         outgoing_alkanes: &AlkaneTransferParcel,
@@ -108,6 +109,7 @@ pub trait AlkaneResponder {
             (&buffer[4..]).to_vec()
         }
     }
+    #[allow(static_mut_refs)]
     fn initialize(&self) -> &Self {
         unsafe {
             if _CACHE.is_none() {
@@ -144,6 +146,7 @@ pub trait AlkaneResponder {
         }
     }
     */
+    #[allow(static_mut_refs)]
     fn load(&self, k: Vec<u8>) -> Vec<u8> {
         unsafe {
             if _CACHE.as_ref().unwrap().0.contains_key(&k) {
@@ -163,6 +166,7 @@ pub trait AlkaneResponder {
             }
         }
     }
+    #[allow(static_mut_refs)]
     fn store(&self, k: Vec<u8>, v: Vec<u8>) {
         unsafe {
             _CACHE.as_mut().unwrap().set(&k, &v);
@@ -232,6 +236,7 @@ pub trait AlkaneResponder {
     ) -> Result<CallResponse> {
         self.extcall::<Staticcall>(cellpack, outgoing_alkanes, fuel)
     }
+    #[allow(static_mut_refs)]
     fn run(&self) -> Vec<u8> {
         let extended: ExtendedCallResponse = match self.initialize().execute() {
           Ok(v) => {
@@ -250,6 +255,7 @@ pub trait AlkaneResponder {
         };
         extended.serialize()
     }
+    #[allow(static_mut_refs)]
     fn run_and_forward(&self) -> Vec<u8> {
         let context = self.context().unwrap();
         let extended: ExtendedCallResponse = match self.initialize().execute() {

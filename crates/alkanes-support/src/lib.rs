@@ -8,15 +8,17 @@ pub mod parcel;
 pub mod proto;
 pub mod response;
 pub mod storage;
+pub mod trace;
 pub mod utils;
 pub mod witness;
-pub mod trace;
 
 use crate::id::AlkaneId;
-use crate::parcel::AlkaneTransfer;
+use crate::parcel::{AlkaneTransfer, AlkaneTransferParcel};
 use crate::response::ExtendedCallResponse;
+use crate::storage::StorageMap;
 use protobuf::{MessageField, SpecialFields};
 use protorune_support::balance_sheet::ProtoruneRuneId;
+use utils::field_or_default;
 
 impl From<proto::alkanes::Uint128> for u128 {
     fn from(v: proto::alkanes::Uint128) -> u128 {
@@ -48,12 +50,40 @@ impl Into<proto::alkanes::AlkaneId> for AlkaneId {
     }
 }
 
+impl Into<AlkaneId> for proto::alkanes::AlkaneId {
+    fn into(self) -> AlkaneId {
+        AlkaneId {
+            block: field_or_default(self.block),
+            tx: field_or_default(self.tx),
+        }
+    }
+}
+
 impl Into<proto::alkanes::AlkaneTransfer> for AlkaneTransfer {
     fn into(self) -> proto::alkanes::AlkaneTransfer {
         let mut result = proto::alkanes::AlkaneTransfer::new();
         result.id = MessageField::some(self.id.into());
         result.value = MessageField::some(self.value.into());
         result
+    }
+}
+
+impl Into<AlkaneTransfer> for proto::alkanes::AlkaneTransfer {
+    fn into(self) -> AlkaneTransfer {
+        AlkaneTransfer {
+            id: self
+                .id
+                .into_option()
+                .ok_or("")
+                .and_then(|v| Ok(v.into()))
+                .unwrap_or_else(|_| AlkaneId::default()),
+            value: self
+                .value
+                .into_option()
+                .ok_or("")
+                .and_then(|v| Ok(v.into()))
+                .unwrap_or_else(|_| 0u128),
+        }
     }
 }
 
@@ -91,14 +121,34 @@ impl Into<proto::alkanes::ExtendedCallResponse> for ExtendedCallResponse {
     }
 }
 
-impl Into<AlkaneId> for proto::alkanes::AlkaneId {
-    fn into(self) -> AlkaneId {
-        AlkaneId {
-            block: self.block.into_option().unwrap().into(),
-            tx: self.tx.into_option().unwrap().into(),
+impl From<proto::alkanes::ExtendedCallResponse> for ExtendedCallResponse {
+    fn from(v: proto::alkanes::ExtendedCallResponse) -> ExtendedCallResponse {
+        ExtendedCallResponse {
+            storage: StorageMap::from_iter(v.storage.into_iter().map(|kv| (kv.key, kv.value))),
+            data: v.data,
+            alkanes: AlkaneTransferParcel(
+                v.alkanes
+                    .into_iter()
+                    .map(|transfer| AlkaneTransfer {
+                        id: transfer
+                            .id
+                            .into_option()
+                            .ok_or("")
+                            .and_then(|v| Ok(v.into()))
+                            .unwrap_or_else(|_| AlkaneId::default()),
+                        value: transfer
+                            .value
+                            .into_option()
+                            .ok_or("")
+                            .and_then(|v| Ok(v.into()))
+                            .unwrap_or_else(|_| 0u128),
+                    })
+                    .collect::<Vec<AlkaneTransfer>>(),
+            ),
         }
     }
 }
+
 
 impl Into<ProtoruneRuneId> for proto::alkanes::AlkaneId {
     fn into(self) -> ProtoruneRuneId {

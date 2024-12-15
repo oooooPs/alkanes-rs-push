@@ -494,8 +494,10 @@ fn test_amm_burn_fixture(amount_burn: u128) -> Result<()> {
     );
     index_block(&test_block, block_height)?;
 
+    println!("get sheet");
     let sheet = get_sheet_with_remaining_lp_after_burn(&test_block)?;
-    get_trace_after_burn(&test_block)?;
+    println!("sheet: {:?}", sheet);
+   // get_trace_after_burn(&test_block)?;
     let amount_burned_true = std::cmp::min(amount_burn, total_lp);
     assert_eq!(
         sheet.get(&deployment_ids.amm_pool_deployment.into()),
@@ -517,7 +519,11 @@ fn test_amm_burn_fixture(amount_burn: u128) -> Result<()> {
 #[wasm_bindgen_test]
 fn test_amm_pool_normal_init() -> Result<()> {
     clear();
-    test_amm_pool_init_fixture(1000000, 1000000)?;
+    let (block, _ids) = test_amm_pool_init_fixture(1000000, 1000000)?;
+    println!("trace: {}", hex::encode(view::trace(&OutPoint {
+      txid: block.txdata[block.txdata.len() - 1].compute_txid(),
+      vout: 3
+    })?));
     Ok(())
 }
 
