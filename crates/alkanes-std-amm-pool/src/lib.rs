@@ -9,7 +9,7 @@ use alkanes_support::{
     id::AlkaneId,
     parcel::{AlkaneTransfer, AlkaneTransferParcel},
     response::CallResponse,
-    utils::{overflow_error, shift_or_err, shift},
+    utils::{overflow_error, shift, shift_or_err},
 };
 use anyhow::{anyhow, Result};
 use metashrew_support::{
@@ -28,10 +28,6 @@ type U256 = Uint<256, 4>;
 
 #[derive(Default)]
 struct AMMPool(());
-
-pub fn sub_fees(v: u128) -> Result<u128> {
-    Ok(overflow_error(v.checked_mul(997))? / 1000)
-}
 
 impl AMMPool {
     pub fn alkanes_for_self(&self) -> Result<(AlkaneId, AlkaneId)> {
@@ -179,13 +175,10 @@ impl AMMPool {
         reserve_from: u128,
         reserve_to: u128,
     ) -> Result<u128> {
-        Ok(overflow_error(
-            reserve_to.checked_sub(
-                (U256::from(reserve_from) * U256::from(reserve_to)
-                    / (U256::from(reserve_from) + U256::from(amount)))
-                .try_into()?,
-            ),
-        )?)
+        let amount_in_with_fee = U256::from(997) * U256::from(amount);
+        let numerator = amount_in_with_fee * U256::from(reserve_to);
+        let denominator = U256::from(1000) * U256::from(reserve_from) + amount_in_with_fee;
+        Ok((numerator / denominator).try_into()?)
     }
     pub fn swap(
         &self,
@@ -204,20 +197,12 @@ impl AMMPool {
         let output = if &transfer.id == &reserve_a.id {
             AlkaneTransfer {
                 id: reserve_b.id,
-                value: sub_fees(self.get_amount_out(
-                    transfer.value,
-                    previous_a.value,
-                    previous_b.value,
-                )?)?,
+                value: self.get_amount_out(transfer.value, previous_a.value, previous_b.value)?,
             }
         } else {
             AlkaneTransfer {
                 id: reserve_a.id,
-                value: sub_fees(self.get_amount_out(
-                    transfer.value,
-                    previous_b.value,
-                    previous_a.value,
-                )?)?,
+                value: self.get_amount_out(transfer.value, previous_b.value, previous_a.value)?,
             }
         };
         if output.value < amount_out_predicate {
@@ -235,7 +220,9 @@ impl AMMPool {
         Some((AlkaneId::new(a_block, a_tx), AlkaneId::new(b_block, b_tx)))
     }
     pub fn pull_ids_or_err(&self, v: &mut Vec<u128>) -> Result<(AlkaneId, AlkaneId)> {
-      self.pull_ids(v).ok_or("").map_err(|_| anyhow!("AlkaneId values for pair missing from list"))
+        self.pull_ids(v)
+            .ok_or("")
+            .map_err(|_| anyhow!("AlkaneId values for pair missing from list"))
     }
 }
 
@@ -258,13 +245,10 @@ impl AlkaneResponder for AMMPool {
             }
             1 => self.mint(context.myself, context.incoming_alkanes),
             2 => self.burn(context.myself, context.incoming_alkanes),
-            3 => self
-                .swap(context.incoming_alkanes, shift_or_err(&mut inputs)?),
+            3 => self.swap(context.incoming_alkanes, shift_or_err(&mut inputs)?),
             50 => Ok(CallResponse::forward(&context.incoming_alkanes)),
 
-            _ => {
-                Err(anyhow!("unrecognized opcode"))
-            }
+            _ => Err(anyhow!("unrecognized opcode")),
         }
     }
 }
