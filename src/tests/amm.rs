@@ -358,7 +358,7 @@ fn calc_lp_balance_from_add_liquidity(
 }
 
 fn calc_swapped_balance(amount: u128, reserve_from: u128, reserve_to: u128) -> Result<u128> {
-    Ok((reserve_to - (reserve_from * reserve_to / (reserve_from + amount))) * 997 / 1000)
+    Ok((997 * amount * reserve_to / (1000 * reserve_from + 997 * amount)))
 }
 
 fn get_sheet_for_outpoint(test_block: &Block, tx_num: usize, vout: u32) -> Result<BalanceSheet> {
