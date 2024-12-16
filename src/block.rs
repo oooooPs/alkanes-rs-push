@@ -177,10 +177,7 @@ impl AuxpowBlock {
         }
     }
     pub fn parse(cursor: &mut std::io::Cursor<Vec<u8>>) -> Result<AuxpowBlock> {
-        println!("parse");
         let header = AuxpowHeader::parse(cursor)?;
-        println!("{:?}", header);
-        println!("{}", hex::encode(&cursor.get_ref()[(cursor.position() as usize)..]));
         let mut txdata: Vec<Transaction> = vec![];
         let len = consume_varint(cursor)?;
         for _ in 0..len {
@@ -198,7 +195,6 @@ fn to_ref(v: &Vec<u8>) -> &[u8] {
 impl AuxpowHeader {
     pub fn parse_without_auxpow(cursor: &mut std::io::Cursor<Vec<u8>>) -> Result<AuxpowHeader> {
         let version = AuxpowVersion(consume_sized_int::<u32>(cursor)?.into());
-        println!("{:?}", version);
         let prev_blockhash: BlockHash =
             BlockHash::from_byte_array(to_ref(&consume_exact(cursor, 0x20)?).try_into().unwrap());
         let merkle_root: TxMerkleNode = consensus_decode::<TxMerkleNode>(cursor)?;
