@@ -193,7 +193,7 @@ pub fn trace(outpoint: &OutPoint) -> Result<Vec<u8>> {
 pub fn simulate_parcel(parcel: &MessageContextParcel, fuel: u64) -> Result<(ExtendedCallResponse, u64)> {
     let cellpack: Cellpack =
         decode_varint_list(&mut Cursor::new(parcel.calldata.clone()))?.try_into()?;
-    let mut context = Arc::new(Mutex::new(AlkanesRuntimeContext::from_parcel_and_cellpack(parcel, &cellpack)));
+    let context = Arc::new(Mutex::new(AlkanesRuntimeContext::from_parcel_and_cellpack(parcel, &cellpack)));
     let mut atomic = parcel.atomic.derive(&IndexPointer::default());
     let (caller, myself, binary) = run_special_cellpacks(context.clone(), &cellpack)?;
     credit_balances(&mut atomic, &myself, &parcel.runes);

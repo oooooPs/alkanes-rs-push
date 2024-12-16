@@ -3,7 +3,6 @@ use {
   metashrew::{println, stdio::{stdout}},
   std::fmt::{Write}
 };
-use metashrew::index_pointer::{IndexPointer};
 use metashrew_support::utils::{consensus_encode};
 use metashrew_support::index_pointer::{KeyValuePointer};
 use alkanes_support::trace::{Trace};

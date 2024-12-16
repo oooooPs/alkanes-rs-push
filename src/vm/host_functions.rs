@@ -299,11 +299,11 @@ impl AlkanesHostFunctionsImpl {
                 storage_map_len as u64,
             )
         };
-        let (mut subcontext, binary_rc) = {
+        let (subcontext, binary_rc) = {
             if cellpack.target.is_deployment() {
                 caller.consume_fuel(FUEL_EXTCALL_DEPLOY)?;
             }
-            let mut context = caller.data_mut().context.clone();
+            let context = caller.data_mut().context.clone();
             context.lock().unwrap().message.atomic.checkpoint();
             let myself = context.lock().unwrap().myself.clone();
             let (_subcaller, submyself, binary) = run_special_cellpacks(context.clone(), &cellpack)?;

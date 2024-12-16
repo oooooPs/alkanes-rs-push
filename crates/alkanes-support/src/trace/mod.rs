@@ -62,6 +62,7 @@ impl Into<proto::alkanes::Context> for Context {
             .into_iter()
             .map(|v| v.into())
             .collect::<Vec<proto::alkanes::AlkaneTransfer>>();
+        result.inputs = self.inputs.into_iter().map(|v| v.into()).collect::<Vec<proto::alkanes::Uint128>>();
         result
     }
 }

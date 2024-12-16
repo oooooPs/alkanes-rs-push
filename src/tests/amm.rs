@@ -4,6 +4,7 @@ use alkanes::message::AlkaneMessageContext;
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::constants::{AMM_FACTORY_ID, AUTH_TOKEN_FACTORY_ID};
 use alkanes_support::id::AlkaneId;
+use alkanes_support::trace::{Trace};
 use anyhow::Result;
 use bitcoin::address::NetworkChecked;
 use bitcoin::blockdata::transaction::OutPoint;
@@ -520,10 +521,11 @@ fn test_amm_burn_fixture(amount_burn: u128) -> Result<()> {
 fn test_amm_pool_normal_init() -> Result<()> {
     clear();
     let (block, _ids) = test_amm_pool_init_fixture(1000000, 1000000)?;
-    println!("trace: {}", hex::encode(view::trace(&OutPoint {
+    let trace_result: Trace = view::trace(&OutPoint {
       txid: block.txdata[block.txdata.len() - 1].compute_txid(),
       vout: 3
-    })?));
+    })?.try_into()?;
+    println!("trace: {:?}", trace_result);
     Ok(())
 }
 

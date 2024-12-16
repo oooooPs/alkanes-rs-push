@@ -33,7 +33,7 @@ pub fn handle_message(parcel: &MessageContextParcel) -> Result<(Vec<RuneTransfer
     let cellpack: Cellpack =
         decode_varint_list(&mut Cursor::new(parcel.calldata.clone()))?.try_into()?;
     let target = cellpack.target.clone();
-    let mut context = Arc::new(Mutex::new(AlkanesRuntimeContext::from_parcel_and_cellpack(parcel, &cellpack)));
+    let context = Arc::new(Mutex::new(AlkanesRuntimeContext::from_parcel_and_cellpack(parcel, &cellpack)));
     let mut atomic = parcel.atomic.derive(&IndexPointer::default());
     let (caller, myself, binary) = run_special_cellpacks(context.clone(), &cellpack)?;
     credit_balances(&mut atomic, &myself, &parcel.runes);
@@ -56,17 +56,23 @@ pub fn handle_message(parcel: &MessageContextParcel) -> Result<(Vec<RuneTransfer
       let sheet = <BalanceSheet as From<Vec<RuneTransfer>>>::from(response.alkanes.clone().into());
       combined.debit_mintable(&sheet, &mut atomic)?;
       debit_balances(&mut atomic, &myself, &response.alkanes)?;
+      let cloned = context.clone().lock().unwrap().trace.clone();
+      let response_alkanes = response.alkanes.clone();
+      cloned.clock(TraceEvent::ReturnContext(TraceResponse {
+        inner: response.into(),
+        fuel_used: _gas_used
+      }));
       save_trace(&OutPoint {
         txid: parcel.transaction.compute_txid(),
         vout: parcel.vout
       }, parcel.height, trace.clone())?;
-      Ok((response.alkanes.into(), combined))
+      Ok((response_alkanes.into(), combined))
     }).or_else(|e| {
       let mut response = ExtendedCallResponse::default();
       
       response.data = vec![0x08, 0xc3, 0x79, 0xa0];
       response.data.extend(e.to_string().as_bytes());
-      let mut cloned = context.clone().lock().unwrap().trace.clone();
+      let cloned = context.clone().lock().unwrap().trace.clone();
       cloned.clock(TraceEvent::RevertContext(TraceResponse {
         inner: response,
         fuel_used: u64::MAX,
