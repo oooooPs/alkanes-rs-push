@@ -367,7 +367,7 @@ impl AlkanesInstance {
         self.reset();
         if had_failure {
             self.rollback();
-            if &call_response.data[0..4] == &[0x08, 0xc3, 0x79, 0xa0] {
+            if call_response.data.len() >= 4 && &call_response.data[0..4] == &[0x08, 0xc3, 0x79, 0xa0] {
               Err(anyhow!(format!("ALKANES: revert: {}", String::from_utf8((&call_response.data[4..]).to_vec()).unwrap_or_else(|_| hex::encode(&call_response.data[4..])))))
             } else if let Some(e) = err {
                 Err(anyhow!(format!("ALKANES: revert: {:?}", e)))

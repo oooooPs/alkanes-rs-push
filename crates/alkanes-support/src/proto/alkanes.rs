@@ -2635,6 +2635,533 @@ impl ::protobuf::reflect::ProtobufValue for AlkaneInventoryResponse {
     type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
 }
 
+// @@protoc_insertion_point(message:alkanes.Outpoint)
+#[derive(PartialEq,Clone,Default,Debug)]
+pub struct Outpoint {
+    // message fields
+    // @@protoc_insertion_point(field:alkanes.Outpoint.txid)
+    pub txid: ::std::vec::Vec<u8>,
+    // @@protoc_insertion_point(field:alkanes.Outpoint.vout)
+    pub vout: u32,
+    // special fields
+    // @@protoc_insertion_point(special_field:alkanes.Outpoint.special_fields)
+    pub special_fields: ::protobuf::SpecialFields,
+}
+
+impl<'a> ::std::default::Default for &'a Outpoint {
+    fn default() -> &'a Outpoint {
+        <Outpoint as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl Outpoint {
+    pub fn new() -> Outpoint {
+        ::std::default::Default::default()
+    }
+
+    fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
+        let mut fields = ::std::vec::Vec::with_capacity(2);
+        let mut oneofs = ::std::vec::Vec::with_capacity(0);
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "txid",
+            |m: &Outpoint| { &m.txid },
+            |m: &mut Outpoint| { &mut m.txid },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "vout",
+            |m: &Outpoint| { &m.vout },
+            |m: &mut Outpoint| { &mut m.vout },
+        ));
+        ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<Outpoint>(
+            "Outpoint",
+            fields,
+            oneofs,
+        )
+    }
+}
+
+impl ::protobuf::Message for Outpoint {
+    const NAME: &'static str = "Outpoint";
+
+    fn is_initialized(&self) -> bool {
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
+        while let Some(tag) = is.read_raw_tag_or_eof()? {
+            match tag {
+                10 => {
+                    self.txid = is.read_bytes()?;
+                },
+                16 => {
+                    self.vout = is.read_uint32()?;
+                },
+                tag => {
+                    ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u64 {
+        let mut my_size = 0;
+        if !self.txid.is_empty() {
+            my_size += ::protobuf::rt::bytes_size(1, &self.txid);
+        }
+        if self.vout != 0 {
+            my_size += ::protobuf::rt::uint32_size(2, self.vout);
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
+        self.special_fields.cached_size().set(my_size as u32);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
+        if !self.txid.is_empty() {
+            os.write_bytes(1, &self.txid)?;
+        }
+        if self.vout != 0 {
+            os.write_uint32(2, self.vout)?;
+        }
+        os.write_unknown_fields(self.special_fields.unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn special_fields(&self) -> &::protobuf::SpecialFields {
+        &self.special_fields
+    }
+
+    fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
+        &mut self.special_fields
+    }
+
+    fn new() -> Outpoint {
+        Outpoint::new()
+    }
+
+    fn clear(&mut self) {
+        self.txid.clear();
+        self.vout = 0;
+        self.special_fields.clear();
+    }
+
+    fn default_instance() -> &'static Outpoint {
+        static instance: Outpoint = Outpoint {
+            txid: ::std::vec::Vec::new(),
+            vout: 0,
+            special_fields: ::protobuf::SpecialFields::new(),
+        };
+        &instance
+    }
+}
+
+impl ::protobuf::MessageFull for Outpoint {
+    fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
+        descriptor.get(|| file_descriptor().message_by_package_relative_name("Outpoint").unwrap()).clone()
+    }
+}
+
+impl ::std::fmt::Display for Outpoint {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for Outpoint {
+    type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
+}
+
+// @@protoc_insertion_point(message:alkanes.Trace)
+#[derive(PartialEq,Clone,Default,Debug)]
+pub struct Trace {
+    // message fields
+    // @@protoc_insertion_point(field:alkanes.Trace.outpoint)
+    pub outpoint: ::protobuf::MessageField<Outpoint>,
+    // @@protoc_insertion_point(field:alkanes.Trace.trace)
+    pub trace: ::protobuf::MessageField<AlkanesTrace>,
+    // special fields
+    // @@protoc_insertion_point(special_field:alkanes.Trace.special_fields)
+    pub special_fields: ::protobuf::SpecialFields,
+}
+
+impl<'a> ::std::default::Default for &'a Trace {
+    fn default() -> &'a Trace {
+        <Trace as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl Trace {
+    pub fn new() -> Trace {
+        ::std::default::Default::default()
+    }
+
+    fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
+        let mut fields = ::std::vec::Vec::with_capacity(2);
+        let mut oneofs = ::std::vec::Vec::with_capacity(0);
+        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, Outpoint>(
+            "outpoint",
+            |m: &Trace| { &m.outpoint },
+            |m: &mut Trace| { &mut m.outpoint },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, AlkanesTrace>(
+            "trace",
+            |m: &Trace| { &m.trace },
+            |m: &mut Trace| { &mut m.trace },
+        ));
+        ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<Trace>(
+            "Trace",
+            fields,
+            oneofs,
+        )
+    }
+}
+
+impl ::protobuf::Message for Trace {
+    const NAME: &'static str = "Trace";
+
+    fn is_initialized(&self) -> bool {
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
+        while let Some(tag) = is.read_raw_tag_or_eof()? {
+            match tag {
+                10 => {
+                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.outpoint)?;
+                },
+                18 => {
+                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.trace)?;
+                },
+                tag => {
+                    ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u64 {
+        let mut my_size = 0;
+        if let Some(v) = self.outpoint.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
+        }
+        if let Some(v) = self.trace.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
+        self.special_fields.cached_size().set(my_size as u32);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
+        if let Some(v) = self.outpoint.as_ref() {
+            ::protobuf::rt::write_message_field_with_cached_size(1, v, os)?;
+        }
+        if let Some(v) = self.trace.as_ref() {
+            ::protobuf::rt::write_message_field_with_cached_size(2, v, os)?;
+        }
+        os.write_unknown_fields(self.special_fields.unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn special_fields(&self) -> &::protobuf::SpecialFields {
+        &self.special_fields
+    }
+
+    fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
+        &mut self.special_fields
+    }
+
+    fn new() -> Trace {
+        Trace::new()
+    }
+
+    fn clear(&mut self) {
+        self.outpoint.clear();
+        self.trace.clear();
+        self.special_fields.clear();
+    }
+
+    fn default_instance() -> &'static Trace {
+        static instance: Trace = Trace {
+            outpoint: ::protobuf::MessageField::none(),
+            trace: ::protobuf::MessageField::none(),
+            special_fields: ::protobuf::SpecialFields::new(),
+        };
+        &instance
+    }
+}
+
+impl ::protobuf::MessageFull for Trace {
+    fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
+        descriptor.get(|| file_descriptor().message_by_package_relative_name("Trace").unwrap()).clone()
+    }
+}
+
+impl ::std::fmt::Display for Trace {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for Trace {
+    type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
+}
+
+// @@protoc_insertion_point(message:alkanes.TraceBlockRequest)
+#[derive(PartialEq,Clone,Default,Debug)]
+pub struct TraceBlockRequest {
+    // message fields
+    // @@protoc_insertion_point(field:alkanes.TraceBlockRequest.block)
+    pub block: u64,
+    // special fields
+    // @@protoc_insertion_point(special_field:alkanes.TraceBlockRequest.special_fields)
+    pub special_fields: ::protobuf::SpecialFields,
+}
+
+impl<'a> ::std::default::Default for &'a TraceBlockRequest {
+    fn default() -> &'a TraceBlockRequest {
+        <TraceBlockRequest as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl TraceBlockRequest {
+    pub fn new() -> TraceBlockRequest {
+        ::std::default::Default::default()
+    }
+
+    fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
+        let mut fields = ::std::vec::Vec::with_capacity(1);
+        let mut oneofs = ::std::vec::Vec::with_capacity(0);
+        fields.push(::protobuf::reflect::rt::v2::make_simpler_field_accessor::<_, _>(
+            "block",
+            |m: &TraceBlockRequest| { &m.block },
+            |m: &mut TraceBlockRequest| { &mut m.block },
+        ));
+        ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<TraceBlockRequest>(
+            "TraceBlockRequest",
+            fields,
+            oneofs,
+        )
+    }
+}
+
+impl ::protobuf::Message for TraceBlockRequest {
+    const NAME: &'static str = "TraceBlockRequest";
+
+    fn is_initialized(&self) -> bool {
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
+        while let Some(tag) = is.read_raw_tag_or_eof()? {
+            match tag {
+                8 => {
+                    self.block = is.read_uint64()?;
+                },
+                tag => {
+                    ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u64 {
+        let mut my_size = 0;
+        if self.block != 0 {
+            my_size += ::protobuf::rt::uint64_size(1, self.block);
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
+        self.special_fields.cached_size().set(my_size as u32);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
+        if self.block != 0 {
+            os.write_uint64(1, self.block)?;
+        }
+        os.write_unknown_fields(self.special_fields.unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn special_fields(&self) -> &::protobuf::SpecialFields {
+        &self.special_fields
+    }
+
+    fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
+        &mut self.special_fields
+    }
+
+    fn new() -> TraceBlockRequest {
+        TraceBlockRequest::new()
+    }
+
+    fn clear(&mut self) {
+        self.block = 0;
+        self.special_fields.clear();
+    }
+
+    fn default_instance() -> &'static TraceBlockRequest {
+        static instance: TraceBlockRequest = TraceBlockRequest {
+            block: 0,
+            special_fields: ::protobuf::SpecialFields::new(),
+        };
+        &instance
+    }
+}
+
+impl ::protobuf::MessageFull for TraceBlockRequest {
+    fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
+        descriptor.get(|| file_descriptor().message_by_package_relative_name("TraceBlockRequest").unwrap()).clone()
+    }
+}
+
+impl ::std::fmt::Display for TraceBlockRequest {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for TraceBlockRequest {
+    type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
+}
+
+// @@protoc_insertion_point(message:alkanes.TraceBlockResponse)
+#[derive(PartialEq,Clone,Default,Debug)]
+pub struct TraceBlockResponse {
+    // message fields
+    // @@protoc_insertion_point(field:alkanes.TraceBlockResponse.traces)
+    pub traces: ::std::vec::Vec<Trace>,
+    // special fields
+    // @@protoc_insertion_point(special_field:alkanes.TraceBlockResponse.special_fields)
+    pub special_fields: ::protobuf::SpecialFields,
+}
+
+impl<'a> ::std::default::Default for &'a TraceBlockResponse {
+    fn default() -> &'a TraceBlockResponse {
+        <TraceBlockResponse as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl TraceBlockResponse {
+    pub fn new() -> TraceBlockResponse {
+        ::std::default::Default::default()
+    }
+
+    fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
+        let mut fields = ::std::vec::Vec::with_capacity(1);
+        let mut oneofs = ::std::vec::Vec::with_capacity(0);
+        fields.push(::protobuf::reflect::rt::v2::make_vec_simpler_accessor::<_, _>(
+            "traces",
+            |m: &TraceBlockResponse| { &m.traces },
+            |m: &mut TraceBlockResponse| { &mut m.traces },
+        ));
+        ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<TraceBlockResponse>(
+            "TraceBlockResponse",
+            fields,
+            oneofs,
+        )
+    }
+}
+
+impl ::protobuf::Message for TraceBlockResponse {
+    const NAME: &'static str = "TraceBlockResponse";
+
+    fn is_initialized(&self) -> bool {
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
+        while let Some(tag) = is.read_raw_tag_or_eof()? {
+            match tag {
+                10 => {
+                    self.traces.push(is.read_message()?);
+                },
+                tag => {
+                    ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u64 {
+        let mut my_size = 0;
+        for value in &self.traces {
+            let len = value.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
+        };
+        my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
+        self.special_fields.cached_size().set(my_size as u32);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
+        for v in &self.traces {
+            ::protobuf::rt::write_message_field_with_cached_size(1, v, os)?;
+        };
+        os.write_unknown_fields(self.special_fields.unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn special_fields(&self) -> &::protobuf::SpecialFields {
+        &self.special_fields
+    }
+
+    fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
+        &mut self.special_fields
+    }
+
+    fn new() -> TraceBlockResponse {
+        TraceBlockResponse::new()
+    }
+
+    fn clear(&mut self) {
+        self.traces.clear();
+        self.special_fields.clear();
+    }
+
+    fn default_instance() -> &'static TraceBlockResponse {
+        static instance: TraceBlockResponse = TraceBlockResponse {
+            traces: ::std::vec::Vec::new(),
+            special_fields: ::protobuf::SpecialFields::new(),
+        };
+        &instance
+    }
+}
+
+impl ::protobuf::MessageFull for TraceBlockResponse {
+    fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
+        descriptor.get(|| file_descriptor().message_by_package_relative_name("TraceBlockResponse").unwrap()).clone()
+    }
+}
+
+impl ::std::fmt::Display for TraceBlockResponse {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for TraceBlockResponse {
+    type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
+}
+
 #[derive(Clone,Copy,PartialEq,Eq,Debug,Hash)]
 // @@protoc_insertion_point(enum:alkanes.AlkanesTraceCallType)
 pub enum AlkanesTraceCallType {
@@ -2814,11 +3341,17 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x20\x01(\x04R\x07gasUsed\x12\x14\n\x05error\x18\x03\x20\x01(\tR\x05erro\
     r\";\n\x16AlkaneInventoryRequest\x12!\n\x02id\x18\x01\x20\x01(\x0b2\x11.\
     alkanes.AlkaneIdR\x02id\"L\n\x17AlkaneInventoryResponse\x121\n\x07alkane\
-    s\x18\x01\x20\x03(\x0b2\x17.alkanes.AlkaneTransferR\x07alkanes*L\n\x14Al\
-    kanesTraceCallType\x12\x08\n\x04NONE\x10\0\x12\x08\n\x04CALL\x10\x01\x12\
-    \x10\n\x0cDELEGATECALL\x10\x02\x12\x0e\n\nSTATICCALL\x10\x03*2\n\x16Alka\
-    nesTraceStatusFlag\x12\x0b\n\x07SUCCESS\x10\0\x12\x0b\n\x07FAILURE\x10\
-    \x01b\x06proto3\
+    s\x18\x01\x20\x03(\x0b2\x17.alkanes.AlkaneTransferR\x07alkanes\"2\n\x08O\
+    utpoint\x12\x12\n\x04txid\x18\x01\x20\x01(\x0cR\x04txid\x12\x12\n\x04vou\
+    t\x18\x02\x20\x01(\rR\x04vout\"c\n\x05Trace\x12-\n\x08outpoint\x18\x01\
+    \x20\x01(\x0b2\x11.alkanes.OutpointR\x08outpoint\x12+\n\x05trace\x18\x02\
+    \x20\x01(\x0b2\x15.alkanes.AlkanesTraceR\x05trace\")\n\x11TraceBlockRequ\
+    est\x12\x14\n\x05block\x18\x01\x20\x01(\x04R\x05block\"<\n\x12TraceBlock\
+    Response\x12&\n\x06traces\x18\x01\x20\x03(\x0b2\x0e.alkanes.TraceR\x06tr\
+    aces*L\n\x14AlkanesTraceCallType\x12\x08\n\x04NONE\x10\0\x12\x08\n\x04CA\
+    LL\x10\x01\x12\x10\n\x0cDELEGATECALL\x10\x02\x12\x0e\n\nSTATICCALL\x10\
+    \x03*2\n\x16AlkanesTraceStatusFlag\x12\x0b\n\x07SUCCESS\x10\0\x12\x0b\n\
+    \x07FAILURE\x10\x01b\x06proto3\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file
@@ -2836,7 +3369,7 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
     file_descriptor.get(|| {
         let generated_file_descriptor = generated_file_descriptor_lazy.get(|| {
             let mut deps = ::std::vec::Vec::with_capacity(0);
-            let mut messages = ::std::vec::Vec::with_capacity(16);
+            let mut messages = ::std::vec::Vec::with_capacity(20);
             messages.push(Uint128::generated_message_descriptor_data());
             messages.push(AlkaneId::generated_message_descriptor_data());
             messages.push(AlkaneTransfer::generated_message_descriptor_data());
@@ -2853,6 +3386,10 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
             messages.push(SimulateResponse::generated_message_descriptor_data());
             messages.push(AlkaneInventoryRequest::generated_message_descriptor_data());
             messages.push(AlkaneInventoryResponse::generated_message_descriptor_data());
+            messages.push(Outpoint::generated_message_descriptor_data());
+            messages.push(Trace::generated_message_descriptor_data());
+            messages.push(TraceBlockRequest::generated_message_descriptor_data());
+            messages.push(TraceBlockResponse::generated_message_descriptor_data());
             let mut enums = ::std::vec::Vec::with_capacity(2);
             enums.push(AlkanesTraceCallType::generated_enum_descriptor_data());
             enums.push(AlkanesTraceStatusFlag::generated_enum_descriptor_data());

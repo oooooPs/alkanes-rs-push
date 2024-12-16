@@ -102,3 +102,21 @@ message AlkaneInventoryRequest {
 message AlkaneInventoryResponse {
   repeated AlkaneTransfer alkanes = 1;
 }
+
+message Outpoint {
+  bytes txid = 1;
+  uint32 vout = 2;
+}
+
+message Trace {
+  Outpoint outpoint = 1;
+  AlkanesTrace trace = 2;
+}
+
+message TraceBlockRequest {
+  uint64 block = 1;
+}
+
+message TraceBlockResponse {
+  repeated Trace traces = 1;
+}
