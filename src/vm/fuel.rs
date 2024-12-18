@@ -12,6 +12,12 @@ use protorune_support::utils::decode_varint_list;
 use std::io::Cursor;
 use wasmi::*;
 
+#[allow(unused_imports)]
+use {
+  metashrew::{println, stdio::{stdout}},
+  std::fmt::{Write}
+};
+
 pub trait VirtualFuelBytes {
     fn vfsize(&self) -> u64;
 }
@@ -94,6 +100,7 @@ pub struct FuelTank {
     pub size: u64,
     pub txsize: u64,
     pub block_fuel: u64,
+    pub start_fuel: u64,
     pub transaction_fuel: u64,
 }
 
@@ -114,6 +121,7 @@ impl FuelTank {
                 txsize: 0,
                 size: block.vfsize(),
                 block_fuel: TOTAL_FUEL,
+                start_fuel: 0,
                 transaction_fuel: 0,
             });
         }
@@ -124,14 +132,15 @@ impl FuelTank {
             tank.current_txindex = txindex;
             tank.transaction_fuel =
                 std::cmp::max(tank.block_fuel * txsize / tank.size, MINIMUM_FUEL);
+            tank.block_fuel = tank.block_fuel - std::cmp::min(tank.block_fuel, tank.transaction_fuel);
+            tank.start_fuel = tank.transaction_fuel;
             tank.txsize = txsize;
         }
     }
     pub fn refuel_block() {
         unsafe {
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
-            let start_fuel = tank.block_fuel * tank.txsize / tank.size;
-            tank.block_fuel = tank.block_fuel + tank.transaction_fuel - start_fuel;
+            tank.block_fuel = tank.block_fuel + tank.transaction_fuel;
             tank.size = tank.size - tank.txsize;
         }
     }
@@ -144,7 +153,10 @@ impl FuelTank {
     }
     pub fn drain_fuel() {
         unsafe {
-            _FUEL_TANK.as_mut().unwrap().transaction_fuel = 0;
+            let transaction_fuel = _FUEL_TANK.as_ref().unwrap().transaction_fuel;
+            let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
+            tank.block_fuel = tank.block_fuel - std::cmp::min(tank.block_fuel, transaction_fuel);
+            tank.transaction_fuel = 0;
         }
     }
     pub fn start_fuel() -> u64 {

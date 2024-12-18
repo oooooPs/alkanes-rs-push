@@ -45,14 +45,13 @@ pub fn handle_message(parcel: &MessageContextParcel) -> Result<(Vec<RuneTransfer
     credit_balances(&mut atomic, &myself, &parcel.runes);
     prepare_context(context.clone(), &caller, &myself, false);
     let txsize = parcel.transaction.vfsize() as u64;
-    if !FuelTank::is_top() {
+    if FuelTank::is_top() {
         FuelTank::fuel_transaction(txsize, parcel.txindex);
     } else if FuelTank::should_advance(parcel.txindex) {
         FuelTank::refuel_block();
         FuelTank::fuel_transaction(txsize, parcel.txindex);
     }
     let fuel = FuelTank::start_fuel();
-    println!("START FUEL: {}", fuel);
     let inner = context.lock().unwrap().flat();
     let trace = context.lock().unwrap().trace.clone();
     trace.clock(TraceEvent::EnterCall(TraceContext {
