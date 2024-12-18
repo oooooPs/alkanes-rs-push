@@ -2,7 +2,7 @@ use crate::network::{genesis::GENESIS_BLOCK, is_active};
 use crate::utils::{credit_balances, debit_balances, pipe_storagemap_to};
 use crate::trace::{save_trace};
 use crate::vm::{
-    fuel::start_fuel,
+    fuel::{FuelTank},
     runtime::AlkanesRuntimeContext,
     utils::{prepare_context, run_after_special, run_special_cellpacks},
 };
@@ -38,7 +38,16 @@ pub fn handle_message(parcel: &MessageContextParcel) -> Result<(Vec<RuneTransfer
     let (caller, myself, binary) = run_special_cellpacks(context.clone(), &cellpack)?;
     credit_balances(&mut atomic, &myself, &parcel.runes);
     prepare_context(context.clone(), &caller, &myself, false);
+    if !FuelTank::is_top() {
+      FuelTank::fuel_transaction(parcel.txindex);
+    } else if FuelTank::should_advance() {
+      FuelTank::refuel_block();
+      FuelTank::fuel_transaction(txsize, txindex);
+    }
+   
     let fuel = start_fuel();
+    let txsize = parcel.transaction.total_size();
+    if FuelTank::
     let inner = context.lock().unwrap().flat();
     let trace = context.lock().unwrap().trace.clone();
     trace.clock(TraceEvent::EnterCall(TraceContext {

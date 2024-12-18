@@ -1,6 +1,6 @@
 use crate::message::AlkaneMessageContext;
 use crate::network::{genesis, is_genesis};
-use crate::vm::fuel::set_message_count;
+use crate::vm::fuel::{FuelTank};
 use anyhow::Result;
 use bitcoin::blockdata::block::Block;
 use ordinals::{Artifact, Runestone};
@@ -69,25 +69,8 @@ pub fn index_block(block: &Block, height: u32) -> Result<()> {
     if is_genesis(height.into()) {
         genesis(&block).unwrap();
     }
-    count_alkanes_protomessages(&block);
+    FuelTank::initialize(&block);
     Protorune::index_block::<AlkaneMessageContext>(block.clone(), height.into())?;
     Ok(())
 }
 
-pub fn count_alkanes_protomessages(block: &Block) {
-    let mut count: u64 = 0;
-    for tx in &block.txdata {
-        if let Some(Artifact::Runestone(ref runestone)) = Runestone::decipher(tx) {
-            if let Ok(protostones) = Protostone::from_runestone(runestone) {
-                for protostone in protostones {
-                    if protostone.protocol_tag == AlkaneMessageContext::protocol_tag()
-                        && protostone.message.len() != 0
-                    {
-                        count = count + 1;
-                    }
-                }
-            }
-        }
-    }
-    set_message_count(count);
-}
