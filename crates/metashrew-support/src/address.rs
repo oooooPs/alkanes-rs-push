@@ -1,22 +1,20 @@
+use anyhow::{anyhow, Error, Result};
 use core::convert::{TryFrom, TryInto};
 use core::fmt;
 use core::str::FromStr;
-use anyhow::{anyhow, Result, Error};
 
-use bech32::primitives::hrp::{Hrp};
-use bitcoin::hashes::{Hash};
+use bech32::primitives::hrp::Hrp;
+use bitcoin::hashes::Hash;
 use bitcoin::secp256k1::{Secp256k1, Verification};
 
 use bitcoin::base58;
-use bitcoin::blockdata::constants::{
-    MAX_SCRIPT_ELEMENT_SIZE
-};
+use bitcoin::blockdata::constants::MAX_SCRIPT_ELEMENT_SIZE;
 use bitcoin::blockdata::script::witness_program::WitnessProgram;
 use bitcoin::blockdata::script::witness_version::WitnessVersion;
 use bitcoin::blockdata::script::{self, Script, ScriptBuf, ScriptHash};
-use bitcoin::{PubkeyHash, PublicKey};
 use bitcoin::key::{TapTweak, TweakedPublicKey, UntweakedPublicKey};
 use bitcoin::taproot::TapNodeHash;
+use bitcoin::{PubkeyHash, PublicKey};
 
 /// Error code for the address module.
 
@@ -78,13 +76,19 @@ impl Payload {
     /// Constructs a [Payload] from an output script (`scriptPubkey`).
     pub fn from_script(script: &Script) -> Result<Payload> {
         Ok(if script.is_p2pkh() {
-            let bytes = script.as_bytes()[3..23].try_into().expect("statically 20B long");
+            let bytes = script.as_bytes()[3..23]
+                .try_into()
+                .expect("statically 20B long");
             Payload::PubkeyHash(PubkeyHash::from_byte_array(bytes))
         } else if script.is_p2sh() {
-            let bytes = script.as_bytes()[2..22].try_into().expect("statically 20B long");
+            let bytes = script.as_bytes()[2..22]
+                .try_into()
+                .expect("statically 20B long");
             Payload::ScriptHash(ScriptHash::from_byte_array(bytes))
         } else if script.is_witness_program() {
-            let opcode = script.first_opcode().expect("witness_version guarantees len() > 4");
+            let opcode = script
+                .first_opcode()
+                .expect("witness_version guarantees len() > 4");
 
             let witness_program = script.as_bytes()[2..].to_vec();
 
@@ -109,19 +113,24 @@ impl Payload {
     /// This function doesn't make any allocations.
     pub fn matches_script_pubkey(&self, script: &Script) -> bool {
         match *self {
-            Payload::PubkeyHash(ref hash) if script.is_p2pkh() =>
-                &script.as_bytes()[3..23] == <PubkeyHash as AsRef<[u8; 20]>>::as_ref(hash),
-            Payload::ScriptHash(ref hash) if script.is_p2sh() =>
-                &script.as_bytes()[2..22] == <ScriptHash as AsRef<[u8; 20]>>::as_ref(hash),
-            Payload::WitnessProgram(ref prog) if script.is_witness_program() =>
-                &script.as_bytes()[2..] == prog.program().as_bytes(),
+            Payload::PubkeyHash(ref hash) if script.is_p2pkh() => {
+                &script.as_bytes()[3..23] == <PubkeyHash as AsRef<[u8; 20]>>::as_ref(hash)
+            }
+            Payload::ScriptHash(ref hash) if script.is_p2sh() => {
+                &script.as_bytes()[2..22] == <ScriptHash as AsRef<[u8; 20]>>::as_ref(hash)
+            }
+            Payload::WitnessProgram(ref prog) if script.is_witness_program() => {
+                &script.as_bytes()[2..] == prog.program().as_bytes()
+            }
             Payload::PubkeyHash(_) | Payload::ScriptHash(_) | Payload::WitnessProgram(_) => false,
         }
     }
 
     /// Creates a pay to (compressed) public key hash payload from a public key
     #[inline]
-    pub fn p2pkh(pk: &PublicKey) -> Payload { Payload::PubkeyHash(pk.pubkey_hash()) }
+    pub fn p2pkh(pk: &PublicKey) -> Payload {
+        Payload::PubkeyHash(pk.pubkey_hash())
+    }
 
     /// Creates a pay to script hash P2SH payload from a script
     #[inline]
@@ -136,16 +145,19 @@ impl Payload {
     pub fn p2wpkh(pk: &PublicKey) -> Result<Payload> {
         let prog = WitnessProgram::new(
             WitnessVersion::V0,
-            pk.wpubkey_hash().map_err(|_| anyhow!("uncompressed public key"))?.as_ref()
+            pk.wpubkey_hash()
+                .map_err(|_| anyhow!("uncompressed public key"))?
+                .as_ref(),
         )?;
         Ok(Payload::WitnessProgram(prog))
     }
 
     /// Create a pay to script payload that embeds a witness pay to public key
     pub fn p2shwpkh(pk: &PublicKey) -> Result<Payload> {
-        let builder = script::Builder::new()
-            .push_int(0)
-            .push_slice(pk.wpubkey_hash().map_err(|_| anyhow!("uncompressed public key"))?);
+        let builder = script::Builder::new().push_int(0).push_slice(
+            pk.wpubkey_hash()
+                .map_err(|_| anyhow!("uncompressed public key"))?,
+        );
 
         Ok(Payload::ScriptHash(builder.into_script().script_hash()))
     }
@@ -159,7 +171,10 @@ impl Payload {
 
     /// Create a pay to script payload that embeds a witness pay to script hash address
     pub fn p2shwsh(script: &Script) -> Payload {
-        let ws = script::Builder::new().push_int(0).push_slice(script.wscript_hash()).into_script();
+        let ws = script::Builder::new()
+            .push_int(0)
+            .push_slice(script.wscript_hash())
+            .into_script();
 
         Payload::ScriptHash(ws.script_hash())
     }

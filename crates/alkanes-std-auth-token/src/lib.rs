@@ -1,9 +1,9 @@
 use alkanes_runtime::{runtime::AlkaneResponder, storage::StoragePointer, token::Token};
 use alkanes_support::utils::shift_or_err;
 use alkanes_support::{parcel::AlkaneTransfer, response::CallResponse};
+use anyhow::{anyhow, Result};
 use metashrew_support::compat::{to_arraybuffer_layout, to_ptr};
 use metashrew_support::index_pointer::KeyValuePointer;
-use anyhow::{Result, anyhow};
 use std::sync::Arc;
 
 #[derive(Default)]
@@ -41,14 +41,18 @@ impl AlkaneResponder for AuthToken {
             }
             1 => {
                 if context.incoming_alkanes.0.len() != 1 {
-                    return Err(anyhow!("did not authenticate with only the authentication token"));
+                    return Err(anyhow!(
+                        "did not authenticate with only the authentication token"
+                    ));
                 }
                 let transfer = context.incoming_alkanes.0[0].clone();
                 if transfer.id != context.myself.clone() {
                     return Err(anyhow!("supplied alkane is not authentication token"));
                 }
                 if transfer.value < 1 {
-                    return Err(anyhow!("less than 1 unit of authentication token supplied to authenticate"));
+                    return Err(anyhow!(
+                        "less than 1 unit of authentication token supplied to authenticate"
+                    ));
                 }
                 response.data = vec![0x01];
                 response.alkanes.0.push(transfer);

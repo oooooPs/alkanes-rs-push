@@ -5,9 +5,13 @@ use super::{
 use crate::utils::{balance_pointer, pipe_storagemap_to, transfer_from};
 use crate::vm::{run_after_special, run_special_cellpacks};
 use alkanes_support::{
-    cellpack::Cellpack, id::AlkaneId, parcel::AlkaneTransferParcel, response::CallResponse,
-    trace::{TraceEvent, TraceResponse, TraceContext},
-    storage::StorageMap, utils::overflow_error,
+    cellpack::Cellpack,
+    id::AlkaneId,
+    parcel::AlkaneTransferParcel,
+    response::CallResponse,
+    storage::StorageMap,
+    trace::{TraceContext, TraceEvent, TraceResponse},
+    utils::overflow_error,
 };
 use anyhow::Result;
 use metashrew::index_pointer::IndexPointer;
@@ -24,7 +28,7 @@ use crate::vm::fuel::{
 };
 use protorune_support::utils::consensus_encode;
 use std::io::Cursor;
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 use wasmi::*;
 
 pub struct AlkanesHostFunctionsImpl(());
@@ -306,7 +310,8 @@ impl AlkanesHostFunctionsImpl {
             let context = caller.data_mut().context.clone();
             context.lock().unwrap().message.atomic.checkpoint();
             let myself = context.lock().unwrap().myself.clone();
-            let (_subcaller, submyself, binary) = run_special_cellpacks(context.clone(), &cellpack)?;
+            let (_subcaller, submyself, binary) =
+                run_special_cellpacks(context.clone(), &cellpack)?;
             pipe_storagemap_to(
                 &storage_map,
                 &mut context.lock().unwrap().message.atomic.derive(
@@ -315,7 +320,12 @@ impl AlkanesHostFunctionsImpl {
             );
             if let Err(_) = transfer_from(
                 &incoming_alkanes,
-                &mut context.lock().unwrap().message.atomic.derive(&IndexPointer::default()),
+                &mut context
+                    .lock()
+                    .unwrap()
+                    .message
+                    .atomic
+                    .derive(&IndexPointer::default()),
                 &myself,
                 &submyself,
             ) {
@@ -324,13 +334,15 @@ impl AlkanesHostFunctionsImpl {
                 return Ok(0);
             }
             let mut subbed = context.lock().unwrap().clone();
-            subbed.message.atomic = context.lock().unwrap().message.atomic.derive(&IndexPointer::default());
+            subbed.message.atomic = context
+                .lock()
+                .unwrap()
+                .message
+                .atomic
+                .derive(&IndexPointer::default());
             let caller = context.lock().unwrap().caller.clone();
-            (subbed.caller, subbed.myself) = T::change_context(
-                submyself.clone(),
-                caller,
-                myself.clone()
-            );
+            (subbed.caller, subbed.myself) =
+                T::change_context(submyself.clone(), caller, myself.clone());
             subbed.returndata = vec![];
             subbed.incoming_alkanes = incoming_alkanes.clone();
             subbed.inputs = cellpack.inputs.clone();
@@ -346,37 +358,45 @@ impl AlkanesHostFunctionsImpl {
         trace_context.fuel = start_fuel;
         let event: TraceEvent = T::event(trace_context);
         subcontext.trace.clock(event);
-        run_after_special(Arc::new(Mutex::new(subcontext.clone())), binary_rc, start_fuel)
-            .and_then(|(response, gas_used)| {
-                caller.set_fuel(overflow_error(start_fuel.checked_sub(gas_used))?)?;
-                let mut return_context: TraceResponse = response.clone().into();
-                return_context.fuel_used = gas_used;
-                subcontext.trace.clock(TraceEvent::ReturnContext(return_context));
-                let mut context = caller.data().context.lock().unwrap();
-                let mut saveable: SaveableExtendedCallResponse = response.clone().into();
-                saveable.associate(&subcontext);
-                saveable.save(&mut context.message.atomic)?;
-                T::handle_atomic(&mut context.message.atomic);
-                let plain_response: CallResponse = response.clone().into();
-                let serialized = plain_response.serialize();
-                context.returndata = serialized;
-                Ok(context.returndata.len().try_into()?)
-            })
-            .and_then(|len| {
-                let mut context = caller.data_mut().context.lock().unwrap();
-                T::handle_atomic(&mut context.message.atomic);
-                Ok(len)
-            })
-            .or_else(|e| {
-                let mut context = caller.data_mut().context.lock().unwrap();
-                let mut revert_context: TraceResponse = TraceResponse::default();
-                revert_context.inner.data = vec![0x08, 0xc3, 0x79, 0xa0];
-                revert_context.inner.data.extend(e.to_string().as_bytes());
-                context.trace.clock(TraceEvent::RevertContext(revert_context));
-                context.message.atomic.rollback();
-                context.returndata = vec![];
-                Ok(0)
-            })
+        run_after_special(
+            Arc::new(Mutex::new(subcontext.clone())),
+            binary_rc,
+            start_fuel,
+        )
+        .and_then(|(response, gas_used)| {
+            caller.set_fuel(overflow_error(start_fuel.checked_sub(gas_used))?)?;
+            let mut return_context: TraceResponse = response.clone().into();
+            return_context.fuel_used = gas_used;
+            subcontext
+                .trace
+                .clock(TraceEvent::ReturnContext(return_context));
+            let mut context = caller.data().context.lock().unwrap();
+            let mut saveable: SaveableExtendedCallResponse = response.clone().into();
+            saveable.associate(&subcontext);
+            saveable.save(&mut context.message.atomic)?;
+            T::handle_atomic(&mut context.message.atomic);
+            let plain_response: CallResponse = response.clone().into();
+            let serialized = plain_response.serialize();
+            context.returndata = serialized;
+            Ok(context.returndata.len().try_into()?)
+        })
+        .and_then(|len| {
+            let mut context = caller.data_mut().context.lock().unwrap();
+            T::handle_atomic(&mut context.message.atomic);
+            Ok(len)
+        })
+        .or_else(|e| {
+            let mut context = caller.data_mut().context.lock().unwrap();
+            let mut revert_context: TraceResponse = TraceResponse::default();
+            revert_context.inner.data = vec![0x08, 0xc3, 0x79, 0xa0];
+            revert_context.inner.data.extend(e.to_string().as_bytes());
+            context
+                .trace
+                .clock(TraceEvent::RevertContext(revert_context));
+            context.message.atomic.rollback();
+            context.returndata = vec![];
+            Ok(0)
+        })
     }
     pub(super) fn log<'a>(caller: &mut Caller<'_, AlkanesState>, v: i32) -> Result<()> {
         let mem = get_memory(caller)?;

@@ -1,6 +1,6 @@
 use alkanes_runtime::auth::AuthenticatedResponder;
 use alkanes_runtime::{runtime::AlkaneResponder, storage::StoragePointer};
-use alkanes_support::utils::{shift_or_err, shift_id_or_err};
+use alkanes_support::utils::{shift_id_or_err, shift_or_err};
 use alkanes_support::{cellpack::Cellpack, id::AlkaneId, response::CallResponse};
 use anyhow::{anyhow, Result};
 use metashrew_support::compat::{to_arraybuffer_layout, to_ptr};
@@ -44,7 +44,7 @@ impl AlkaneResponder for Upgradeable {
                 pointer.set(Arc::new(vec![0x01]));
                 Ok(response)
             } else {
-              Err(anyhow!("already initialized"))
+                Err(anyhow!("already initialized"))
             }
         } else if opcode == 0x7ffe {
             self.only_owner()?;

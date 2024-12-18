@@ -1,17 +1,19 @@
-use metashrew_support::utils::{consensus_decode, consume_exact, consume_sized_int, consume_varint};
 use anyhow::{anyhow, Result};
 use bitcoin::blockdata::block::Header;
 use bitcoin::blockdata::block::{BlockHash, TxMerkleNode, Version};
+use bitcoin::consensus::Decodable;
 use bitcoin::hashes::Hash;
 use bitcoin::pow::CompactTarget;
 use bitcoin::{Block, Transaction};
-use bitcoin::consensus::Decodable;
-use std::io::{Cursor};
+use metashrew_support::utils::{
+    consensus_decode, consume_exact, consume_sized_int, consume_varint,
+};
+use std::io::Cursor;
 
 #[allow(unused_imports)]
 use {
-  metashrew::{println, stdio::{stdout}},
-  std::fmt::{Write}
+    metashrew::{println, stdio::stdout},
+    std::fmt::Write,
 };
 
 pub const VERSION_AUXPOW: u32 = 0x100;
@@ -56,38 +58,38 @@ pub struct Auxpow {
 }
 
 pub fn decode_auxpow_transaction(r: &mut Cursor<Vec<u8>>) -> Result<Transaction> {
-  let version = bitcoin::blockdata::transaction::Version::consensus_decode_from_finite_reader(r)?;
-        let input = Vec::<bitcoin::TxIn>::consensus_decode_from_finite_reader(r)?;
-        // segwit
-        if input.is_empty() {
-            let segwit_flag = u8::consensus_decode_from_finite_reader(r)?;
-            if segwit_flag <= 1 {
-                    let mut input = Vec::<bitcoin::TxIn>::consensus_decode_from_finite_reader(r)?;
-                    let output = Vec::<bitcoin::TxOut>::consensus_decode_from_finite_reader(r)?;
-                    for txin in input.iter_mut() {
-                        txin.witness = Decodable::consensus_decode_from_finite_reader(r)?;
-                    }
-                    if !input.is_empty() && input.iter().all(|input| input.witness.is_empty()) {
-                        Err(anyhow!("witness stack is empty but segwit flag is 1"))
-                    } else {
-                        Ok(Transaction {
-                            version,
-                            input,
-                            output,
-                            lock_time: Decodable::consensus_decode_from_finite_reader(r)?,
-                        })
-                    }
+    let version = bitcoin::blockdata::transaction::Version::consensus_decode_from_finite_reader(r)?;
+    let input = Vec::<bitcoin::TxIn>::consensus_decode_from_finite_reader(r)?;
+    // segwit
+    if input.is_empty() {
+        let segwit_flag = u8::consensus_decode_from_finite_reader(r)?;
+        if segwit_flag <= 1 {
+            let mut input = Vec::<bitcoin::TxIn>::consensus_decode_from_finite_reader(r)?;
+            let output = Vec::<bitcoin::TxOut>::consensus_decode_from_finite_reader(r)?;
+            for txin in input.iter_mut() {
+                txin.witness = Decodable::consensus_decode_from_finite_reader(r)?;
+            }
+            if !input.is_empty() && input.iter().all(|input| input.witness.is_empty()) {
+                Err(anyhow!("witness stack is empty but segwit flag is 1"))
             } else {
-                Err(anyhow!("unexpected segwit flag"))
+                Ok(Transaction {
+                    version,
+                    input,
+                    output,
+                    lock_time: Decodable::consensus_decode_from_finite_reader(r)?,
+                })
             }
         } else {
-            Ok(Transaction {
-                version,
-                input,
-                output: Decodable::consensus_decode_from_finite_reader(r)?,
-                lock_time: Decodable::consensus_decode_from_finite_reader(r)?,
-            })
+            Err(anyhow!("unexpected segwit flag"))
         }
+    } else {
+        Ok(Transaction {
+            version,
+            input,
+            output: Decodable::consensus_decode_from_finite_reader(r)?,
+            lock_time: Decodable::consensus_decode_from_finite_reader(r)?,
+        })
+    }
 }
 
 impl Auxpow {

@@ -6,6 +6,8 @@ pub mod std;
 pub mod utils;
 //pub mod index_alkanes;
 #[cfg(test)]
+pub mod address;
+#[cfg(test)]
 pub mod alkane;
 #[cfg(test)]
 pub mod amm;
@@ -15,7 +17,5 @@ pub mod auth_token;
 pub mod genesis;
 #[cfg(test)]
 pub mod networks;
-#[cfg(test)]
-pub mod address;
 #[cfg(test)]
 pub mod serialization;

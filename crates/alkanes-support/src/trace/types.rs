@@ -62,7 +62,11 @@ impl Into<proto::alkanes::Context> for Context {
             .into_iter()
             .map(|v| v.into())
             .collect::<Vec<proto::alkanes::AlkaneTransfer>>();
-        result.inputs = self.inputs.into_iter().map(|v| v.into()).collect::<Vec<proto::alkanes::Uint128>>();
+        result.inputs = self
+            .inputs
+            .into_iter()
+            .map(|v| v.into())
+            .collect::<Vec<proto::alkanes::Uint128>>();
         result
     }
 }
@@ -132,9 +136,9 @@ impl Into<proto::alkanes::AlkanesTraceEvent> for TraceEvent {
 }
 
 impl Into<TraceResponse> for proto::alkanes::ExtendedCallResponse {
-  fn into(self) -> TraceResponse {
-    <proto::alkanes::ExtendedCallResponse as Into<ExtendedCallResponse>>::into(self).into()
-  }
+    fn into(self) -> TraceResponse {
+        <proto::alkanes::ExtendedCallResponse as Into<ExtendedCallResponse>>::into(self).into()
+    }
 }
 
 impl From<TraceResponse> for ExtendedCallResponse {
@@ -239,7 +243,7 @@ impl From<proto::alkanes::AlkanesTraceEvent> for TraceEvent {
                     match v.status.value() {
                         0 => TraceEvent::ReturnContext(field_or_default(v.response)),
                         1 => TraceEvent::RevertContext(field_or_default(v.response)),
-                        _ => TraceEvent::RevertContext(field_or_default(v.response))
+                        _ => TraceEvent::RevertContext(field_or_default(v.response)),
                     }
                 }
                 proto::alkanes::alkanes_trace_event::Event::CreateAlkane(v) => {
@@ -285,22 +289,24 @@ impl Into<proto::alkanes::AlkanesTrace> for Trace {
 }
 
 impl Into<Vec<TraceEvent>> for proto::alkanes::AlkanesTrace {
-  fn into(self) -> Vec<TraceEvent> {
-    self.events.into_iter().map(|v| v.into()).collect::<Vec<TraceEvent>>()
-  }
+    fn into(self) -> Vec<TraceEvent> {
+        self.events
+            .into_iter()
+            .map(|v| v.into())
+            .collect::<Vec<TraceEvent>>()
+    }
 }
 
 impl Into<Trace> for proto::alkanes::AlkanesTrace {
-  fn into(self) -> Trace {
-    Trace(Arc::new(Mutex::new(self.into())))
-  }
+    fn into(self) -> Trace {
+        Trace(Arc::new(Mutex::new(self.into())))
+    }
 }
 
 impl TryFrom<Vec<u8>> for Trace {
-  type Error = anyhow::Error;
-  fn try_from(v: Vec<u8>) -> Result<Self, Self::Error> {
-    let reference: &[u8] = v.as_ref();
-    Ok(proto::alkanes::AlkanesTrace::parse_from_bytes(reference)?.into())
-    
-  }
+    type Error = anyhow::Error;
+    fn try_from(v: Vec<u8>) -> Result<Self, Self::Error> {
+        let reference: &[u8] = v.as_ref();
+        Ok(proto::alkanes::AlkanesTrace::parse_from_bytes(reference)?.into())
+    }
 }

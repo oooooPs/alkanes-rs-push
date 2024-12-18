@@ -5,13 +5,13 @@ use alkanes_runtime::{
 };
 use alkanes_runtime::{runtime::AlkaneResponder, storage::StoragePointer};
 use alkanes_support::{
-    utils::{shift_or_err},
     cellpack::Cellpack,
     constants::AMM_FACTORY_ID,
     context::Context,
     id::AlkaneId,
     parcel::{AlkaneTransfer, AlkaneTransferParcel},
     response::CallResponse,
+    utils::shift_or_err,
 };
 use anyhow::{anyhow, Result};
 use metashrew_support::{
@@ -136,9 +136,7 @@ impl AlkaneResponder for AMMFactory {
                 response.data = id.into();
                 Ok(response)
             }
-            _ => {
-                Err(anyhow!("unrecognized opcode"))
-            }
+            _ => Err(anyhow!("unrecognized opcode")),
         }
     }
 }

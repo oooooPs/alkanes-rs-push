@@ -1,6 +1,7 @@
 use super::{AlkanesInstance, AlkanesRuntimeContext, AlkanesState};
 use crate::utils::{pipe_storagemap_to, transfer_from};
 use crate::vm::fuel::compute_extcall_fuel;
+use alkanes_support::trace::TraceEvent;
 use alkanes_support::{
     cellpack::Cellpack, gz::decompress, id::AlkaneId, parcel::AlkaneTransferParcel,
     response::ExtendedCallResponse, storage::StorageMap, utils::overflow_error,
@@ -9,13 +10,11 @@ use alkanes_support::{
 use anyhow::{anyhow, Result};
 use metashrew::index_pointer::{AtomicPointer, IndexPointer};
 #[allow(unused_imports)]
-use metashrew::{println, stdio::stdout, clear as clear_base};
+use metashrew::{clear as clear_base, println, stdio::stdout};
 use metashrew_support::index_pointer::KeyValuePointer;
-use alkanes_support::trace::{TraceEvent};
 
 use std::sync::{Arc, Mutex};
 use wasmi::*;
-
 
 pub fn read_arraybuffer(data: &[u8], data_start: i32) -> Result<Vec<u8>> {
     if data_start < 4 {
@@ -50,7 +49,9 @@ pub fn run_special_cellpacks(
     let next_sequence = next_sequence_pointer.get_value::<u128>();
     let original_target = cellpack.target.clone();
     if cellpack.target.is_created(next_sequence) {
-        let wasm_payload = context.lock().unwrap()
+        let wasm_payload = context
+            .lock()
+            .unwrap()
             .message
             .atomic
             .keyword("/alkanes/")
@@ -67,7 +68,9 @@ pub fn run_special_cellpacks(
             block: 2,
             tx: next_sequence,
         };
-        let mut pointer = context.lock().unwrap()
+        let mut pointer = context
+            .lock()
+            .unwrap()
             .message
             .atomic
             .keyword("/alkanes/")
@@ -87,7 +90,9 @@ pub fn run_special_cellpacks(
             block: 4,
             tx: number,
         };
-        let mut ptr = context.lock().unwrap()
+        let mut ptr = context
+            .lock()
+            .unwrap()
             .message
             .atomic
             .keyword("/alkanes/")
@@ -104,7 +109,9 @@ pub fn run_special_cellpacks(
     } else if let Some(factory) = cellpack.target.factory() {
         payload.target = AlkaneId::new(2, next_sequence);
         next_sequence_pointer.set_value(next_sequence + 1);
-        let context_binary: Vec<u8> = context.lock().unwrap()
+        let context_binary: Vec<u8> = context
+            .lock()
+            .unwrap()
             .message
             .atomic
             .keyword("/alkanes/")
@@ -113,7 +120,9 @@ pub fn run_special_cellpacks(
             .as_ref()
             .clone();
         let rc = Arc::new(context_binary);
-        context.lock().unwrap()
+        context
+            .lock()
+            .unwrap()
             .message
             .atomic
             .keyword("/alkanes/")
@@ -122,7 +131,11 @@ pub fn run_special_cellpacks(
         binary = Arc::new(decompress(rc.as_ref().clone())?);
     }
     if &original_target != &payload.target {
-      context.lock().unwrap().trace.clock(TraceEvent::CreateAlkane(payload.target.clone()));
+        context
+            .lock()
+            .unwrap()
+            .trace
+            .clock(TraceEvent::CreateAlkane(payload.target.clone()));
     }
     Ok((
         context.lock().unwrap().myself.clone(),

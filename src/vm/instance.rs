@@ -1,10 +1,10 @@
-use hex;
 use super::{
     extcall::*, read_arraybuffer, AlkanesExportsImpl, AlkanesHostFunctionsImpl,
     AlkanesRuntimeContext, AlkanesState, MEMORY_LIMIT,
 };
 use alkanes_support::response::ExtendedCallResponse;
 use anyhow::{anyhow, Result};
+use hex;
 use std::sync::{Arc, Mutex};
 use wasmi::*;
 
@@ -89,7 +89,7 @@ impl AlkanesInstance {
             AlkanesState {
                 had_failure: false,
                 limiter: StoreLimitsBuilder::new().memory_size(MEMORY_LIMIT).build(),
-                context: context.clone()
+                context: context.clone(),
             },
         );
         store.limiter(|state| &mut state.limiter);
@@ -367,8 +367,14 @@ impl AlkanesInstance {
         self.reset();
         if had_failure {
             self.rollback();
-            if call_response.data.len() >= 4 && &call_response.data[0..4] == &[0x08, 0xc3, 0x79, 0xa0] {
-              Err(anyhow!(format!("ALKANES: revert: {}", String::from_utf8((&call_response.data[4..]).to_vec()).unwrap_or_else(|_| hex::encode(&call_response.data[4..])))))
+            if call_response.data.len() >= 4
+                && &call_response.data[0..4] == &[0x08, 0xc3, 0x79, 0xa0]
+            {
+                Err(anyhow!(format!(
+                    "ALKANES: revert: {}",
+                    String::from_utf8((&call_response.data[4..]).to_vec())
+                        .unwrap_or_else(|_| hex::encode(&call_response.data[4..]))
+                )))
             } else if let Some(e) = err {
                 Err(anyhow!(format!("ALKANES: revert: {:?}", e)))
             } else {

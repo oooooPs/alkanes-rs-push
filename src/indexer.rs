@@ -1,12 +1,10 @@
 use crate::message::AlkaneMessageContext;
 use crate::network::{genesis, is_genesis};
-use crate::vm::fuel::{FuelTank};
+use crate::vm::fuel::FuelTank;
 use anyhow::Result;
 use bitcoin::blockdata::block::Block;
-use ordinals::{Artifact, Runestone};
-use protorune::{message::MessageContext, Protorune};
+use protorune::Protorune;
 use protorune_support::network::{set_network, NetworkParams};
-use protorune_support::protostone::Protostone;
 
 #[cfg(all(
     not(feature = "mainnet"),
@@ -73,4 +71,3 @@ pub fn index_block(block: &Block, height: u32) -> Result<()> {
     Protorune::index_block::<AlkaneMessageContext>(block.clone(), height.into())?;
     Ok(())
 }
-

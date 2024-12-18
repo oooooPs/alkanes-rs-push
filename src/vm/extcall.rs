@@ -1,5 +1,5 @@
 use alkanes_support::id::AlkaneId;
-use alkanes_support::trace::{TraceEvent, TraceContext};
+use alkanes_support::trace::{TraceContext, TraceEvent};
 use metashrew::index_pointer::AtomicPointer;
 
 pub trait Extcall {
@@ -36,7 +36,7 @@ impl Extcall for Call {
         false
     }
     fn event(context: TraceContext) -> TraceEvent {
-      TraceEvent::EnterCall(context)
+        TraceEvent::EnterCall(context)
     }
 }
 
@@ -50,7 +50,7 @@ impl Extcall for Delegatecall {
         false
     }
     fn event(context: TraceContext) -> TraceEvent {
-      TraceEvent::EnterDelegatecall(context)
+        TraceEvent::EnterDelegatecall(context)
     }
 }
 
@@ -64,6 +64,6 @@ impl Extcall for Staticcall {
         true
     }
     fn event(context: TraceContext) -> TraceEvent {
-      TraceEvent::EnterStaticcall(context)
+        TraceEvent::EnterStaticcall(context)
     }
 }

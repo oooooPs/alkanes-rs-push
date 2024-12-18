@@ -1,3 +1,4 @@
+use crate::message::AlkaneMessageContext;
 #[allow(unused_imports)]
 use crate::precompiled::{
     alkanes_std_genesis_alkane_dogecoin_build, alkanes_std_genesis_alkane_fractal_build,
@@ -5,11 +6,10 @@ use crate::precompiled::{
     alkanes_std_genesis_alkane_regtest_build,
 };
 use crate::utils::pipe_storagemap_to;
-use crate::vm::utils::{sequence_pointer};
-use crate::view::{simulate_parcel};
-use crate::message::{AlkaneMessageContext};
+use crate::view::simulate_parcel;
+use crate::vm::utils::sequence_pointer;
 use alkanes_support::cellpack::Cellpack;
-use alkanes_support::gz::{compress};
+use alkanes_support::gz::compress;
 use alkanes_support::id::AlkaneId;
 use alkanes_support::parcel::AlkaneTransferParcel;
 use anyhow::Result;
@@ -30,7 +30,13 @@ pub fn genesis_alkane_bytes() -> Vec<u8> {
 }
 
 //use if regtest
-#[cfg(all(not(feature="mainnet"), not(feature="dogecoin"), not(feature="bellscoin"), not(feature="fractal"), not(feature="luckycoin")))]
+#[cfg(all(
+    not(feature = "mainnet"),
+    not(feature = "dogecoin"),
+    not(feature = "bellscoin"),
+    not(feature = "fractal"),
+    not(feature = "luckycoin")
+))]
 pub fn genesis_alkane_bytes() -> Vec<u8> {
     alkanes_std_genesis_alkane_regtest_build::get_bytes()
 }
@@ -56,7 +62,13 @@ pub fn genesis_alkane_bytes() -> Vec<u8> {
 }
 
 //use if regtest
-#[cfg(all(not(feature="mainnet"), not(feature="dogecoin"), not(feature="bellscoin"), not(feature="fractal"), not(feature="luckycoin")))]
+#[cfg(all(
+    not(feature = "mainnet"),
+    not(feature = "dogecoin"),
+    not(feature = "bellscoin"),
+    not(feature = "fractal"),
+    not(feature = "luckycoin")
+))]
 pub mod genesis {
     pub const GENESIS_BLOCK: u64 = 0;
     pub const GENESIS_OUTPOINT: &str =

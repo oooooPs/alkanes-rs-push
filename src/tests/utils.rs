@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::tests::helpers::clear;
     use anyhow::Result;
     #[allow(unused_imports)]
     use metashrew::{
@@ -7,7 +8,6 @@ mod tests {
         println,
         stdio::{stdout, Write},
     };
-    use crate::tests::helpers::clear;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     /*

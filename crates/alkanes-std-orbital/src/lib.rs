@@ -67,9 +67,7 @@ impl AlkaneResponder for Orbital {
                 response.data = (&self.total_supply().to_le_bytes()).to_vec();
             }
             1000 => response.data = self.data(),
-            _ => {
-                return Err(anyhow!("unrecognized opcode"))
-            }
+            _ => return Err(anyhow!("unrecognized opcode")),
         }
         Ok(response)
     }

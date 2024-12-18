@@ -149,7 +149,6 @@ impl From<proto::alkanes::ExtendedCallResponse> for ExtendedCallResponse {
     }
 }
 
-
 impl Into<ProtoruneRuneId> for proto::alkanes::AlkaneId {
     fn into(self) -> ProtoruneRuneId {
         ProtoruneRuneId {

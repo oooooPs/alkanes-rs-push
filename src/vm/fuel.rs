@@ -1,28 +1,81 @@
-use crate::vm::{AlkanesInstance, AlkanesState};
+use crate::{
+    message::AlkaneMessageContext,
+    vm::{AlkanesInstance, AlkanesState},
+};
 use alkanes_support::utils::overflow_error;
 use anyhow::Result;
+use bitcoin::{Block, Transaction, Witness};
+use ordinals::{Artifact, Runestone};
+use protorune::message::MessageContext;
+use protorune_support::protostone::Protostone;
+use protorune_support::utils::decode_varint_list;
+use std::io::Cursor;
 use wasmi::*;
 
-pub fn fuelsize(block: &Block) {
-    let mut size: u64 = 0;
-    for tx in &block.txdata {
-        if let Some(Artifact::Runestone(ref runestone)) = Runestone::decipher(tx) {
+pub trait VirtualFuelBytes {
+    fn vfsize(&self) -> u64;
+}
+
+impl VirtualFuelBytes for Transaction {
+    fn vfsize(&self) -> u64 {
+        if let Some(Artifact::Runestone(ref runestone)) = Runestone::decipher(&self) {
             if let Ok(protostones) = Protostone::from_runestone(runestone) {
-                for protostone in protostones {
-                    if protostone.protocol_tag == AlkaneMessageContext::protocol_tag()
-                        && protostone.message.len() != 0
-                    {
-                        size = size + tx.total_size();
+                let cellpacks = protostones
+                    .iter()
+                    .filter_map(|v| {
+                        if v.protocol_tag == AlkaneMessageContext::protocol_tag() {
+                            decode_varint_list(&mut Cursor::new(v.message.clone()))
+                                .and_then(|list| {
+                                    if list.len() >= 2 {
+                                        Ok(Some(list))
+                                    } else {
+                                        Ok(None)
+                                    }
+                                })
+                                .unwrap_or_else(|_| None)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<Vec<u128>>>();
+                if cellpacks.len() == 0 {
+                    0
+                } else if cellpacks
+                    .iter()
+                    .position(|v| <&[u128] as TryInto<[u128; 2]>>::try_into(&v[0..2]).unwrap() == [1u128, 0u128] || v[0] == 3u128)
+                    .is_some()
+                {
+                    let mut cloned = self.clone();
+                    if cloned.input.len() > 0 {
+                        cloned.input[0].witness = Witness::new();
                     }
+                    cloned.vsize() as u64
+                } else {
+                    self.vsize() as u64
                 }
+            } else {
+                0
             }
+        } else {
+            0
         }
     }
-    size
+}
+
+impl VirtualFuelBytes for Block {
+    fn vfsize(&self) -> u64 {
+        self.txdata.iter().fold(0u64, |r, v| r + v.vfsize())
+    }
 }
 
 //use if regtest
-#[cfg(not(all(feature="mainnet", feature="dogecoin", feature="bellscoin", feature="fractal", feature="luckycoin")))]
+#[cfg(not(all(
+    feature = "mainnet",
+    feature = "dogecoin",
+    feature = "bellscoin",
+    feature = "fractal",
+    feature = "luckycoin"
+)))]
 const TOTAL_FUEL: u64 = 100_000_000;
 #[cfg(feature = "mainnet")]
 const TOTAL_FUEL: u64 = 100_000_000;
@@ -37,56 +90,66 @@ const TOTAL_FUEL: u64 = 50_000_000;
 
 #[derive(Default, Clone, Debug)]
 pub struct FuelTank {
-  pub current_txindex: u32,
-  pub size: usize,
-  pub block_fuel: u64,
-  pub transaction_fuel: u64
+    pub current_txindex: u32,
+    pub size: u64,
+    pub txsize: u64,
+    pub block_fuel: u64,
+    pub transaction_fuel: u64,
 }
 
 static mut _FUEL_TANK: Option<FuelTank> = None;
 
+#[allow(static_mut_refs)]
 impl FuelTank {
-  pub fn should_advance(txindex: u32) -> bool {
-    unsafe {
-      _FUEL_TANK.as_ref().unwrap().current_txindex != txindex
+    pub fn should_advance(txindex: u32) -> bool {
+        unsafe { _FUEL_TANK.as_ref().unwrap().current_txindex != txindex }
     }
-  }
-  pub fn is_top() -> bool {
-    unsafe {
-      _FUEL_TANK.as_ref().unwrap().current_txindex == u32::MAX
+    pub fn is_top() -> bool {
+        unsafe { _FUEL_TANK.as_ref().unwrap().current_txindex == u32::MAX }
     }
-  }
-  pub fn initialize(block: &Block) {
-    unsafe {
-      _FUEL_TANK = Some(FuelTank {
-        current_txindex: u32::MAX,
-        size: fuelsize(block),
-        block_fuel: TOTAL_FUEL,
-        transaction_fuel: 0
-      });
+    pub fn initialize(block: &Block) {
+        unsafe {
+            _FUEL_TANK = Some(FuelTank {
+                current_txindex: u32::MAX,
+                txsize: 0,
+                size: block.vfsize(),
+                block_fuel: TOTAL_FUEL,
+                transaction_fuel: 0,
+            });
+        }
     }
-  }
-  pub fn fuel_transaction(txsize: usize, txindex: usize) -> {
-    unsafe {
-      let mut tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
-      tank.current_txindex = txindex;
-      tank.transaction_fuel = std::cmp::min(tank.block_fuel*txsize/tank.size, MINIMUM_FUEL);
-      tank.txsize = txsize;
+    pub fn fuel_transaction(txsize: u64, txindex: u32) {
+        unsafe {
+            let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
+            tank.current_txindex = txindex;
+            tank.transaction_fuel =
+                std::cmp::max(tank.block_fuel * txsize / tank.size, MINIMUM_FUEL);
+            tank.txsize = txsize;
+        }
     }
-  }
-  pub fn refuel_block() -> {
-    unsafe {
-      let mut tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
-      let start_fuel = tank.block_fuel*tank.txsize/tank.size;
-      tank.block_fuel = tank.block_fuel + tank.transaction_fuel - start_fuel;
-      tank.size = tank.size - tank.txsize;
+    pub fn refuel_block() {
+        unsafe {
+            let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
+            let start_fuel = tank.block_fuel * tank.txsize / tank.size;
+            tank.block_fuel = tank.block_fuel + tank.transaction_fuel - start_fuel;
+            tank.size = tank.size - tank.txsize;
+        }
     }
-  }
-  pub fn burn(v: u64) -> Result<()> {
-    unsafe {
-      tank.as_mut().unwrap().transaction_fuel >= v
+    pub fn consume_fuel(n: u64) -> Result<()> {
+        unsafe {
+            let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
+            tank.transaction_fuel = overflow_error(tank.transaction_fuel.checked_sub(n))?;
+            Ok(())
+        }
     }
-[ }
+    pub fn drain_fuel() {
+        unsafe {
+            _FUEL_TANK.as_mut().unwrap().transaction_fuel = 0;
+        }
+    }
+    pub fn start_fuel() -> u64 {
+        unsafe { _FUEL_TANK.as_ref().unwrap().transaction_fuel }
+    }
 }
 
 pub const MINIMUM_FUEL: u64 = 90_000;
@@ -121,10 +184,6 @@ impl Fuelable for AlkanesInstance {
 
 pub fn consume_fuel<'a>(caller: &mut Caller<'_, AlkanesState>, n: u64) -> Result<()> {
     caller.consume_fuel(n)
-}
-
-pub fn start_fuel() -> u64 {
-    std::cmp::max(TOTAL_FUEL / std::cmp::max(1, unsafe { MESSAGE_COUNT }), MINIMUM_FUEL)
 }
 
 pub fn compute_extcall_fuel(savecount: u64) -> Result<u64> {

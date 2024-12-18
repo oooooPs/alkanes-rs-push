@@ -1,14 +1,14 @@
 use crate::tests::std::{alkanes_std_amm_pool_build, alkanes_std_auth_token_build};
-use hex;
 use alkanes::message::AlkaneMessageContext;
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::constants::{AMM_FACTORY_ID, AUTH_TOKEN_FACTORY_ID};
 use alkanes_support::id::AlkaneId;
-use alkanes_support::trace::{Trace};
+use alkanes_support::trace::Trace;
 use anyhow::Result;
 use bitcoin::address::NetworkChecked;
 use bitcoin::blockdata::transaction::OutPoint;
 use bitcoin::{Address, Amount, Block, ScriptBuf, Sequence, TxIn, TxOut, Witness};
+use hex;
 use metashrew_support::index_pointer::KeyValuePointer;
 use num::integer::Roots;
 use protorune::test_helpers::create_block_with_coinbase_tx;
@@ -19,11 +19,11 @@ use protorune_support::protostone::ProtostoneEdict;
 use protorune_support::utils::consensus_encode;
 
 use crate::index_block;
-use crate::view;
 use crate::tests::helpers::{
     self as alkane_helpers, assert_binary_deployed_to_id, assert_token_id_has_no_deployment,
 };
 use crate::tests::std::{alkanes_std_amm_factory_build, alkanes_std_owned_token_build};
+use crate::view;
 use alkane_helpers::clear;
 #[allow(unused_imports)]
 use metashrew::{get_cache, index_pointer::IndexPointer, println, stdio::stdout};
@@ -387,7 +387,9 @@ fn get_trace_for_outpoint(test_block: &Block, tx_num: usize, vout: u32) -> Resul
     let trace = view::trace(&outpoint).unwrap();
     println!(
         "trace at outpoint tx {} vout {}: {:?}",
-        tx_num, vout, hex::encode(&trace)
+        tx_num,
+        vout,
+        hex::encode(&trace)
     );
     Ok(trace)
 }
@@ -498,7 +500,7 @@ fn test_amm_burn_fixture(amount_burn: u128) -> Result<()> {
     println!("get sheet");
     let sheet = get_sheet_with_remaining_lp_after_burn(&test_block)?;
     println!("sheet: {:?}", sheet);
-   // get_trace_after_burn(&test_block)?;
+    // get_trace_after_burn(&test_block)?;
     let amount_burned_true = std::cmp::min(amount_burn, total_lp);
     assert_eq!(
         sheet.get(&deployment_ids.amm_pool_deployment.into()),
@@ -522,9 +524,10 @@ fn test_amm_pool_normal_init() -> Result<()> {
     clear();
     let (block, _ids) = test_amm_pool_init_fixture(1000000, 1000000)?;
     let trace_result: Trace = view::trace(&OutPoint {
-      txid: block.txdata[block.txdata.len() - 1].compute_txid(),
-      vout: 3
-    })?.try_into()?;
+        txid: block.txdata[block.txdata.len() - 1].compute_txid(),
+        vout: 3,
+    })?
+    .try_into()?;
     println!("trace: {:?}", trace_result);
     Ok(())
 }

@@ -4,7 +4,7 @@ use alkanes_support::{
     id::AlkaneId,
     parcel::AlkaneTransfer,
     response::CallResponse,
-    utils::{shift_or_err, shift_bytes32_or_err},
+    utils::{shift_bytes32_or_err, shift_or_err},
     witness::find_witness_payload,
 };
 use anyhow::{anyhow, Result};
@@ -140,13 +140,11 @@ impl AlkaneResponder for MerkleDistributor {
                 let mut response = CallResponse::forward(&context.incoming_alkanes);
                 response.alkanes.0.push(AlkaneTransfer {
                     value: self.verify_output(context.vout)?,
-                    id: self.alkane()?
+                    id: self.alkane()?,
                 });
                 Ok(response)
             }
-            _ => {
-                Err(anyhow!("opcode not recognized"))
-            }
+            _ => Err(anyhow!("opcode not recognized")),
         }
     }
 }

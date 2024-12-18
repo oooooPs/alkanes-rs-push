@@ -1,4 +1,5 @@
 use alkanes_runtime::runtime::AlkaneResponder;
+use alkanes_support::utils::shift_or_err;
 use alkanes_support::{
     cellpack::Cellpack, context::Context, parcel::AlkaneTransfer, response::CallResponse,
     witness::find_witness_payload,
@@ -7,7 +8,6 @@ use anyhow::{anyhow, Result};
 use bitcoin::blockdata::transaction::Transaction;
 use metashrew_support::compat::{to_arraybuffer_layout, to_ptr};
 use protorune_support::utils::consensus_decode;
-use alkanes_support::utils::{shift_or_err};
 
 #[derive(Default)]
 struct Proxy(());
@@ -39,7 +39,8 @@ impl Proxy {
 }
 
 fn unwrap_auth(v: Option<AlkaneTransfer>) -> Result<AlkaneTransfer> {
-  v.ok_or("").map_err(|_| anyhow!("authentication token not present"))
+    v.ok_or("")
+        .map_err(|_| anyhow!("authentication token not present"))
 }
 
 impl AlkaneResponder for Proxy {
@@ -68,10 +69,12 @@ impl AlkaneResponder for Proxy {
                 let tx =
                     consensus_decode::<Transaction>(&mut std::io::Cursor::new(self.transaction()))?;
                 let cellpack = Cellpack::parse(&mut std::io::Cursor::new(
-                    find_witness_payload(&tx, witness_index.try_into()?).ok_or("").map_err(|_| anyhow!("witness envelope not found"))?,
+                    find_witness_payload(&tx, witness_index.try_into()?)
+                        .ok_or("")
+                        .map_err(|_| anyhow!("witness envelope not found"))?,
                 ))?;
-                let mut response: CallResponse = self
-                    .call(&cellpack, &context.incoming_alkanes, self.fuel())?;
+                let mut response: CallResponse =
+                    self.call(&cellpack, &context.incoming_alkanes, self.fuel())?;
                 response.alkanes.0.push(unwrap_auth(auth)?);
                 Ok(response)
             }
@@ -81,33 +84,33 @@ impl AlkaneResponder for Proxy {
                 let tx =
                     consensus_decode::<Transaction>(&mut std::io::Cursor::new(self.transaction()))?;
                 let cellpack = Cellpack::parse(&mut std::io::Cursor::new(
-                    find_witness_payload(&tx, witness_index.try_into()?).ok_or("").map_err(|_| anyhow!("witness envelope not found"))?,
+                    find_witness_payload(&tx, witness_index.try_into()?)
+                        .ok_or("")
+                        .map_err(|_| anyhow!("witness envelope not found"))?,
                 ))?;
-                let mut response: CallResponse = self
-                    .delegatecall(&cellpack, &context.incoming_alkanes, self.fuel())?;
-                    
+                let mut response: CallResponse =
+                    self.delegatecall(&cellpack, &context.incoming_alkanes, self.fuel())?;
+
                 response.alkanes.0.push(unwrap_auth(auth)?);
                 Ok(response)
             }
             3 => {
                 self.only_owner(auth.clone())?;
                 let cellpack: Cellpack = inputs.try_into()?;
-                let mut response: CallResponse = self
-                    .call(&cellpack, &context.incoming_alkanes, self.fuel())?;
+                let mut response: CallResponse =
+                    self.call(&cellpack, &context.incoming_alkanes, self.fuel())?;
                 response.alkanes.0.push(unwrap_auth(auth)?);
                 Ok(response)
             }
             4 => {
                 self.only_owner(auth.clone())?;
                 let cellpack: Cellpack = inputs.try_into()?;
-                let mut response: CallResponse = self
-                    .delegatecall(&cellpack, &context.incoming_alkanes, self.fuel())?;
+                let mut response: CallResponse =
+                    self.delegatecall(&cellpack, &context.incoming_alkanes, self.fuel())?;
                 response.alkanes.0.push(unwrap_auth(auth)?);
                 Ok(response)
             }
-            _ => {
-                Err(anyhow!("unrecognized opcode"))
-            }
+            _ => Err(anyhow!("unrecognized opcode")),
         }
     }
 }

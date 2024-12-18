@@ -11,9 +11,9 @@ use protorune_support::utils::consensus_encode;
 use crate::index_block;
 use crate::tests::helpers as alkane_helpers;
 use crate::tests::std::alkanes_std_genesis_alkane_build;
+use alkane_helpers::clear;
 #[allow(unused_imports)]
 use metashrew::{get_cache, index_pointer::IndexPointer, println, stdio::stdout};
-use alkane_helpers::clear;
 use std::fmt::Write;
 use wasm_bindgen_test::wasm_bindgen_test;
 #[wasm_bindgen_test]
