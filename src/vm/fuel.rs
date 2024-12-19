@@ -100,8 +100,8 @@ pub struct FuelTank {
     pub size: u64,
     pub txsize: u64,
     pub block_fuel: u64,
-    pub start_fuel: u64,
     pub transaction_fuel: u64,
+    pub block_metered_fuel: u64,
 }
 
 static mut _FUEL_TANK: Option<FuelTank> = None;
@@ -121,8 +121,8 @@ impl FuelTank {
                 txsize: 0,
                 size: block.vfsize(),
                 block_fuel: TOTAL_FUEL,
-                start_fuel: 0,
                 transaction_fuel: 0,
+                block_metered_fuel: 0
             });
         }
     }
@@ -130,17 +130,16 @@ impl FuelTank {
         unsafe {
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
             tank.current_txindex = txindex;
-            tank.transaction_fuel =
-                std::cmp::max(tank.block_fuel * txsize / tank.size, MINIMUM_FUEL);
-            tank.block_fuel = tank.block_fuel - std::cmp::min(tank.block_fuel, tank.transaction_fuel);
-            tank.start_fuel = tank.transaction_fuel;
+            tank.block_metered_fuel = tank.block_fuel * txsize / tank.size;
+            tank.transaction_fuel = std::cmp::max(MINIMUM_FUEL, tank.block_metered_fuel);
+            tank.block_fuel = tank.block_fuel - std::cmp::min(tank.block_fuel, tank.block_metered_fuel);
             tank.txsize = txsize;
         }
     }
     pub fn refuel_block() {
         unsafe {
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
-            tank.block_fuel = tank.block_fuel + tank.transaction_fuel;
+            tank.block_fuel = tank.block_fuel + tank.block_metered_fuel;
             tank.size = tank.size - tank.txsize;
         }
     }
@@ -148,15 +147,17 @@ impl FuelTank {
         unsafe {
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
             tank.transaction_fuel = overflow_error(tank.transaction_fuel.checked_sub(n))?;
+            tank.block_metered_fuel = overflow_error(tank.block_metered_fuel.checked_sub(n)).unwrap_or_else(|_| 0);
             Ok(())
         }
     }
     pub fn drain_fuel() {
         unsafe {
-            let transaction_fuel = _FUEL_TANK.as_ref().unwrap().transaction_fuel;
+            let transaction_fuel = _FUEL_TANK.as_ref().unwrap().block_metered_fuel;
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
             tank.block_fuel = tank.block_fuel - std::cmp::min(tank.block_fuel, transaction_fuel);
             tank.transaction_fuel = 0;
+            tank.block_metered_fuel = 0;
         }
     }
     pub fn start_fuel() -> u64 {
