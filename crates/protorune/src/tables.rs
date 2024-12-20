@@ -26,6 +26,8 @@ pub struct RuneTable {
     pub RUNE_ID_TO_ETCHING: IndexPointer,
     pub ETCHING_TO_RUNE_ID: IndexPointer,
     pub RUNTIME_BALANCE: IndexPointer,
+    pub HEIGHT_TO_RUNE_ID: IndexPointer,
+    pub RUNE_ID_TO_INITIALIZED: IndexPointer,
     pub INTERNAL_MINT: IndexPointer,
     /*
 
@@ -76,6 +78,8 @@ impl RuneTable {
             RUNE_ID_TO_ETCHING: IndexPointer::from_keyword("/etching/byruneid/"),
             ETCHING_TO_RUNE_ID: IndexPointer::from_keyword("/runeid/byetching/"),
             RUNTIME_BALANCE: IndexPointer::from_keyword("/runes/null"),
+            HEIGHT_TO_RUNE_ID: IndexPointer::from_keyword("/runes/null"),
+            RUNE_ID_TO_INITIALIZED: IndexPointer::from_keyword("/runes/null"),
             INTERNAL_MINT: IndexPointer::from_keyword("/runes/null"),
         }
     }
@@ -83,6 +87,8 @@ impl RuneTable {
         RuneTable {
             HEIGHT_TO_BLOCKHASH: IndexPointer::from_keyword("/runes/null"),
             BLOCKHASH_TO_HEIGHT: IndexPointer::from_keyword("/runes/null"),
+            HEIGHT_TO_RUNE_ID: IndexPointer::from_keyword(format!("/runes/proto/{tag}/byheight/").as_str()),
+            RUNE_ID_TO_INITIALIZED: IndexPointer::from_keyword(format!("/runes/proto/{tag}/initialized/").as_str()),
             OUTPOINT_TO_RUNES: IndexPointer::from_keyword(
                 format!("/runes/proto/{tag}/byoutpoint/").as_str(),
             ),
