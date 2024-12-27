@@ -5,3 +5,4 @@ pub mod index_runes_edicts;
 pub mod index_runes_mint;
 #[cfg(test)]
 pub mod multi_protocol;
+pub mod test_cenotaphs;
