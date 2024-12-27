@@ -1,6 +1,6 @@
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::envelope::RawEnvelope;
-use alkanes_support::gz::{compress, decompress};
+use alkanes_support::gz::compress;
 use alkanes_support::id::AlkaneId;
 use anyhow::Result;
 use bitcoin::blockdata::transaction::Version;
