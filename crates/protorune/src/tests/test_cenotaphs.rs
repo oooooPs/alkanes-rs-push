@@ -274,7 +274,7 @@ mod tests {
                 terms: None,
             }),
             None,
-            false,
+            true,
         );
     }
 
