@@ -40,21 +40,12 @@ mod tests {
     ///
 
     fn edict_test(
+        config: RunesTestingConfig,
         edict_amount: Option<u128>,
         edict_output: Option<u32>,
         expected_address1_amount: u128,
         expected_address2_amount: u128,
     ) {
-        clear();
-        let config = RunesTestingConfig::new(
-            ADDRESS1().as_str(),
-            ADDRESS2().as_str(),
-            Some("TESTTESTTESTTEST"),
-            Some("Z"),
-            840001,
-            0,
-        );
-
         let rune_id = RuneId::new(config.rune_etch_height, config.rune_etch_vout).unwrap();
         let edicts = match (edict_amount, edict_output) {
             (Some(amount), Some(output)) => vec![Edict {
@@ -86,8 +77,8 @@ mod tests {
             },
             vec![protorune_id],
         );
-        assert_eq!(expected_address1_amount, stored_balance_address1[0]);
-        assert_eq!(expected_address2_amount, stored_balance_address2[0]);
+        assert_eq!(stored_balance_address1[0], expected_address1_amount);
+        assert_eq!(stored_balance_address2[0], expected_address2_amount);
 
         let stored_balance_address1_original = helpers::get_rune_balance_by_outpoint(
             OutPoint {
@@ -102,39 +93,57 @@ mod tests {
     /// normal transfer works
     #[wasm_bindgen_test]
     fn correct_balance_sheet_with_transfers() {
-        edict_test(Some(200), Some(0), 800 as u128, 200 as u128);
+        clear();
+        edict_test(
+            RunesTestingConfig::default(),
+            Some(200),
+            Some(0),
+            800 as u128,
+            200 as u128,
+        );
     }
 
     /// transferring more runes only transfers the amount remaining
     #[wasm_bindgen_test]
     fn correct_balance_sheet_transfer_too_much() {
-        edict_test(Some(1200), Some(0), 0 as u128, 1000 as u128);
+        clear();
+        edict_test(
+            RunesTestingConfig::default(),
+            Some(1200),
+            Some(0),
+            0 as u128,
+            1000 as u128,
+        );
     }
 
     /// Tests that transferring runes to an outpoint > num outpoints is a cenotaph.
     /// All runes input to a tx containing a cenotaph is burned
     #[wasm_bindgen_test]
     fn cenotaph_balance_sheet_transfer_bad_target() {
-        edict_test(Some(200), Some(4), 0, 0);
+        clear();
+        edict_test(RunesTestingConfig::default(), Some(200), Some(4), 0, 0);
     }
 
     /// Tests that transferring runes to an outpoint == OP_RETURN burns the runes.
     #[wasm_bindgen_test]
     fn correct_balance_sheet_transfer_target_op_return() {
-        edict_test(Some(200), Some(2), 800, 0);
+        clear();
+        edict_test(RunesTestingConfig::default(), Some(200), Some(2), 800, 0);
     }
 
     /// An edict with amount zero allocates all remaining units of rune id.
     #[wasm_bindgen_test]
     fn correct_balance_sheet_transfer_0() {
-        edict_test(Some(0), Some(0), 0, 1000);
+        clear();
+        edict_test(RunesTestingConfig::default(), Some(0), Some(0), 0, 1000);
     }
 
     /// An edict with output == number of transaction outputs will
     /// allocates amount runes to each non-OP_RETURN output in order
     #[wasm_bindgen_test]
     fn correct_balance_sheet_equal_distribute_300() {
-        edict_test(Some(300), Some(3), 700, 300);
+        clear();
+        edict_test(RunesTestingConfig::default(), Some(300), Some(3), 700, 300);
     }
 
     /// An edict with output == number of transaction outputs
@@ -142,12 +151,40 @@ mod tests {
     /// to each non-OP_RETURN output in order
     #[wasm_bindgen_test]
     fn correct_balance_sheet_equal_distribute_0() {
-        edict_test(Some(0), Some(3), 500, 500);
+        clear();
+        edict_test(RunesTestingConfig::default(), Some(0), Some(3), 500, 500);
     }
 
     /// No edict, all amount should go to pointer
     #[wasm_bindgen_test]
     fn no_edict_pointer() {
-        edict_test(None, None, 1000, 0);
+        clear();
+        edict_test(RunesTestingConfig::default(), None, None, 1000, 0);
+    }
+
+    /// No edict, all amount should go to pointer, which is the runestone to distribute runes evenly
+    #[wasm_bindgen_test]
+    fn no_edict_pointer_burn() {
+        clear();
+        edict_test(
+            RunesTestingConfig::default_with_pointer(2),
+            None,
+            None,
+            0,
+            0,
+        );
+    }
+
+    /// No edict, all amount should go to pointer, which is the special index to distribute runes evenly
+    #[wasm_bindgen_test]
+    fn no_edict_pointer_evenly_distribtue() {
+        clear();
+        edict_test(
+            RunesTestingConfig::default_with_pointer(3),
+            None,
+            None,
+            500,
+            500,
+        );
     }
 }

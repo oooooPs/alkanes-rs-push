@@ -193,6 +193,7 @@ mod tests {
             Some("Z"),
             840000,
             0,
+            0, // not used
         )));
         assert_eq!(runes.len(), 1);
         assert_eq!(runes[0].name, "AAAAAAAAAAAAA");
@@ -209,6 +210,7 @@ mod tests {
             Some("Z"),
             840000,
             0,
+            0, // not used
         )));
         assert_eq!(runes.len(), 0);
     }
@@ -224,6 +226,7 @@ mod tests {
             Some("Z"),
             857500,
             0,
+            0, // not used
         )));
         assert_eq!(runes.len(), 1);
         assert_eq!(runes[0].name, "AAAAAAAAAAAA");
@@ -239,6 +242,7 @@ mod tests {
             Some("Z"),
             840001,
             0,
+            0, // not used
         )));
         assert_eq!(runes.len(), 0);
     }
@@ -253,6 +257,7 @@ mod tests {
             None,
             840001,
             0,
+            0, // not used
         )));
         assert_eq!(runes.len(), 1);
         let symbol = runes[0].symbol.clone();

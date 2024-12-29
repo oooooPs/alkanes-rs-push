@@ -5,8 +5,10 @@ mod tests {
     use crate::test_helpers::{self as helpers};
     use crate::{tables, Protorune};
     use anyhow::Result;
-    use bitcoin::OutPoint;
+    use bitcoin::{OutPoint, Transaction};
     use protorune_support::balance_sheet::{BalanceSheet, ProtoruneRuneId};
+    use protorune_support::proto::{self, protorune};
+    use protorune_support::protostone::{Protostone, ProtostoneEdict};
     use protorune_support::rune_transfer::RuneTransfer;
     use protorune_support::utils::consensus_encode;
 
@@ -19,11 +21,14 @@ mod tests {
     use std::str::FromStr;
     use wasm_bindgen_test::*;
 
+    static PROTOCOL_ID: u128 = 122;
+    static BLOCK_HEIGHT: u32 = 840000;
+
     struct TestMessageContext(());
 
     impl MessageContext for TestMessageContext {
         fn protocol_tag() -> u128 {
-            122
+            PROTOCOL_ID
         }
         // takes half of the first runes balance
         fn handle(parcel: &MessageContextParcel) -> Result<(Vec<RuneTransfer>, BalanceSheet)> {
@@ -42,9 +47,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn protoburn_test() {
         clear();
-        let block_height = 840000;
-        let protocol_id = 122;
-        let mut test_block = helpers::create_block_with_coinbase_tx(block_height);
+        let mut test_block = helpers::create_block_with_coinbase_tx(BLOCK_HEIGHT);
 
         let previous_output = OutPoint {
             txid: bitcoin::Txid::from_str(
@@ -55,12 +58,12 @@ mod tests {
         };
 
         let protoburn_tx =
-            helpers::create_default_protoburn_transaction(previous_output, protocol_id);
+            helpers::create_default_protoburn_transaction(previous_output, PROTOCOL_ID);
 
         test_block.txdata.push(protoburn_tx);
         assert!(Protorune::index_block::<TestMessageContext>(
             test_block.clone(),
-            block_height as u64
+            BLOCK_HEIGHT as u64
         )
         .is_ok());
 
@@ -77,13 +80,13 @@ mod tests {
         );
 
         let protorunes_sheet = load_sheet(
-            &tables::RuneTable::for_protocol(protocol_id.into())
+            &tables::RuneTable::for_protocol(PROTOCOL_ID.into())
                 .OUTPOINT_TO_RUNES
                 .select(&consensus_encode(&outpoint_address).unwrap()),
         );
 
         let protorune_id = ProtoruneRuneId {
-            block: block_height as u128,
+            block: BLOCK_HEIGHT as u128,
             tx: 1,
         };
         // let v: Vec<u8> = protorune_id.into();
@@ -93,223 +96,248 @@ mod tests {
         assert_eq!(stored_protorune_balance, 1000);
     }
 
-    /// In one runestone, etches a rune, then protoburns it, then transfers it
-    #[wasm_bindgen_test]
-    fn protoburn_transfer_test() {
+    fn protostone_transfer_test_template(
+        output_protostone_pointer: u32,
+        protostone_edicts: Vec<ProtostoneEdict>,
+    ) -> bitcoin::Block {
         clear();
-        let block_height = 840000;
-        let protocol_id = 122;
-        let mut test_block = helpers::create_block_with_coinbase_tx(block_height);
+        // tx0: coinbase
+        let mut test_block = helpers::create_block_with_coinbase_tx(BLOCK_HEIGHT);
+        let previous_output = helpers::get_mock_outpoint(0);
 
-        let previous_output = OutPoint {
-            txid: bitcoin::Txid::from_str(
-                "0000000000000000000000000000000000000000000000000000000000000000",
-            )
-            .unwrap(),
-            vout: 0,
-        };
-
+        // tx1: protoburn. This also etches the rune, immediately protoburns
         let protoburn_tx =
-            helpers::create_default_protoburn_transaction(previous_output, protocol_id);
-
+            helpers::create_default_protoburn_transaction(previous_output, PROTOCOL_ID);
         test_block.txdata.push(protoburn_tx.clone());
 
         let previous_output = OutPoint {
             txid: protoburn_tx.clone().compute_txid(),
             vout: 0,
         };
+
+        // tx2: protostone edicts
+        // output 0 is a valid utxo. output 1 is the runestone with protostone
         let transfer_tx = helpers::create_protostone_transaction(
             previous_output,
             None,
             false,
             1,
-            0,
-            protocol_id,
-            vec![],
+            output_protostone_pointer,
+            PROTOCOL_ID,
+            protostone_edicts,
         );
-
         test_block.txdata.push(transfer_tx);
 
         assert!(Protorune::index_block::<TestMessageContext>(
             test_block.clone(),
-            block_height as u64
+            BLOCK_HEIGHT as u64
         )
         .is_ok());
 
-        // tx 0 is coinbase, tx 1 is runestone, tx 2 is transfer
-        let outpoint_address: OutPoint = OutPoint {
+        // tx 0 is coinbase, tx 1 is protoburn, tx 2 is transfer
+        let tx1_outpoint: OutPoint = OutPoint {
             txid: test_block.txdata[1].compute_txid(),
             vout: 0,
         };
-        println!("output: {:?}", outpoint_address);
-        // check runes balance
-        let sheet = load_sheet(
-            &tables::RUNES
-                .OUTPOINT_TO_RUNES
-                .select(&consensus_encode(&outpoint_address).unwrap()),
-        );
-
-        let protorunes_sheet = load_sheet(
-            &tables::RuneTable::for_protocol(protocol_id.into())
-                .OUTPOINT_TO_RUNES
-                .select(&consensus_encode(&outpoint_address).unwrap()),
-        );
-
         let protorune_id = ProtoruneRuneId {
-            block: block_height as u128,
+            block: BLOCK_HEIGHT as u128,
             tx: 1,
         };
-        println!("protorune sheet for outpoint: {:?}", protorunes_sheet);
-        // let v: Vec<u8> = protorune_id.into();
-        let stored_balance_address = sheet.get(&protorune_id);
-        assert_eq!(stored_balance_address, 0);
-        let stored_protorune_balance = protorunes_sheet.get(&protorune_id);
-        println!(
-            "first tx stored_protorune_balance {}",
-            stored_protorune_balance
-        );
-        assert_eq!(stored_protorune_balance, 0);
+        // check runes balance
+        let protoburn_rune_balances =
+            helpers::get_rune_balance_by_outpoint(tx1_outpoint, vec![protorune_id]);
+        assert_eq!(protoburn_rune_balances[0], 0);
 
-        let outpoint_address: OutPoint = OutPoint {
+        let protoburn_protorunes_balances = helpers::get_protorune_balance_by_outpoint(
+            PROTOCOL_ID,
+            tx1_outpoint,
+            vec![protorune_id],
+        );
+        assert_eq!(protoburn_protorunes_balances[0], 0);
+
+        return test_block;
+    }
+
+    #[wasm_bindgen_test]
+    fn protoburn_pointer_test() {
+        // transfer to the valid utxo at pointer 0
+        let test_block = protostone_transfer_test_template(0, vec![]);
+        let tx2_outpoint: OutPoint = OutPoint {
             txid: test_block.txdata[2].compute_txid(),
             vout: 0,
         };
-        // check runes balance
-        let sheet = load_sheet(
-            &tables::RUNES
-                .OUTPOINT_TO_RUNES
-                .select(&consensus_encode(&outpoint_address).unwrap()),
-        );
-
-        let protorunes_sheet = load_sheet(
-            &tables::RuneTable::for_protocol(protocol_id.into())
-                .OUTPOINT_TO_RUNES
-                .select(&consensus_encode(&outpoint_address).unwrap()),
-        );
-
+        // the only valid protorune id
         let protorune_id = ProtoruneRuneId {
-            block: block_height as u128,
+            block: BLOCK_HEIGHT as u128,
             tx: 1,
         };
-        // let v: Vec<u8> = protorune_id.into();
-        println!("balancesheet: {:?}", protorunes_sheet);
-        let stored_balance_address = sheet.get(&protorune_id);
-        assert_eq!(stored_balance_address, 0);
-        let stored_protorune_balance = protorunes_sheet.get(&protorune_id);
-        println!(
-            "second tx stored_protorune_balance {}",
-            stored_protorune_balance
+
+        let tx2_rune_balances =
+            helpers::get_rune_balance_by_outpoint(tx2_outpoint, vec![protorune_id]);
+        assert_eq!(tx2_rune_balances[0], 0);
+
+        let protoburn_protorunes_balances = helpers::get_protorune_balance_by_outpoint(
+            PROTOCOL_ID,
+            tx2_outpoint,
+            vec![protorune_id],
         );
-        assert_eq!(stored_protorune_balance, 1000);
+        assert_eq!(protoburn_protorunes_balances[0], 1000);
     }
 
-    /// In one runestone, etches a rune, then protoburns it, then transfers it
+    #[wasm_bindgen_test]
+    fn protoburn_pointer_evenly_distribute_test() {
+        // transfer to the special vout 2 == num outputs
+        let test_block = protostone_transfer_test_template(2, vec![]);
+        let tx2_outpoint: OutPoint = OutPoint {
+            txid: test_block.txdata[2].compute_txid(),
+            vout: 0,
+        };
+        // the only valid protorune id
+        let protorune_id = ProtoruneRuneId {
+            block: BLOCK_HEIGHT as u128,
+            tx: 1,
+        };
+
+        let tx2_rune_balances =
+            helpers::get_rune_balance_by_outpoint(tx2_outpoint, vec![protorune_id]);
+        assert_eq!(tx2_rune_balances[0], 0);
+
+        let protoburn_protorunes_balances = helpers::get_protorune_balance_by_outpoint(
+            PROTOCOL_ID,
+            tx2_outpoint,
+            vec![protorune_id],
+        );
+        assert_eq!(protoburn_protorunes_balances[0], 500);
+    }
+
     #[wasm_bindgen_test]
     #[allow(non_snake_case)]
-    fn protoburn_transfer_to_OP_RETURN() {
-        clear();
-        let block_height = 840000;
-        let protocol_id = 122;
-        let mut test_block = helpers::create_block_with_coinbase_tx(block_height);
-
-        let previous_output = OutPoint {
-            txid: bitcoin::Txid::from_str(
-                "0000000000000000000000000000000000000000000000000000000000000000",
-            )
-            .unwrap(),
-            vout: 0,
-        };
-
-        let protoburn_tx =
-            helpers::create_default_protoburn_transaction(previous_output, protocol_id);
-
-        test_block.txdata.push(protoburn_tx.clone());
-
-        let previous_output = OutPoint {
-            txid: protoburn_tx.clone().compute_txid(),
-            vout: 0,
-        };
-
-        let transfer_tx = helpers::create_protostone_transaction(
-            previous_output,
-            None,
-            false,
-            1,
-            1,
-            protocol_id,
-            vec![],
-        );
-
-        test_block.txdata.push(transfer_tx);
-
-        assert!(Protorune::index_block::<TestMessageContext>(
-            test_block.clone(),
-            block_height as u64
-        )
-        .is_ok());
-
-        // tx 0 is coinbase, tx 1 is runestone, tx 2 is transfer
-        let outpoint_address: OutPoint = OutPoint {
-            txid: test_block.txdata[1].compute_txid(),
-            vout: 0,
-        };
-        // check runes balance
-        let sheet = load_sheet(
-            &tables::RUNES
-                .OUTPOINT_TO_RUNES
-                .select(&consensus_encode(&outpoint_address).unwrap()),
-        );
-
-        let protorunes_sheet = load_sheet(
-            &tables::RuneTable::for_protocol(protocol_id.into())
-                .OUTPOINT_TO_RUNES
-                .select(&consensus_encode(&outpoint_address).unwrap()),
-        );
-
-        let protorune_id = ProtoruneRuneId {
-            block: block_height as u128,
-            tx: 1,
-        };
-        // let v: Vec<u8> = protorune_id.into();
-        let stored_balance_address = sheet.get(&protorune_id);
-        assert_eq!(stored_balance_address, 0);
-        let stored_protorune_balance = protorunes_sheet.get(&protorune_id);
-        println!(
-            "first tx stored_protorune_balance {}",
-            stored_protorune_balance
-        );
-        assert_eq!(stored_protorune_balance, 0);
-
-        let outpoint_address: OutPoint = OutPoint {
+    fn protoburn_pointer_to_OP_RETURN() {
+        // transfer to the OP_RETURN (the runestone) at vout 1
+        let test_block = protostone_transfer_test_template(1, vec![]);
+        let tx2_outpoint: OutPoint = OutPoint {
             txid: test_block.txdata[2].compute_txid(),
             vout: 0,
         };
-        // check runes balance
-        let sheet = load_sheet(
-            &tables::RUNES
-                .OUTPOINT_TO_RUNES
-                .select(&consensus_encode(&outpoint_address).unwrap()),
-        );
-
-        let protorunes_sheet = load_sheet(
-            &tables::RuneTable::for_protocol(protocol_id.into())
-                .OUTPOINT_TO_RUNES
-                .select(&consensus_encode(&outpoint_address).unwrap()),
-        );
-
+        // the only valid protorune id
         let protorune_id = ProtoruneRuneId {
-            block: block_height as u128,
+            block: BLOCK_HEIGHT as u128,
             tx: 1,
         };
-        // let v: Vec<u8> = protorune_id.into();
-        let stored_balance_address = sheet.get(&protorune_id);
-        assert_eq!(stored_balance_address, 0);
-        let stored_protorune_balance = protorunes_sheet.get(&protorune_id);
-        println!(
-            "second tx stored_protorune_balance {}",
-            stored_protorune_balance
+
+        let tx2_rune_balances =
+            helpers::get_rune_balance_by_outpoint(tx2_outpoint, vec![protorune_id]);
+        assert_eq!(tx2_rune_balances[0], 0);
+
+        let protoburn_protorunes_balances = helpers::get_protorune_balance_by_outpoint(
+            PROTOCOL_ID,
+            tx2_outpoint,
+            vec![protorune_id],
         );
-        assert_eq!(stored_protorune_balance, 0);
+        assert_eq!(protoburn_protorunes_balances[0], 0);
+    }
+
+    #[wasm_bindgen_test]
+    fn protostone_edict_test() {
+        // the only valid protorune id
+        let protorune_id = ProtoruneRuneId {
+            block: BLOCK_HEIGHT as u128,
+            tx: 1,
+        };
+
+        // transfer all remaining protorunes to the op return to burn it
+        let test_block = protostone_transfer_test_template(
+            1,
+            vec![ProtostoneEdict {
+                id: protorune_id,
+                amount: 222,
+                output: 0,
+            }],
+        );
+        let tx2_outpoint: OutPoint = OutPoint {
+            txid: test_block.txdata[2].compute_txid(),
+            vout: 0,
+        };
+
+        let tx2_rune_balances =
+            helpers::get_rune_balance_by_outpoint(tx2_outpoint, vec![protorune_id]);
+        assert_eq!(tx2_rune_balances[0], 0);
+
+        let protoburn_protorunes_balances = helpers::get_protorune_balance_by_outpoint(
+            PROTOCOL_ID,
+            tx2_outpoint,
+            vec![protorune_id],
+        );
+        assert_eq!(protoburn_protorunes_balances[0], 222);
+    }
+
+    #[wasm_bindgen_test]
+    fn protostone_edict_burn_test() {
+        // the only valid protorune id
+        let protorune_id = ProtoruneRuneId {
+            block: BLOCK_HEIGHT as u128,
+            tx: 1,
+        };
+
+        // transfer all remaining protorunes to the op return to burn it
+        let test_block = protostone_transfer_test_template(
+            1,
+            vec![ProtostoneEdict {
+                id: protorune_id,
+                amount: 222,
+                output: 1,
+            }],
+        );
+        let tx2_outpoint: OutPoint = OutPoint {
+            txid: test_block.txdata[2].compute_txid(),
+            vout: 0,
+        };
+
+        let tx2_rune_balances =
+            helpers::get_rune_balance_by_outpoint(tx2_outpoint, vec![protorune_id]);
+        assert_eq!(tx2_rune_balances[0], 0);
+
+        let protoburn_protorunes_balances = helpers::get_protorune_balance_by_outpoint(
+            PROTOCOL_ID,
+            tx2_outpoint,
+            vec![protorune_id],
+        );
+        assert_eq!(protoburn_protorunes_balances[0], 0);
+    }
+
+    #[wasm_bindgen_test]
+    fn protostone_edict_even_distribution_test() {
+        // the only valid protorune id
+        let protorune_id = ProtoruneRuneId {
+            block: BLOCK_HEIGHT as u128,
+            tx: 1,
+        };
+
+        // transfer all remaining protorunes to the op return to burn it
+        // should split the edict evenly between the non op return outputs
+        let test_block = protostone_transfer_test_template(
+            1,
+            vec![ProtostoneEdict {
+                id: protorune_id,
+                amount: 222,
+                output: 2,
+            }],
+        );
+        let tx2_outpoint: OutPoint = OutPoint {
+            txid: test_block.txdata[2].compute_txid(),
+            vout: 0,
+        };
+
+        let tx2_rune_balances =
+            helpers::get_rune_balance_by_outpoint(tx2_outpoint, vec![protorune_id]);
+        assert_eq!(tx2_rune_balances[0], 0);
+
+        let protoburn_protorunes_balances = helpers::get_protorune_balance_by_outpoint(
+            PROTOCOL_ID,
+            tx2_outpoint,
+            vec![protorune_id],
+        );
+        assert_eq!(protoburn_protorunes_balances[0], 222);
     }
 
     // TODO: Add more integration tests https://github.com/kungfuflex/alkanes-rs/issues/9

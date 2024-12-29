@@ -203,6 +203,7 @@ pub struct RunesTestingConfig {
     pub rune_symbol: Option<String>,
     pub rune_etch_height: u64,
     pub rune_etch_vout: u32,
+    pub rune_pointer: u32,
 }
 
 impl RunesTestingConfig {
@@ -213,6 +214,7 @@ impl RunesTestingConfig {
         rune_symbol: Option<&str>,
         rune_etch_height: u64,
         rune_etch_vout: u32,
+        rune_pointer: u32,
     ) -> RunesTestingConfig {
         RunesTestingConfig {
             address1: address1.into(),
@@ -227,6 +229,7 @@ impl RunesTestingConfig {
             },
             rune_etch_height,
             rune_etch_vout,
+            rune_pointer,
         }
     }
 
@@ -238,6 +241,19 @@ impl RunesTestingConfig {
             Some("Z"),
             840001,
             0,
+            1,
+        )
+    }
+
+    pub fn default_with_pointer(rune_pointer: u32) -> RunesTestingConfig {
+        RunesTestingConfig::new(
+            ADDRESS1().as_str(),
+            ADDRESS2().as_str(),
+            Some("AAAAAAAAAAAAATESTER"),
+            Some("Z"),
+            840001,
+            0,
+            rune_pointer,
         )
     }
 }
@@ -265,15 +281,36 @@ pub fn get_rune_balance_by_outpoint(
     return stored_amount;
 }
 
-pub fn get_mock_txin(n: u32) -> TxIn {
-    let previous_output = OutPoint {
+pub fn get_protorune_balance_by_outpoint(
+    protocol_id: u128,
+    outpoint: OutPoint,
+    protorune_ids: Vec<ProtoruneRuneId>,
+) -> Vec<u128> {
+    let mint_sheet = load_sheet(
+        &tables::RuneTable::for_protocol(protocol_id.into())
+            .OUTPOINT_TO_RUNES
+            .select(&consensus_encode(&outpoint).unwrap()),
+    );
+    let stored_amount = protorune_ids
+        .into_iter()
+        .map(|id| mint_sheet.get(&id))
+        .collect();
+    return stored_amount;
+}
+
+pub fn get_mock_outpoint(n: u32) -> OutPoint {
+    OutPoint {
         txid: bitcoin::Txid::from_str(&format!(
             "000000000000000000000000000000000000000000000000000000000000000{}",
             n
         ))
         .unwrap(),
         vout: 0,
-    };
+    }
+}
+
+pub fn get_mock_txin(n: u32) -> TxIn {
+    let previous_output = get_mock_outpoint(n);
     return get_txin_from_outpoint(previous_output);
 }
 
@@ -419,7 +456,7 @@ pub fn create_rune_transfer_transaction(
 
     let runestone: ScriptBuf = (Runestone {
         etching: None,
-        pointer: Some(1), // refund to vout 1
+        pointer: Some(config.rune_pointer),
         edicts,
         mint: None,
         protocol: None,
