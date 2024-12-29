@@ -75,34 +75,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "alkanes-std-amm-factory"
-version = "0.1.0"
-dependencies = [
- "alkanes-runtime",
- "alkanes-support",
- "anyhow",
- "bitcoin 0.32.4",
- "hex",
- "metashrew-support",
- "protorune-support",
-]
-
-[[package]]
-name = "alkanes-std-amm-pool"
-version = "0.1.0"
-dependencies = [
- "alkanes-runtime",
- "alkanes-support",
- "anyhow",
- "bitcoin 0.32.4",
- "hex",
- "metashrew-support",
- "num",
- "protorune-support",
- "ruint",
-]
-
-[[package]]
 name = "alkanes-std-auth-token"
 version = "0.1.0"
 dependencies = [

@@ -10,8 +10,6 @@ pub mod address;
 #[cfg(test)]
 pub mod alkane;
 #[cfg(test)]
-pub mod amm;
-#[cfg(test)]
 pub mod auth_token;
 #[cfg(test)]
 pub mod genesis;

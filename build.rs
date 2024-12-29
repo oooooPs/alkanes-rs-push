@@ -74,7 +74,10 @@ fn main() {
         .parent()
         .unwrap()
         .join("crates");
-    std::env::set_current_dir(&crates_dir).unwrap();
+    match std::env::set_current_dir(&crates_dir) {
+        Err(_) => return,
+        _ => {}
+    };
     let mods = fs::read_dir(&crates_dir)
         .unwrap()
         .filter_map(|v| {

@@ -203,7 +203,6 @@ pub struct RunesTestingConfig {
     pub rune_symbol: Option<String>,
     pub rune_etch_height: u64,
     pub rune_etch_vout: u32,
-    // pub outpoints: Vec<OutPoint>,
 }
 
 impl RunesTestingConfig {
@@ -228,23 +227,19 @@ impl RunesTestingConfig {
             },
             rune_etch_height,
             rune_etch_vout,
-            // outpoints: vec![OutPoint {
-            //     txid: bitcoin::Txid::from_str(
-            //         "0000000000000000000000000000000000000000000000000000000000000000",
-            //     )
-            //     .unwrap(),
-            //     vout: 0,
-            // }],
         }
     }
 
-    // pub fn get_previous_outpoint(&self) -> OutPoint {
-    //     return self.outpoints.last().expect("not possible").clone();
-    // }
-
-    // pub fn add_outpoint(&mut self, outpoint: OutPoint) {
-    //     self.outpoints.push(outpoint);
-    // }
+    pub fn default() -> RunesTestingConfig {
+        RunesTestingConfig::new(
+            ADDRESS1().as_str(),
+            ADDRESS2().as_str(),
+            Some("AAAAAAAAAAAAATESTER"),
+            Some("Z"),
+            840001,
+            0,
+        )
+    }
 }
 
 pub fn get_address(address: &str) -> Address<NetworkChecked> {
@@ -279,6 +274,10 @@ pub fn get_mock_txin(n: u32) -> TxIn {
         .unwrap(),
         vout: 0,
     };
+    return get_txin_from_outpoint(previous_output);
+}
+
+pub fn get_txin_from_outpoint(previous_output: OutPoint) -> TxIn {
     let input_script = ScriptBuf::new();
 
     // Create a transaction input
@@ -477,14 +476,7 @@ pub fn create_block_with_sample_tx() -> Block {
 pub fn create_block_with_rune_tx(
     config: Option<RunesTestingConfig>,
 ) -> (Block, RunesTestingConfig) {
-    let final_config = config.unwrap_or(RunesTestingConfig::new(
-        ADDRESS1().as_str(),
-        ADDRESS2().as_str(),
-        Some("AAAAAAAAAAAAATESTER"),
-        Some("Z"),
-        840001,
-        0,
-    ));
+    let final_config = config.unwrap_or(RunesTestingConfig::default());
 
     let rune = match &final_config.rune_name {
         Some(rune_name) => Some(Rune::from_str(rune_name).unwrap()),
