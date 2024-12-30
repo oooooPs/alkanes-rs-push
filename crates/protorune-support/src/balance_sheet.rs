@@ -1,5 +1,6 @@
 use crate::proto;
 use crate::proto::protorune::{BalanceSheetItem, Rune};
+use metashrew_support::utils::{consume_sized_int};
 use crate::rune_transfer::RuneTransfer;
 use anyhow::{anyhow, Result};
 use hex;
@@ -9,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::u128;
+use std::io::{Cursor};
 
 // use metashrew::{println, stdio::stdout};
 // use std::fmt::Write;
@@ -19,6 +21,18 @@ use std::u128;
 pub struct ProtoruneRuneId {
     pub block: u128,
     pub tx: u128,
+}
+
+impl TryFrom<Vec<u8>> for ProtoruneRuneId {
+  type Error = anyhow::Error;
+  fn try_from(v: Vec<u8>) -> Result<ProtoruneRuneId> {
+    let mut cursor: Cursor<Vec<u8>> = Cursor::<Vec<u8>>::new(v);
+    let (block, tx) = (consume_sized_int::<u128>(&mut cursor)?, consume_sized_int::<u128>(&mut cursor)?);
+    Ok(ProtoruneRuneId {
+      block,
+      tx
+    })
+  }
 }
 
 pub trait RuneIdentifier {

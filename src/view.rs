@@ -144,6 +144,27 @@ pub fn to_alkanes_balances(
     clone
 }
 
+pub fn to_alkanes_from_runes(
+    runes: Vec<protorune_support::proto::protorune::Rune>
+) -> Vec<protorune_support::proto::protorune::Rune> {
+    runes.into_iter().map(|mut v| {
+      let block: u128 = v.clone()
+            .runeId
+            .height
+            .clone()
+            .unwrap()
+            .into();
+      if block == 2 || block == 4 {
+        (
+          v.name,
+          v.symbol,
+        ) = get_statics(&from_protobuf(v.runeId.clone().unwrap()));
+         v.spacers = 0;
+       }
+      v
+    }).collect::<Vec<protorune_support::proto::protorune::Rune>>()
+}
+
 pub fn from_protobuf(v: protorune_support::proto::protorune::ProtoruneRuneId) -> AlkaneId {
     let protorune_rune_id: ProtoruneRuneId = v.into();
     protorune_rune_id.into()
@@ -203,6 +224,22 @@ pub fn protorunes_by_address(
         })) == AlkaneMessageContext::protocol_tag()
         {
             response.outpoints = to_alkanes_outpoints(response.outpoints.clone());
+        }
+        Ok(response)
+    })
+}
+
+pub fn protorunes_by_height(
+    input: &Vec<u8>,
+) -> Result<protorune_support::proto::protorune::RunesResponse> {
+    let request =
+        protorune_support::proto::protorune::ProtorunesByHeightRequest::parse_from_bytes(input)?;
+    view::protorunes_by_height(input).and_then(|mut response| {
+        if into_u128(request.protocol_tag.unwrap_or_else(|| {
+            <u128 as Into<protorune_support::proto::protorune::Uint128>>::into(1u128)
+        })) == AlkaneMessageContext::protocol_tag()
+        {
+            response.runes = to_alkanes_from_runes(response.runes.clone());
         }
         Ok(response)
     })

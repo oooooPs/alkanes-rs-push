@@ -75,6 +75,11 @@ message RunesByHeightRequest {
   uint64 height = 1;
 }
 
+message ProtorunesByHeightRequest {
+  uint64 height = 1;
+  uint128 protocol_tag = 2;
+}
+
 message RunesResponse {
   repeated Rune runes = 1;
 }

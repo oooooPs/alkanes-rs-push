@@ -78,6 +78,17 @@ pub fn protorunesbyaddress() -> i32 {
 }
 
 #[no_mangle]
+pub fn protorunesbyheight() -> i32 {
+    configure_network();
+    let mut data: Cursor<Vec<u8>> = Cursor::new(input());
+    let _height = consume_sized_int::<u32>(&mut data).unwrap();
+    let result: protorune_support::proto::protorune::RunesResponse =
+        view::protorunes_by_height(&consume_to_end(&mut data).unwrap())
+            .unwrap_or_else(|_| protorune_support::proto::protorune::RunesResponse::new());
+    export_bytes(result.write_to_bytes().unwrap())
+}
+
+#[no_mangle]
 pub fn trace() -> i32 {
     configure_network();
     let mut data: Cursor<Vec<u8>> = Cursor::new(input());
