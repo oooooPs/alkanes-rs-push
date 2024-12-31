@@ -157,7 +157,7 @@ mod tests {
 
     /// No edict, all amount should go to pointer
     #[wasm_bindgen_test]
-    fn no_edict_pointer() {
+    fn no_edict_pointer_transfer() {
         clear();
         edict_test(RunesTestingConfig::default(), None, None, 1000, 0);
     }
@@ -175,16 +175,18 @@ mod tests {
         );
     }
 
-    /// No edict, all amount should go to pointer, which is the special index to distribute runes evenly
+    /// No edict, all amount should go to pointer, which is equal to the number
+    /// of transaction outputs. This is a cenotaph since the ordinals crate
+    /// only considers pointer < number tx outputs valid
     #[wasm_bindgen_test]
-    fn no_edict_pointer_evenly_distribtue() {
+    fn no_edict_pointer_cenotaph() {
         clear();
         edict_test(
             RunesTestingConfig::default_with_pointer(3),
             None,
             None,
-            500,
-            500,
+            0,
+            0,
         );
     }
 }

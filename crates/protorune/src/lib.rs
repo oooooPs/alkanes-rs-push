@@ -1,5 +1,6 @@
 use crate::balance_sheet::{load_sheet, PersistentRecord};
 use crate::message::MessageContext;
+use crate::protorune_init::index_unique_protorunes;
 use crate::protostone::{
     add_to_indexable_protocols, initialized_protocol_index, MessageProcessor, Protostones,
 };
@@ -16,7 +17,6 @@ use metashrew::{
     flush, input, println,
     stdio::{stdout, Write},
 };
-use crate::protorune_init::{index_unique_protorunes};
 use metashrew_support::address::Payload;
 use metashrew_support::index_pointer::KeyValuePointer;
 use ordinals::{Artifact, Runestone};
@@ -37,6 +37,7 @@ use std::sync::Arc;
 pub mod balance_sheet;
 pub mod message;
 pub mod protoburn;
+pub mod protorune_init;
 pub mod protostone;
 pub mod tables;
 #[cfg(feature = "test-utils")]
@@ -44,9 +45,10 @@ pub mod test_helpers;
 #[cfg(test)]
 pub mod tests;
 pub mod view;
-pub mod protorune_init;
 
 pub struct Protorune(());
+
+// TODO: these library functions could move to support modules (ie protorune-support)
 
 pub fn default_output(tx: &Transaction) -> u32 {
     for i in 0..tx.output.len() {
@@ -69,6 +71,68 @@ pub fn num_non_op_return_outputs(tx: &Transaction) -> usize {
         .iter()
         .filter(|out| !(*out.script_pubkey).is_op_return())
         .count()
+}
+
+/// vout : the vout to transfer runes to
+/// amount : the amount to transfer to the vout
+/// max_amount : max amount available to transfer
+/// tx : Transaction
+pub fn handle_transfer_runes_to_vout(
+    vout: u128,
+    amount: u128,
+    max_amount: u128,
+    tx: &Transaction,
+) -> HashMap<u32, u128> {
+    // pointer should not call this function if amount is 0
+    let mut output: HashMap<u32, u128> = HashMap::<u32, u128>::new();
+    if (vout as usize) == tx.output.len() {
+        // "special vout" -- give amount to all non-op_return vouts
+        if amount == 0 {
+            // this means we need to evenly distribute all runes to all
+            // non op return vouts
+            let count = num_non_op_return_outputs(tx) as u128;
+            if count != 0 {
+                let mut spread: u128 = 0;
+                for i in 0..tx.output.len() as u32 {
+                    if tx.output[i as usize].script_pubkey.is_op_return() {
+                        continue;
+                    }
+                    let rem: u128 = if (max_amount % (count as u128)) - spread != 0 {
+                        1
+                    } else {
+                        0
+                    };
+                    spread = spread + rem;
+                    output.insert(i, max_amount / count + rem);
+                }
+            }
+        } else {
+            let count = num_non_op_return_outputs(tx) as u128;
+            let mut remaining = max_amount;
+            if count != 0 {
+                for i in 0..tx.output.len() as u32 {
+                    let amount_outpoint = std::cmp::min(remaining, amount);
+                    remaining -= amount_outpoint;
+                    if tx.output[i as usize].script_pubkey.is_op_return() {
+                        continue;
+                    }
+                    output.insert(i, amount_outpoint);
+                }
+            }
+        }
+    } else {
+        // trivial case. raise if can not fit u128 into u32
+
+        // every vout should try to get the amount until we run out
+        if amount == 0 {
+            // we should transfer everything to this vout
+            output.insert(vout.try_into().unwrap(), max_amount);
+        } else {
+            output.insert(vout.try_into().unwrap(), amount);
+        }
+    }
+
+    return output;
 }
 
 impl Protorune {
@@ -184,58 +248,21 @@ impl Protorune {
         if edict.id.block == 0 && edict.id.tx != 0 {
             Err(anyhow!("invalid edict"))
         } else {
-            if (edict.output as usize) == tx.output.len() {
-                if edict.amount == 0 {
-                    let count = num_non_op_return_outputs(tx) as u128;
-                    if count != 0 {
-                        let max = balances.get(&edict.id.into());
-                        let mut spread: u128 = 0;
-                        for i in 0..tx.output.len() as u32 {
-                            if tx.output[i as usize].script_pubkey.is_op_return() {
-                                continue;
-                            }
-                            let rem: u128 = if (max % (count as u128)) - spread != 0 {
-                                1
-                            } else {
-                                0
-                            };
-                            spread = spread + rem;
-                            Self::update_balances_for_edict(
-                                balances_by_output,
-                                balances,
-                                max / count + rem,
-                                i,
-                                &edict.id.into(),
-                            )?;
-                        }
-                    }
-                } else {
-                    let count = num_non_op_return_outputs(tx) as u128;
-                    if count != 0 {
-                        let amount = edict.amount;
-                        for i in 0..tx.output.len() as u32 {
-                            if tx.output[i as usize].script_pubkey.is_op_return() {
-                                continue;
-                            }
-                            Self::update_balances_for_edict(
-                                balances_by_output,
-                                balances,
-                                amount,
-                                i,
-                                &edict.id.into(),
-                            )?;
-                        }
-                    }
-                }
-            } else {
+            let max = balances.get(&edict.id.into());
+
+            let transfer_targets =
+                handle_transfer_runes_to_vout(edict.output, edict.amount, max, tx);
+
+            transfer_targets.iter().try_for_each(|(vout, amount)| {
                 Self::update_balances_for_edict(
                     balances_by_output,
                     balances,
-                    edict.amount,
-                    edict.output as u32,
+                    *amount,
+                    *vout,
                     &edict.id.into(),
                 )?;
-            }
+                Ok(())
+            })?;
             Ok(())
         }
     }
@@ -252,17 +279,39 @@ impl Protorune {
         Ok(())
     }
     pub fn handle_leftover_runes(
-        balances: &mut BalanceSheet,
+        remaining_balances: &mut BalanceSheet,
         balances_by_output: &mut HashMap<u32, BalanceSheet>,
         unallocated_to: u32,
     ) -> Result<()> {
+        // grab the balances of the vout to send unallocated to
         match balances_by_output.get_mut(&unallocated_to) {
-            Some(v) => balances.pipe(v),
+            // if it already has balances, then send the remaining balances over
+            Some(v) => remaining_balances.pipe(v),
             None => {
-                balances_by_output.insert(unallocated_to, balances.clone());
+                balances_by_output.insert(unallocated_to, remaining_balances.clone());
             }
         }
         Ok(())
+
+        // This piece of logic allows the pointer to evenly distribute if set == number of tx outputs.
+        // We discovered that when the pointer == number of tx outputs, the decipher step
+        // thinks it is a cenotaph. This logic used right now, but keep it here in case we need it.
+        // for (rune, balance) in &remaining_balances.balances {
+        //     // amount is 0 to evenly distribute
+        //     let transfer_targets =
+        //         handle_transfer_runes_to_vout(unallocated_to as u128, 0, *balance, tx);
+
+        //     transfer_targets.iter().for_each(|(vout, amount)| {
+        //         // grab the balances of the vout to send unallocated to
+        //         match balances_by_output.get_mut(vout) {
+        //             // if it already has balances, then send the remaining balances over
+        //             Some(v) => v.increase(rune, *amount),
+        //             None => {
+        //                 balances_by_output.insert(unallocated_to, remaining_balances.clone());
+        //             }
+        //         }
+        //     });
+        // }
     }
     pub fn index_mint(
         mint: &ProtoruneRuneId,
@@ -591,7 +640,21 @@ impl Protorune {
                 .unwrap_or_else(|| BalanceSheet::default())
                 .save(&mut atomic.derive(&table.RUNTIME_BALANCE), false);
         }
-        index_unique_protorunes::<T>(atomic, height, map.iter().fold(BalanceSheet::default(), |mut r, (_k, v)| { v.pipe(&mut r); r }).balances.keys().clone().into_iter().map(|v| v.clone()).collect::<Vec<ProtoruneRuneId>>());
+        index_unique_protorunes::<T>(
+            atomic,
+            height,
+            map.iter()
+                .fold(BalanceSheet::default(), |mut r, (_k, v)| {
+                    v.pipe(&mut r);
+                    r
+                })
+                .balances
+                .keys()
+                .clone()
+                .into_iter()
+                .map(|v| v.clone())
+                .collect::<Vec<ProtoruneRuneId>>(),
+        );
         Ok(())
     }
 

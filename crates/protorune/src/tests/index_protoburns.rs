@@ -185,8 +185,8 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn protoburn_pointer_evenly_distribute_test() {
-        // transfer to the special vout 2 == num outputs
+    fn protoburn_pointer_cenotaph_test() {
+        // transfer to the special vout 2 == num outputs, which should be a cenotaph
         let test_block = protostone_transfer_test_template(2, vec![]);
         let tx2_outpoint: OutPoint = OutPoint {
             txid: test_block.txdata[2].compute_txid(),
@@ -207,7 +207,7 @@ mod tests {
             tx2_outpoint,
             vec![protorune_id],
         );
-        assert_eq!(protoburn_protorunes_balances[0], 500);
+        assert_eq!(protoburn_protorunes_balances[0], 0);
     }
 
     #[wasm_bindgen_test]
