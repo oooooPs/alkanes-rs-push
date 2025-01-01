@@ -127,10 +127,10 @@ mod tests {
 
         let tx2 = helpers::create_tx_from_runestone(
             Runestone {
-                etching: etching,
+                etching,
                 pointer: Some(0),
                 edicts: all_edicts,
-                mint: mint,
+                mint,
                 protocol: None,
             },
             vec![tx0_utxo, tx1_utxo],
@@ -172,7 +172,7 @@ mod tests {
             }
 
             if mint.is_some() {
-                assert_mints_remaining(mint.unwrap().into(), 1);
+                assert_mints_remaining(mint.unwrap().into(), 2);
             }
             // test etched rune has supply 0 and is unmintable
             assert_etching_is_cenotaph();

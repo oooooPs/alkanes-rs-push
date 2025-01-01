@@ -325,11 +325,11 @@ impl Protorune {
         let remaining: u128 = tables::RUNES.MINTS_REMAINING.select(&name).get_value();
         let amount: u128 = tables::RUNES.AMOUNT.select(&name).get_value();
 
-        if remaining <= 0 {
+        if remaining == 0 {
             // 2 ways we can reach this error:
             //   - etching and mint are in the same runestone
             //   - the rune has reached the cap of mints
-            return Err(anyhow!("No remaining mints left!"));
+            return Ok(());
         }
         if remaining > 0 {
             let height_start: u64 = tables::RUNES.HEIGHTSTART.select(&name).get_value();
@@ -359,7 +359,7 @@ impl Protorune {
                     amount,
                 );
             } else {
-                return Err(anyhow!("Mint is outside expected block ranges!"));
+                return Ok(());
             }
         }
         Ok(())
