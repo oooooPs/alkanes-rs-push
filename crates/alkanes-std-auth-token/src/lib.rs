@@ -1,8 +1,9 @@
+use alkanes_runtime::declare_alkane;
 use alkanes_runtime::{runtime::AlkaneResponder, storage::StoragePointer, token::Token};
 use alkanes_support::utils::shift_or_err;
 use alkanes_support::{parcel::AlkaneTransfer, response::CallResponse};
 use anyhow::{anyhow, Result};
-use metashrew_support::compat::{to_arraybuffer_layout, to_ptr};
+use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
 use metashrew_support::index_pointer::KeyValuePointer;
 use std::sync::Arc;
 
@@ -73,8 +74,4 @@ impl AlkaneResponder for AuthToken {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn __execute() -> i32 {
-    let mut response = to_arraybuffer_layout(&AuthToken::default().run());
-    to_ptr(&mut response) + 4
-}
+declare_alkane! {AuthToken}

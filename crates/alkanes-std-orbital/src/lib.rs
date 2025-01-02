@@ -1,3 +1,4 @@
+use alkanes_runtime::declare_alkane;
 use alkanes_runtime::{runtime::AlkaneResponder, storage::StoragePointer, token::Token};
 use alkanes_support::{parcel::AlkaneTransfer, response::CallResponse, utils::shift_or_err};
 use anyhow::{anyhow, Result};
@@ -73,8 +74,4 @@ impl AlkaneResponder for Orbital {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn __execute() -> i32 {
-    let mut response = to_arraybuffer_layout(&Orbital::default().run());
-    to_passback_ptr(&mut response)
-}
+declare_alkane! {Orbital}

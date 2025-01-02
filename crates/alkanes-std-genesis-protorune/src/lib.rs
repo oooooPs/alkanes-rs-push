@@ -1,3 +1,4 @@
+use alkanes_runtime::declare_alkane;
 use alkanes_runtime::{runtime::AlkaneResponder, storage::StoragePointer, token::Token};
 use alkanes_support::{
     context::Context, id::AlkaneId, parcel::AlkaneTransfer, response::CallResponse,
@@ -78,10 +79,4 @@ impl AlkaneResponder for GenesisProtorune {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn __execute() -> i32 {
-    let response: &'static mut Vec<u8> = Box::leak(Box::new(to_arraybuffer_layout(
-        &GenesisProtorune::default().run(),
-    )));
-    to_passback_ptr(response)
-}
+declare_alkane! {GenesisProtorune}

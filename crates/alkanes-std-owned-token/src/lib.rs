@@ -1,5 +1,5 @@
-use alkanes_runtime::auth::AuthenticatedResponder;
 use alkanes_runtime::runtime::AlkaneResponder;
+use alkanes_runtime::{auth::AuthenticatedResponder, declare_alkane};
 #[allow(unused_imports)]
 use alkanes_runtime::{
     println,
@@ -8,7 +8,7 @@ use alkanes_runtime::{
 use alkanes_support::utils::shift_or_err;
 use alkanes_support::{parcel::AlkaneTransfer, response::CallResponse};
 use anyhow::{anyhow, Result};
-use metashrew_support::compat::{to_arraybuffer_layout, to_ptr};
+use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
 pub mod factory;
 
 use crate::factory::MintableToken;
@@ -68,8 +68,4 @@ impl AlkaneResponder for OwnedToken {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn __execute() -> i32 {
-    let mut response = to_arraybuffer_layout(&OwnedToken::default().run());
-    to_ptr(&mut response) + 4
-}
+declare_alkane! {OwnedToken}
