@@ -17,7 +17,6 @@ use metashrew::{
 };
 use wasm_bindgen_test::wasm_bindgen_test;
 
-/*
 #[wasm_bindgen_test]
 fn test_owned_token() -> Result<()> {
     clear();
@@ -69,8 +68,6 @@ fn test_owned_token() -> Result<()> {
 */
     Ok(())
 }
-*/
-/*
 #[wasm_bindgen_test]
 fn test_auth_and_owned_token_noop() -> Result<()> {
     clear();
@@ -140,9 +137,7 @@ fn test_auth_and_owned_token_noop() -> Result<()> {
 
     Ok(())
 }
-*/
 
-/*
 #[wasm_bindgen_test]
 fn test_auth_and_owned_token() -> Result<()> {
     clear();
@@ -222,4 +217,3 @@ fn test_auth_and_owned_token() -> Result<()> {
 
     Ok(())
 }
-*/

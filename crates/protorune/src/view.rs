@@ -1,7 +1,8 @@
+use crate::tables::RuneTable;
 use crate::{balance_sheet::load_sheet, tables};
 use anyhow::{anyhow, Result};
 use bitcoin;
-use protorune_support::balance_sheet::{ProtoruneRuneId, BalanceSheet};
+use protorune_support::balance_sheet::{BalanceSheet, ProtoruneRuneId};
 use protorune_support::proto;
 use protorune_support::proto::protorune::{
     Outpoint,
@@ -12,7 +13,6 @@ use protorune_support::proto::protorune::{
     RunesResponse,
     WalletResponse,
 };
-use crate::tables::{RuneTable};
 use protorune_support::utils::{consensus_decode, outpoint_encode};
 //use bitcoin::consensus::Decodable;
 use bitcoin::hashes::Hash;
@@ -247,15 +247,20 @@ pub fn runes_by_height(input: &Vec<u8>) -> Result<RunesResponse> {
 pub fn protorunes_by_height(input: &Vec<u8>) -> Result<RunesResponse> {
     let mut result: RunesResponse = RunesResponse::new();
     if let Some(req) = proto::protorune::ProtorunesByHeightRequest::parse_from_bytes(input).ok() {
-        let table = RuneTable::for_protocol(req.protocol_tag.unwrap_or_else(|| (0u128).into()).into());
-        for rune in table.HEIGHT_TO_RUNE_ID.select_value(req.height)
+        let table =
+            RuneTable::for_protocol(req.protocol_tag.unwrap_or_else(|| (0u128).into()).into());
+        for rune in table
+            .HEIGHT_TO_RUNE_ID
+            .select_value(req.height)
             .get_list()
             .into_iter()
         {
             let mut _rune: Rune = Rune::new();
             _rune.name = String::from("");
             _rune.symbol = String::from("");
-            _rune.runeId = MessageField::some(<Vec<u8> as TryInto<ProtoruneRuneId>>::try_into(rune.as_ref().clone())?.into());
+            _rune.runeId = MessageField::some(
+                <Vec<u8> as TryInto<ProtoruneRuneId>>::try_into(rune.as_ref().clone())?.into(),
+            );
             _rune.spacers = 0;
 
             _rune.divisibility = 0;

@@ -40,8 +40,8 @@ pub fn configure_network() {
 pub fn configure_network() {
     set_network(NetworkParams {
         bech32_prefix: String::from("lky"),
-        p2pkh_hash: 0x2f,
-        p2sh_hash: 0x05,
+        p2pkh_prefix: 0x2f,
+        p2sh_prefix: 0x05,
     });
 }
 
@@ -49,8 +49,8 @@ pub fn configure_network() {
 pub fn configure_network() {
     set_network(NetworkParams {
         bech32_prefix: String::from("dc"),
-        p2pkh_hash: 0x1e,
-        p2sh_hash: 0x16,
+        p2pkh_prefix: 0x1e,
+        p2sh_prefix: 0x16,
     });
 }
 #[cfg(feature = "bellscoin")]

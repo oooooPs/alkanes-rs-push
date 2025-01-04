@@ -87,8 +87,12 @@ impl RuneTable {
         RuneTable {
             HEIGHT_TO_BLOCKHASH: IndexPointer::from_keyword("/runes/null"),
             BLOCKHASH_TO_HEIGHT: IndexPointer::from_keyword("/runes/null"),
-            HEIGHT_TO_RUNE_ID: IndexPointer::from_keyword(format!("/runes/proto/{tag}/byheight/").as_str()),
-            RUNE_ID_TO_INITIALIZED: IndexPointer::from_keyword(format!("/runes/proto/{tag}/initialized/").as_str()),
+            HEIGHT_TO_RUNE_ID: IndexPointer::from_keyword(
+                format!("/runes/proto/{tag}/byheight/").as_str(),
+            ),
+            RUNE_ID_TO_INITIALIZED: IndexPointer::from_keyword(
+                format!("/runes/proto/{tag}/initialized/").as_str(),
+            ),
             OUTPOINT_TO_RUNES: IndexPointer::from_keyword(
                 format!("/runes/proto/{tag}/byoutpoint/").as_str(),
             ),

@@ -85,13 +85,23 @@ pub fn protorunesbyaddress() -> i32 {
     let mut result: protorune_support::proto::protorune::WalletResponse =
         view::protorunes_by_address(&consume_to_end(&mut data).unwrap())
             .unwrap_or_else(|_| protorune_support::proto::protorune::WalletResponse::new());
-    result.outpoints = result.outpoints.into_iter().filter_map(|v| {
-      if v.clone().balances.unwrap_or_else(|| protorune_support::proto::protorune::BalanceSheet::new()).entries.len() == 0 {
-        None
-      } else {
-        Some(v)
-      }
-    }).collect::<Vec<protorune_support::proto::protorune::OutpointResponse>>();
+    result.outpoints = result
+        .outpoints
+        .into_iter()
+        .filter_map(|v| {
+            if v.clone()
+                .balances
+                .unwrap_or_else(|| protorune_support::proto::protorune::BalanceSheet::new())
+                .entries
+                .len()
+                == 0
+            {
+                None
+            } else {
+                Some(v)
+            }
+        })
+        .collect::<Vec<protorune_support::proto::protorune::OutpointResponse>>();
     export_bytes(result.write_to_bytes().unwrap())
 }
 

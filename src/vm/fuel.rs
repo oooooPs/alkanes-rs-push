@@ -14,8 +14,8 @@ use wasmi::*;
 
 #[allow(unused_imports)]
 use {
-  metashrew::{println, stdio::{stdout}},
-  std::fmt::{Write}
+    metashrew::{println, stdio::stdout},
+    std::fmt::Write,
 };
 
 pub trait VirtualFuelBytes {
@@ -48,7 +48,11 @@ impl VirtualFuelBytes for Transaction {
                     0
                 } else if cellpacks
                     .iter()
-                    .position(|v| <&[u128] as TryInto<[u128; 2]>>::try_into(&v[0..2]).unwrap() == [1u128, 0u128] || v[0] == 3u128)
+                    .position(|v| {
+                        <&[u128] as TryInto<[u128; 2]>>::try_into(&v[0..2]).unwrap()
+                            == [1u128, 0u128]
+                            || v[0] == 3u128
+                    })
                     .is_some()
                 {
                     let mut cloned = self.clone();
@@ -75,7 +79,7 @@ impl VirtualFuelBytes for Block {
 }
 
 //use if regtest
-#[cfg(not(all(
+#[cfg(not(any(
     feature = "mainnet",
     feature = "dogecoin",
     feature = "bellscoin",
@@ -122,7 +126,7 @@ impl FuelTank {
                 size: block.vfsize(),
                 block_fuel: TOTAL_FUEL,
                 transaction_fuel: 0,
-                block_metered_fuel: 0
+                block_metered_fuel: 0,
             });
         }
     }
@@ -132,7 +136,8 @@ impl FuelTank {
             tank.current_txindex = txindex;
             tank.block_metered_fuel = tank.block_fuel * txsize / tank.size;
             tank.transaction_fuel = std::cmp::max(MINIMUM_FUEL, tank.block_metered_fuel);
-            tank.block_fuel = tank.block_fuel - std::cmp::min(tank.block_fuel, tank.block_metered_fuel);
+            tank.block_fuel =
+                tank.block_fuel - std::cmp::min(tank.block_fuel, tank.block_metered_fuel);
             tank.txsize = txsize;
         }
     }
@@ -147,7 +152,8 @@ impl FuelTank {
         unsafe {
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
             tank.transaction_fuel = overflow_error(tank.transaction_fuel.checked_sub(n))?;
-            tank.block_metered_fuel = overflow_error(tank.block_metered_fuel.checked_sub(n)).unwrap_or_else(|_| 0);
+            tank.block_metered_fuel =
+                overflow_error(tank.block_metered_fuel.checked_sub(n)).unwrap_or_else(|_| 0);
             Ok(())
         }
     }
