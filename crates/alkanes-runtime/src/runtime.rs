@@ -244,6 +244,7 @@ pub trait AlkaneResponder {
         let extended: ExtendedCallResponse = match self.initialize().execute() {
             Ok(v) => {
                 let mut response: ExtendedCallResponse = v.into();
+                self.initialize();
                 response.storage = unsafe { _CACHE.as_ref().unwrap().clone() };
                 response
             }
