@@ -46,7 +46,7 @@ pub mod externs {
 }
 
 #[cfg(feature = "test-utils")]
-pub static mut _CONTEXT: Option<Context> = None;
+pub static mut _CONTEXT: Option<Context> = Some(Context::default());
 
 #[cfg(feature = "test-utils")]
 mod exports {
