@@ -3,7 +3,7 @@ use alkanes_support::context::Context;
 #[cfg(feature = "test-utils")]
 use wasm_bindgen::prelude::*;
 
-#[cfg(not(feature = "test-utils"))]
+//#[cfg(not(feature = "test-utils"))]
 #[link(wasm_import_module = "env")]
 extern "C" {
     pub fn abort(a: i32, b: i32, c: i32, d: i32);
@@ -34,6 +34,15 @@ extern "C" {
         checkpoint: i32,
         start_fuel: u64,
     ) -> i32;
+    /*
+    pub fn __load_output(
+      outpoint: i32,
+      output: i32
+    ) -> i32;
+    pub fn __request_output(
+      outpoint: i32
+    ) -> i32;
+    */
 
 }
 
@@ -47,9 +56,6 @@ pub mod externs {
 }
 
 #[cfg(feature = "test-utils")]
-#[cfg(feature = "test-utils")]
-pub use exports::*;
-
 pub static mut _CONTEXT: Option<Context> = None;
 
 #[cfg(feature = "test-utils")]
@@ -97,37 +103,38 @@ mod exports {
             }
         }
     }
-    pub fn __sequence(output: i32) {
-        let zeros: [u8; 16] = [0; 16];
-        unsafe {
-            (&mut std::slice::from_raw_parts_mut(output as usize as *mut u8, 16))
-                .clone_from_slice(&zeros);
-        }
+    pub fn __sequence(output: i32) {}
+    pub fn __fuel(output: i32) {}
+    pub fn __height(output: i32) {}
+    pub fn __returndatacopy(output: i32) {}
+    pub fn __request_transaction() -> i32 {
+        0
     }
-    
-    pub fn __fuel(output: i32) {
-        let zeros: [u8; 8] = [0; 8];
-        unsafe {
-            (&mut std::slice::from_raw_parts_mut(output as usize as *mut u8, 8))
-                .clone_from_slice(&zeros);
-        }
+    pub fn __load_transaction(output: i32) {}
+    pub fn __request_block() -> i32 {
+        0
     }
-    
-    pub fn __height(output: i32) {
-        let zeros: [u8; 8] = [0; 8];
-        unsafe {
-            (&mut std::slice::from_raw_parts_mut(output as usize as *mut u8, 8))
-                .clone_from_slice(&zeros);
-        }
+    pub fn __load_block(output: i32) {}
+    pub fn __call(cellpack: i32, incoming_alkanes: i32, checkpoint: i32, start_fuel: u64) -> i32 {
+        0
     }
-    
-    pub fn __returndatacopy(output: i32) {
-        // In test mock, we don't have actual return data to copy
-        // So we write an empty buffer
-        let zeros: [u8; 4] = [0; 4];
-        unsafe {
-            (&mut std::slice::from_raw_parts_mut(output as usize as *mut u8, 4))
-                .clone_from_slice(&zeros);
-        }
+    pub fn __staticcall(
+        cellpack: i32,
+        incoming_alkanes: i32,
+        checkpoint: i32,
+        start_fuel: u64,
+    ) -> i32 {
+        0
+    }
+    pub fn __delegatecall(
+        cellpack: i32,
+        incoming_alkanes: i32,
+        checkpoint: i32,
+        start_fuel: u64,
+    ) -> i32 {
+        0
     }
 }
+
+#[cfg(feature = "test-utils")]
+pub use exports::*;
