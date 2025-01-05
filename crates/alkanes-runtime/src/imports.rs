@@ -3,7 +3,7 @@ use alkanes_support::context::Context;
 #[cfg(feature = "test-utils")]
 use wasm_bindgen::prelude::*;
 
-//#[cfg(not(feature = "test-utils"))]
+#[cfg(not(feature = "test-utils"))]
 #[link(wasm_import_module = "env")]
 extern "C" {
     pub fn abort(a: i32, b: i32, c: i32, d: i32);
