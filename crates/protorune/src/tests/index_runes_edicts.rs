@@ -162,12 +162,26 @@ mod tests {
         edict_test(RunesTestingConfig::default(), None, None, 1000, 0);
     }
 
+    /// No edict, pointer None, transfer runes to first non op return output
+    /// Address 2 has the first non op return output
+    #[wasm_bindgen_test]
+    fn no_edict_pointer_none() {
+        clear();
+        edict_test(
+            RunesTestingConfig::default_with_pointer(None),
+            None,
+            None,
+            0,
+            1000,
+        );
+    }
+
     /// No edict, all amount should go to pointer, which is the runestone to distribute runes evenly
     #[wasm_bindgen_test]
     fn no_edict_pointer_burn() {
         clear();
         edict_test(
-            RunesTestingConfig::default_with_pointer(2),
+            RunesTestingConfig::default_with_pointer(Some(2)),
             None,
             None,
             0,
@@ -182,7 +196,7 @@ mod tests {
     fn no_edict_pointer_cenotaph() {
         clear();
         edict_test(
-            RunesTestingConfig::default_with_pointer(3),
+            RunesTestingConfig::default_with_pointer(Some(3)),
             None,
             None,
             0,

@@ -203,7 +203,7 @@ pub struct RunesTestingConfig {
     pub rune_symbol: Option<String>,
     pub rune_etch_height: u64,
     pub rune_etch_vout: u32,
-    pub rune_pointer: u32,
+    pub rune_pointer: Option<u32>,
 }
 
 impl RunesTestingConfig {
@@ -214,7 +214,7 @@ impl RunesTestingConfig {
         rune_symbol: Option<&str>,
         rune_etch_height: u64,
         rune_etch_vout: u32,
-        rune_pointer: u32,
+        rune_pointer: Option<u32>,
     ) -> RunesTestingConfig {
         RunesTestingConfig {
             address1: address1.into(),
@@ -241,11 +241,11 @@ impl RunesTestingConfig {
             Some("Z"),
             840001,
             0,
-            1,
+            Some(1),
         )
     }
 
-    pub fn default_with_pointer(rune_pointer: u32) -> RunesTestingConfig {
+    pub fn default_with_pointer(rune_pointer: Option<u32>) -> RunesTestingConfig {
         RunesTestingConfig::new(
             ADDRESS1().as_str(),
             ADDRESS2().as_str(),
@@ -456,7 +456,7 @@ pub fn create_rune_transfer_transaction(
 
     let runestone: ScriptBuf = (Runestone {
         etching: None,
-        pointer: Some(config.rune_pointer),
+        pointer: config.rune_pointer,
         edicts,
         mint: None,
         protocol: None,
