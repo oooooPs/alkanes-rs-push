@@ -326,7 +326,7 @@ impl Protorune {
         let amount: u128 = tables::RUNES.AMOUNT.select(&name).get_value();
 
         if remaining == 0 {
-            // 2 ways we can reach this error:
+            // 2 ways we can reach this statement:
             //   - etching and mint are in the same runestone
             //   - the rune has reached the cap of mints
             return Ok(());
