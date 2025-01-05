@@ -21,7 +21,12 @@ enum Payload {
 }
 
 impl Runestone {
+    #[cfg(not(feature = "dogecoin"))]
     pub const MAGIC_NUMBER: opcodes::Opcode = opcodes::all::OP_PUSHNUM_13;
+
+    #[cfg(feature = "dogecoin")]
+    pub const PROTOCOL_ID: &'static [u8] = b"D";
+
     pub const COMMIT_CONFIRMATIONS: u16 = 6;
 
     pub fn decipher(transaction: &Transaction) -> Option<Artifact> {
@@ -35,7 +40,6 @@ impl Runestone {
             }
             None => return None,
         };
-
         let Ok(integers) = Runestone::integers(&payload) else {
             return Some(Artifact::Cenotaph(Cenotaph {
                 flaw: Some(Flaw::Varint),
@@ -134,8 +138,9 @@ impl Runestone {
             pointer,
             protocol,
         }))
-    }
 
+        // ... rest of implementation ...
+    }
     pub fn encipher(&self) -> ScriptBuf {
         let mut payload = Vec::new();
 
@@ -200,9 +205,14 @@ impl Runestone {
             }
         }
 
+        #[cfg(not(feature = "dogecoin"))]
         let mut builder = script::Builder::new()
             .push_opcode(opcodes::all::OP_RETURN)
             .push_opcode(Runestone::MAGIC_NUMBER);
+        #[cfg(feature = "dogecoin")]
+        let mut builder = script::Builder::new()
+            .push_opcode(opcodes::all::OP_RETURN)
+            .push_slice(b"D");
 
         for chunk in payload.chunks(MAX_SCRIPT_ELEMENT_SIZE) {
             let push: &script::PushBytes = chunk.try_into().unwrap();
@@ -222,10 +232,22 @@ impl Runestone {
                 continue;
             }
 
-            // followed by the protocol identifier, ignoring errors, since OP_RETURN
-            // scripts may be invalid
-            if instructions.next() != Some(Ok(Instruction::Op(Runestone::MAGIC_NUMBER))) {
-                continue;
+            #[cfg(not(feature = "dogecoin"))]
+            {
+                // Bitcoin: check for magic number
+                if instructions.next() != Some(Ok(Instruction::Op(Runestone::MAGIC_NUMBER))) {
+                    continue;
+                }
+            }
+
+            #[cfg(feature = "dogecoin")]
+            {
+                // Dogecoin: check for "D" protocol identifier
+                match instructions.next() {
+                    Some(Ok(Instruction::PushBytes(push)))
+                        if push.as_bytes() == Self::PROTOCOL_ID => {}
+                    _ => continue,
+                }
             }
 
             // construct the payload by concatenating remaining data pushes

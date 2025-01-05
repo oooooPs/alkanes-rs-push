@@ -8,7 +8,7 @@ pub mod storage;
 pub mod token;
 pub use crate::stdio::stdout;
 
-use metashrew_support::{compat::{to_arraybuffer_layout, to_passback_ptr}};
+use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
 
 #[macro_export]
 macro_rules! declare_alkane {
@@ -20,4 +20,3 @@ macro_rules! declare_alkane {
         }
     };
 }
-
