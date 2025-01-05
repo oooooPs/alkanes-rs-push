@@ -38,6 +38,14 @@ fn _abort() {
 
 static mut _CACHE: Option<StorageMap> = None;
 
+pub fn initialize_cache() {
+  unsafe {
+    if _CACHE.is_none() {
+      _CACHE = Some(StorageMap::default());
+    }
+  }
+}
+
 pub trait Extcall {
     fn __call(cellpack: i32, outgoing_alkanes: i32, checkpoint: i32, fuel: u64) -> i32;
     #[allow(static_mut_refs)]
@@ -116,7 +124,7 @@ pub trait AlkaneResponder {
     fn initialize(&self) -> &Self {
         unsafe {
             if _CACHE.is_none() {
-                _CACHE = Some(StorageMap::default());
+                initialize_cache();
                 #[cfg(feature = "panic-hook")]
                 panic::set_hook(Box::new(panic_hook));
             }
@@ -152,6 +160,7 @@ pub trait AlkaneResponder {
     #[allow(static_mut_refs)]
     fn load(&self, k: Vec<u8>) -> Vec<u8> {
         unsafe {
+            initialize_cache();
             if _CACHE.as_ref().unwrap().0.contains_key(&k) {
                 _CACHE
                     .as_ref()
@@ -172,6 +181,7 @@ pub trait AlkaneResponder {
     #[allow(static_mut_refs)]
     fn store(&self, k: Vec<u8>, v: Vec<u8>) {
         unsafe {
+            initialize_cache();
             _CACHE.as_mut().unwrap().set(&k, &v);
         }
     }
@@ -244,7 +254,7 @@ pub trait AlkaneResponder {
         let extended: ExtendedCallResponse = match self.initialize().execute() {
             Ok(v) => {
                 let mut response: ExtendedCallResponse = v.into();
-                self.initialize();
+                initialize_cache();
                 response.storage = unsafe { _CACHE.as_ref().unwrap().clone() };
                 response
             }
@@ -265,6 +275,7 @@ pub trait AlkaneResponder {
         let extended: ExtendedCallResponse = match self.initialize().execute() {
             Ok(v) => {
                 let mut response: ExtendedCallResponse = v.into();
+                initialize_cache();
                 response.storage = unsafe { _CACHE.as_ref().unwrap().clone() };
                 response
                     .alkanes
