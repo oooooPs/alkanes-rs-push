@@ -46,7 +46,7 @@ pub mod externs {
 }
 
 #[cfg(feature = "test-utils")]
-pub static mut _CONTEXT: Option<Context> = Some(Context::default());
+pub static mut _CONTEXT: Option<Context> = None;
 
 #[cfg(feature = "test-utils")]
 mod exports {
@@ -56,6 +56,11 @@ mod exports {
         alkanes_support::context::Context,
         metashrew_support::{compat::to_passback_ptr, utils::ptr_to_vec},
     };
+    pub fn set_mock_context(context: Context) {
+      unsafe {
+        _CONTEXT = Some(context);
+      }
+    }
     pub fn abort(a: i32, b: i32, c: i32, d: i32) -> i32 {
         panic!("abort");
     }
