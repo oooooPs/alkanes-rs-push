@@ -3,7 +3,7 @@ use alkanes_support::context::Context;
 #[cfg(feature = "test-utils")]
 use wasm_bindgen::prelude::*;
 
-//#[cfg(not(feature = "test-utils"))]
+#[cfg(not(feature = "test-utils"))]
 #[link(wasm_import_module = "env")]
 extern "C" {
     pub fn abort(a: i32, b: i32, c: i32, d: i32);
@@ -34,16 +34,6 @@ extern "C" {
         checkpoint: i32,
         start_fuel: u64,
     ) -> i32;
-    /*
-    pub fn __load_output(
-      outpoint: i32,
-      output: i32
-    ) -> i32;
-    pub fn __request_output(
-      outpoint: i32
-    ) -> i32;
-    */
-
 }
 
 #[cfg(feature = "test-utils")]
@@ -66,7 +56,7 @@ mod exports {
         alkanes_support::context::Context,
         metashrew_support::{compat::to_passback_ptr, utils::ptr_to_vec},
     };
-    pub fn abort() -> i32 {
+    pub fn abort(a: i32, b: i32, c: i32, d: i32) -> i32 {
         panic!("abort");
     }
     pub fn __load_storage(k: i32, v: i32) -> i32 {
