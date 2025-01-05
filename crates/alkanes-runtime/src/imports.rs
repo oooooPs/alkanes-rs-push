@@ -47,6 +47,9 @@ pub mod externs {
 }
 
 #[cfg(feature = "test-utils")]
+#[cfg(feature = "test-utils")]
+pub use exports::*;
+
 pub static mut _CONTEXT: Option<Context> = None;
 
 #[cfg(feature = "test-utils")]
