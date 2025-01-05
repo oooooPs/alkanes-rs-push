@@ -315,3 +315,36 @@ mod tests {
         assert_eq!(1000 as u128, stored_balance);
     }
 }
+
+/* ORDINALS TESTS:
+    * etching cannot specify reserved rune
+    * reserved runes may be etched
+    * etching with non zero divisibility and rune
+    * alloctions over max supply are ignored
+    * allocations partially over max supply are honored
+    * etching may allocate less than max supply
+    * etching may allocate to multiple outputs
+    * allocations to invalid outputs produce cenotaph
+    * input runes may be allocated
+    * etched rune is allocated with zero supply for cenotaph
+    * etched rune parameters are unset for cenotaph
+    * reserved runes are not allocated in cenotaph
+    * input runes are burned if an unrecognized even tag is encountered
+    * duplicate runes are forbidden ?
+    * omitted edicts default to mint amount
+    * premines can claim over mint amount
+    * multiple edicts can claim open mint
+    * commits are not valid in non taproot witnesses
+    * immature commits are not valid
+    * immature commits are not valid even when bitcoind is ahead
+    * etchings are not valid without commitment
+    * tx commits to rune ignores invalid script
+
+
+    TODO:
+    - check if we test for using allocations (edict with a 0 amount uses all the input allocation)
+    - check if multicast works correctly (if theres 4 multicast outputs, and the number isnt evenly divisible by 4, the first x outputs get more runes)
+    - open mints without a cap are unmintable
+    - mints can use multicast
+    -
+*/
