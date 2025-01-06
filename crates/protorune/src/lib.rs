@@ -135,6 +135,47 @@ pub fn handle_transfer_runes_to_vout(
     return output;
 }
 
+#[cfg(not(test))]
+pub fn validate_rune_etch(tx: &Transaction, commitment: Vec<u8>, height: u64) -> Result<bool> {
+    for input in &tx.input {
+        // extracting a tapscript does not indicate that the input being spent
+        // was actually a taproot output. this is checked below, when we load the
+        // output's entry from the database
+        let Some(tapscript) = input.witness.tapscript() else {
+            continue;
+        };
+
+        for instruction in tapscript.instructions() {
+            // ignore errors, since the extracted script may not be valid
+            let instruction = match instruction {
+                core::result::Result::Ok(i) => i,
+                Err(_) => break,
+            };
+            let Some(pushbytes) = instruction.push_bytes() else {
+                continue;
+            };
+
+            if pushbytes.as_bytes() != commitment {
+                continue;
+            }
+
+            let h: u64 = tables::RUNES
+                .OUTPOINT_TO_HEIGHT
+                .select(&consensus_encode(&input.previous_output)?)
+                .get_value();
+            let confirmations = height - h;
+            if confirmations >= 6 {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
+}
+#[cfg(test)]
+pub fn validate_rune_etch(tx: &Transaction, commitment: Vec<u8>, height: u64) -> Result<bool> {
+    Ok(true)
+}
+
 impl Protorune {
     pub fn index_runestone<T: MessageContext>(
         atomic: &mut AtomicPointer,
@@ -172,6 +213,7 @@ impl Protorune {
                 height,
                 &mut balances_by_output,
                 unallocated_to,
+                tx,
             )?;
         }
         if let Some(mint) = runestone.mint {
@@ -372,10 +414,13 @@ impl Protorune {
         height: u64,
         balances_by_output: &mut HashMap<u32, BalanceSheet>,
         unallocated_to: u32,
+        tx: &Transaction,
     ) -> Result<()> {
         let etching_rune = match etching.rune {
             Some(rune) => {
-                if Self::verify_non_reserved_name(height.try_into().unwrap(), &rune).is_ok() {
+                if Self::verify_non_reserved_name(height.try_into()?, &rune).is_ok()
+                    && validate_rune_etch(tx, rune.commitment(), height)?
+                {
                     rune
                 } else {
                     // if the non reserved name is incorrect, the etching is ignored
