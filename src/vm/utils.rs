@@ -111,7 +111,6 @@ pub fn run_special_cellpacks(
         binary = Arc::new(decompress(wasm_payload.clone().as_ref().clone())?);
     } else if let Some(factory) = cellpack.target.factory() {
         payload.target = AlkaneId::new(2, next_sequence);
-        println!("deploying factory build to seq: {}", next_sequence);
         next_sequence_pointer.set_value(next_sequence + 1);
         let context_binary: Vec<u8> = context
             .lock()

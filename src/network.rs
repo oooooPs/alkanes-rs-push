@@ -129,11 +129,15 @@ pub fn get_view_mode() -> bool {
 pub fn is_genesis(height: u64) -> bool {
     let mut init_ptr = IndexPointer::from_keyword("/seen-genesis");
     let has_not_seen_genesis = init_ptr.get().len() == 0;
-    if has_not_seen_genesis {
+    let is_genesis = if has_not_seen_genesis {
         get_view_mode() || height >= genesis::GENESIS_BLOCK
     } else {
         false
+    };
+    if is_genesis {
+        init_ptr.set_value::<u8>(0x01);
     }
+    is_genesis
 }
 
 pub fn genesis(block: &Block) -> Result<()> {

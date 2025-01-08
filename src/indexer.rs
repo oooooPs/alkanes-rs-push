@@ -70,7 +70,6 @@ pub fn configure_network() {
 pub fn index_block(block: &Block, height: u32) -> Result<()> {
     configure_network();
     let really_is_genesis = is_genesis(height.into());
-    println!("genesis: {}", really_is_genesis);
     if really_is_genesis {
         genesis(&block).unwrap();
     }
