@@ -1,5 +1,5 @@
 use crate::indexer::configure_network;
-use crate::view::{parcel_from_protobuf, simulate_parcel};
+use crate::view::{parcel_from_protobuf, simulate_safe, simulate_parcel};
 use alkanes_support::proto;
 use bitcoin::{Block, OutPoint};
 #[allow(unused_imports)]
@@ -34,7 +34,7 @@ pub fn simulate() -> i32 {
     let _height = u32::from_le_bytes((&data[0..4]).try_into().unwrap());
     let reader = &data[4..];
     let mut result: proto::alkanes::SimulateResponse = proto::alkanes::SimulateResponse::new();
-    match simulate_parcel(
+    match simulate_safe(
         &parcel_from_protobuf(
             proto::alkanes::MessageContextParcel::parse_from_bytes(reader).unwrap(),
         ),

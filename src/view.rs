@@ -4,6 +4,7 @@ use crate::utils::{
     alkane_inventory_pointer, balance_pointer, credit_balances, debit_balances, pipe_storagemap_to,
 };
 use crate::vm::runtime::AlkanesRuntimeContext;
+use crate::network::set_view_mode;
 use crate::vm::utils::{prepare_context, run_after_special, run_special_cellpacks};
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::id::AlkaneId;
@@ -273,6 +274,14 @@ pub fn trace(outpoint: &OutPoint) -> Result<Vec<u8>> {
         .get()
         .as_ref()
         .clone())
+}
+
+pub fn simulate_safe(
+  parcel: &MessageContextParcel,
+  fuel: u64
+) -> Result<(ExtendedCallResponse, u64)> {
+  set_view_mode();
+  simulate_parcel(parcel, fuel)
 }
 
 pub fn simulate_parcel(

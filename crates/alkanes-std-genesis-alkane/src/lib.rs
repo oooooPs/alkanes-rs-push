@@ -28,7 +28,7 @@ impl Token for GenesisAlkane {
 }
 
 //use if regtest
-#[cfg(not(all(
+#[cfg(not(any(
     feature = "mainnet",
     feature = "dogecoin",
     feature = "bellscoin",

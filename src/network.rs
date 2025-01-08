@@ -114,9 +114,21 @@ pub fn is_active(height: u64) -> bool {
     height >= genesis::GENESIS_BLOCK
 }
 
+static mut _VIEW: bool = false;
+
+pub fn set_view_mode() {
+  unsafe {
+    _VIEW = true;
+  }
+}
+
+pub fn get_view_mode() -> bool {
+  unsafe { _VIEW }
+}
+
 pub fn is_genesis(height: u64) -> bool {
     let mut init_ptr = IndexPointer::from_keyword("/seen-genesis");
-    if height >= genesis::GENESIS_BLOCK && init_ptr.get().len() == 0 {
+    if !get_view_mode() && height >= genesis::GENESIS_BLOCK && init_ptr.get().len() == 0 {
         init_ptr.set_value::<u8>(0x01);
         true
     } else {
