@@ -3,6 +3,11 @@ use crate::network::{genesis, is_genesis};
 use crate::vm::fuel::FuelTank;
 use anyhow::Result;
 use bitcoin::blockdata::block::Block;
+#[allow(unused_imports)]
+use metashrew::{
+    println,
+    stdio::{stdout, Write},
+};
 use protorune::Protorune;
 use protorune_support::network::{set_network, NetworkParams};
 
@@ -64,7 +69,9 @@ pub fn configure_network() {
 
 pub fn index_block(block: &Block, height: u32) -> Result<()> {
     configure_network();
-    if is_genesis(height.into()) {
+    let really_is_genesis = is_genesis(height.into());
+    println!("genesis: {}", really_is_genesis);
+    if really_is_genesis {
         genesis(&block).unwrap();
     }
     FuelTank::initialize(&block);

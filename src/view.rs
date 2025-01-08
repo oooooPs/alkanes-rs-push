@@ -1,10 +1,10 @@
 use crate::message::AlkaneMessageContext;
+use crate::network::set_view_mode;
 use crate::tables::TRACES;
 use crate::utils::{
     alkane_inventory_pointer, balance_pointer, credit_balances, debit_balances, pipe_storagemap_to,
 };
 use crate::vm::runtime::AlkanesRuntimeContext;
-use crate::network::set_view_mode;
 use crate::vm::utils::{prepare_context, run_after_special, run_special_cellpacks};
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::id::AlkaneId;
@@ -277,19 +277,20 @@ pub fn trace(outpoint: &OutPoint) -> Result<Vec<u8>> {
 }
 
 pub fn simulate_safe(
-  parcel: &MessageContextParcel,
-  fuel: u64
+    parcel: &MessageContextParcel,
+    fuel: u64,
 ) -> Result<(ExtendedCallResponse, u64)> {
-  set_view_mode();
-  simulate_parcel(parcel, fuel)
+    set_view_mode();
+    simulate_parcel(parcel, fuel)
 }
 
 pub fn simulate_parcel(
     parcel: &MessageContextParcel,
     fuel: u64,
 ) -> Result<(ExtendedCallResponse, u64)> {
-    let cellpack: Cellpack =
-        decode_varint_list(&mut Cursor::new(parcel.calldata.clone()))?.try_into()?;
+    let list = decode_varint_list(&mut Cursor::new(parcel.calldata.clone()))?;
+    let cellpack: Cellpack = list.clone().try_into()?;
+    println!("{:?}, {:?}", list, cellpack);
     let context = Arc::new(Mutex::new(AlkanesRuntimeContext::from_parcel_and_cellpack(
         parcel, &cellpack,
     )));

@@ -88,11 +88,10 @@ pub trait MintableToken {
     }
     fn set_data(&self) -> Result<()> {
         let tx = consensus_decode::<Transaction>(&mut std::io::Cursor::new(CONTEXT.transaction()))?;
-        self.data_pointer().set(Arc::new(
-            find_witness_payload(&tx, 0)
-                .ok_or("")
-                .map_err(|_| anyhow!("witness envelope at index 0 does not contain data"))?,
-        ));
+        self.data_pointer()
+            .set(Arc::new(find_witness_payload(&tx, 0).ok_or_else(|| {
+                anyhow!("owned-token-factory: witness envelope at index 0 does not contain data")
+            })?));
         Ok(())
     }
     fn observe_initialization(&self) -> Result<()> {
