@@ -268,6 +268,107 @@ mod tests {
         assert_eq!(name, "AAAAAAAAAAAAAAAAZOMKALPTKDC");
     }
 
+    /// Checks that reusing the same name works
+    #[wasm_bindgen_test]
+    fn rune_name_test_reserved_name_taken() {
+        clear();
+
+        let block_height = 840000;
+        // tx0 etches to address 1
+        let tx0 = helpers::create_tx_from_runestone(
+            Runestone {
+                etching: Some(Etching {
+                    divisibility: Some(2),
+                    premine: Some(1000),
+                    rune: Some(Rune::from_str("AAAAAAAAAAAAATESTER").unwrap()),
+                    spacers: Some(0),
+                    symbol: Some('A'),
+                    turbo: true,
+                    terms: None,
+                }),
+                pointer: Some(0),
+                edicts: Vec::new(),
+                mint: None,
+                protocol: None,
+            },
+            vec![helpers::get_mock_txin(0)],
+            vec![helpers::get_txout_transfer_to_address(
+                &ADDRESS1().as_str().into(),
+                100_000_000,
+            )],
+        );
+
+        // tx0 etches to address 2
+        let tx1 = helpers::create_tx_from_runestone(
+            Runestone {
+                etching: Some(Etching {
+                    divisibility: Some(2),
+                    premine: Some(1000),
+                    rune: Some(Rune::from_str("AAAAAAAAAAAAATESTER").unwrap()),
+                    spacers: Some(0),
+                    symbol: Some('A'),
+                    turbo: true,
+                    terms: None,
+                }),
+                pointer: Some(0),
+                edicts: Vec::new(),
+                mint: None,
+                protocol: None,
+            },
+            vec![helpers::get_mock_txin(0)],
+            vec![helpers::get_txout_transfer_to_address(
+                &ADDRESS2().as_str().into(),
+                100_000_000,
+            )],
+        );
+
+        let block = helpers::create_block_with_txs(vec![tx0, tx1]);
+        let _ = Protorune::index_block::<MyMessageContext>(block.clone(), block_height);
+
+        // assert rune exists
+        let req: Vec<u8> = (RunesByHeightRequest {
+            height: block_height,
+            special_fields: SpecialFields::new(),
+        })
+        .write_to_bytes()
+        .unwrap();
+        let test_val = view::runes_by_height(&req).unwrap();
+        let runes: Vec<RuneProto> = test_val.clone().runes;
+        assert_eq!(runes.len(), 1);
+        let symbol = runes[0].symbol.clone();
+        let name = runes[0].name.clone();
+        // default symbol as described in spec
+        assert_eq!(symbol, "A");
+        // default allocated name
+        assert_eq!(name, "AAAAAAAAAAAAATESTER");
+
+        // assert address 1 has the runes
+        let stored_balance_address1 = helpers::get_rune_balance_by_outpoint(
+            OutPoint {
+                txid: block.txdata[0].compute_txid(),
+                vout: 0,
+            },
+            vec![RuneId {
+                block: block_height,
+                tx: 0,
+            }
+            .into()],
+        );
+        let stored_balance_address2 = helpers::get_rune_balance_by_outpoint(
+            OutPoint {
+                txid: block.txdata[1].compute_txid(),
+                vout: 0,
+            },
+            vec![RuneId {
+                block: block_height,
+                tx: 1,
+            }
+            .into()],
+        );
+        assert_eq!(stored_balance_address1[0], 1000);
+        assert_eq!(stored_balance_address2[0], 0);
+    }
+
     #[wasm_bindgen_test]
     fn index_runestone() {
         clear();

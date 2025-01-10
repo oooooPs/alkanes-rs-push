@@ -172,6 +172,8 @@ mod tests {
             }
 
             if mint.is_some() {
+                // runes that are not able to be deciphered do not count against cap
+                // official code follows this convention. weird but we have to follow convention
                 assert_mints_remaining(mint.unwrap().into(), 2);
             }
             // test etched rune has supply 0 and is unmintable
