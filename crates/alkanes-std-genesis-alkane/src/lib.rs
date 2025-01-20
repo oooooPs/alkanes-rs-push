@@ -56,13 +56,13 @@ impl ChainConfiguration for GenesisAlkane {
         return (50e8 as u128) / (1u128 << ((n as u128) / 210000u128));
     }
     fn genesis_block(&self) -> u64 {
-        840000
+        800000
     }
     fn average_payout_from_genesis(&self) -> u128 {
-        312500000
+        468750000
     }
     fn total_supply(&self) -> u128 {
-        131250000000000
+        156250000000000
     }
 }
 
