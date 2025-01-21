@@ -20,14 +20,16 @@ use std::sync::{Arc, Mutex};
 use wasmi::*;
 
 pub fn read_arraybuffer(data: &[u8], data_start: i32) -> Result<Vec<u8>> {
-    if data_start < 4 {
-        return Err(anyhow::anyhow!("memory error"));
-    }
-    let len =
-        u32::from_le_bytes((data[((data_start - 4) as usize)..(data_start as usize)]).try_into()?);
-    return Ok(Vec::<u8>::from(
-        &data[(data_start as usize)..(((data_start as u32) + len) as usize)],
-    ));
+    let start = data_start.try_into().map_err(|_| anyhow!("invalid start offset"))?;
+    let len_bytes = data.get(start - 4..start)
+        .ok_or_else(|| anyhow!("failed to read length prefix"))?;
+    let len: usize = u32::from_le_bytes(len_bytes.try_into()?)
+        .try_into()
+        .map_err(|_| anyhow!("invalid length"))?;
+    
+    Ok(data.get(start..start + len)
+        .ok_or_else(|| anyhow!("invalid buffer range"))?
+        .to_vec())
 }
 
 pub fn get_memory<'a>(caller: &mut Caller<'_, AlkanesState>) -> Result<Memory> {

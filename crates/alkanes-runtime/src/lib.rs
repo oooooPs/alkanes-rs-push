@@ -16,7 +16,7 @@ macro_rules! declare_alkane {
         #[no_mangle]
         pub extern "C" fn __execute() -> i32 {
             let mut response = to_arraybuffer_layout(&$struct_name::default().run());
-            to_passback_ptr(&mut response)
+	    Box::leak(Box::new(response)).as_mut_ptr() as usize as i32 + 4
         }
     };
 }
