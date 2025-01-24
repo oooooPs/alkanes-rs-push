@@ -61,3 +61,10 @@ fn test_genesis() -> Result<()> {
     println!("balances at end {:?}", sheet);
     Ok(())
 }
+
+#[wasm_bindgen_test]
+fn test_genesis_alkane_key() -> Result<()> {
+  println!("{}", (IndexPointer::from_keyword("/alkanes/").select(&(AlkaneId { tx: 2, block: 0 }).into()).get().as_ref().len()));
+  println!("key: {}", hex::encode(IndexPointer::from_keyword("/alkanes/").select(&(AlkaneId { tx: 2, block: 0 }).into()).unwrap().as_ref().clone()));
+  Ok(())
+}
