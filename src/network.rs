@@ -24,6 +24,12 @@ use protorune_support::balance_sheet::BalanceSheet;
 use protorune_support::utils::outpoint_encode;
 use std::sync::Arc;
 
+#[allow(unused_imports)]
+use {
+  metashrew::{println, stdio::{stdout}},
+  std::fmt::{Write}
+};
+
 #[cfg(feature = "mainnet")]
 pub fn genesis_alkane_bytes() -> Vec<u8> {
     alkanes_std_genesis_alkane_mainnet_build::get_bytes()
@@ -72,7 +78,7 @@ pub fn genesis_alkane_bytes() -> Vec<u8> {
 pub mod genesis {
     pub const GENESIS_BLOCK: u64 = 0;
     pub const GENESIS_OUTPOINT: &str =
-        "cf2b52ffaaf1c094df22f190b888fb0e474fe62990547a34e144ec9f8e135b07";
+        "3977b30a97c9b9d609afb4b7cc138e17b21d1e0c5e360d25debf1441de933bf4";
 }
 
 #[cfg(feature = "mainnet")]
@@ -170,7 +176,13 @@ pub fn genesis(block: &Block) -> Result<()> {
         vout: 0,
         runtime_balances: Box::<BalanceSheet>::new(BalanceSheet::default()),
     };
-    let (response, _gas_used) = simulate_parcel(&parcel, u64::MAX)?;
+    let (response, _gas_used) = (match simulate_parcel(&parcel, u64::MAX) {
+      Ok((a, b)) => Ok((a, b)),
+      Err(e) => {
+        println!("{:?}", e);
+        Err(e)
+      }
+    })?;
     <AlkaneTransferParcel as Into<BalanceSheet>>::into(response.alkanes.into()).save(
         &mut atomic.derive(
             &RuneTable::for_protocol(AlkaneMessageContext::protocol_tag())
