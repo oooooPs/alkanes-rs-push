@@ -205,7 +205,7 @@ impl AlkaneResponder for GenesisAlkane {
                     id: context.myself.clone(),
                     value: premine,
                 });
-                self.increase_totalsupply(premine)?;
+                self.increase_total_supply(premine)?;
             }
             77 => {
                 response.alkanes.0.push(self.mint(&context)?);

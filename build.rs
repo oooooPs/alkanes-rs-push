@@ -152,19 +152,8 @@ fn main() {
                             .join(format!("{}_{}.wasm.gz", subbed, network)),
                         &compressed
                     )?;
-
-                    // Create hex literal file
-                    let data: String = hex::encode(&f);
-                    let build_content = format!(
-                        "use hex_lit::hex;\n#[allow(long_running_const_eval)]\npub fn get_bytes() -> Vec<u8> {{ (&hex!(\"{}\")).to_vec() }}",
-                        data
-                    );
                     
                     // Write network-specific build file
-                    fs::write(
-                        &precompiled_dir.join(format!("{}_{}_build.rs", subbed, network)),
-                        build_content,
-                    )?;
                 }
 
                 // Also build for the default feature set
