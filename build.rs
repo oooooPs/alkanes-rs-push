@@ -116,26 +116,63 @@ fn main() {
         .map(|v| -> Result<String> {
             std::env::set_current_dir(&crates_dir.clone().join(v.clone()))?;
             if v == "alkanes-std-genesis-alkane" {
-              if let Some(_) = env::var("CARGO_FEATURE_REGTEST").ok() {
+                let precompiled_dir = write_dir.join("precompiled");
+                fs::create_dir_all(&precompiled_dir)?;
+
+                // Build and process for each network
+                let networks = vec![
+                    ("bellscoin", vec!["bellscoin"]),
+                    ("luckycoin", vec!["luckycoin"]),
+                    ("mainnet", vec!["mainnet"]),
+                    ("fractal", vec!["fractal"]),
+                    ("regtest", vec!["regtest"]),
+                    ("testnet", vec!["regtest"]), // testnet uses regtest features
+                ];
+
+                for (network, features) in networks {
+                    // Build with specific features
+                    build_alkane(wasm_str, features)?;
+                   
+                    let subbed = v.clone().replace("-", "_");
+                    
+                    // Read the built wasm
+                    let f: Vec<u8> = fs::read(
+                        &Path::new(&wasm_str)
+                            .join("wasm32-unknown-unknown")
+                            .join("release")
+                            .join(subbed.clone() + ".wasm"),
+                    )?;
+
+                    // Compress
+                    let compressed: Vec<u8> = compress(f.clone())?;
+                    fs::write(
+                        &Path::new(&wasm_str)
+                            .join("wasm32-unknown-unknown")
+                            .join("release")
+                            .join(format!("{}_{}.wasm.gz", subbed, network)),
+                        &compressed
+                    )?;
+
+                    // Create hex literal file
+                    let data: String = hex::encode(&f);
+                    let build_content = format!(
+                        "use hex_lit::hex;\n#[allow(long_running_const_eval)]\npub fn get_bytes() -> Vec<u8> {{ (&hex!(\"{}\")).to_vec() }}",
+                        data
+                    );
+                    
+                    // Write network-specific build file
+                    fs::write(
+                        &precompiled_dir.join(format!("{}_{}_build.rs", subbed, network)),
+                        build_content,
+                    )?;
+                }
+
+                // Also build for the default feature set
                 build_alkane(wasm_str, vec!["regtest"])?;
-              } else if let Some(_) = env::var("CARGO_FEATURE_MAINNET").ok() {
-                build_alkane(wasm_str, vec!["mainnet"])?;
-              } else if let Some(_) = env::var("CARGO_FEATURE_TESTNET").ok() {
-                build_alkane(wasm_str, vec!["regtest"])?;
-              } else if let Some(_) = env::var("CARGO_FEATURE_DOGECOIN").ok() {
-                build_alkane(wasm_str, vec!["dogecoin"])?;
-              } else if let Some(_) = env::var("CARGO_FEATURE_FRACTAL").ok() {
-                build_alkane(wasm_str, vec!["fractal"])?;
-              } else if let Some(_) = env::var("CARGO_FEATURE_LUCKYCOIN").ok() {
-                build_alkane(wasm_str, vec!["luckycoin"])?;
-              } else if let Some(_) = env::var("CARGO_FEATURE_BELLSCOIN").ok() {
-                build_alkane(wasm_str, vec!["bellscoin"])?;
-              } else {
-                build_alkane(wasm_str, vec!["regtest"])?;
-              }
             } else {
-              build_alkane(wasm_str, vec![])?;
+                build_alkane(wasm_str, vec![])?;
             }
+
             std::env::set_current_dir(&crates_dir)?;
             let subbed = v.clone().replace("-", "_");
             eprintln!(
@@ -184,6 +221,20 @@ fn main() {
             .to_str()
             .unwrap()
     );
+    let mut mod_content = mods.clone().into_iter()
+        .map(|v| v.replace("-", "_"))
+        .fold(String::default(), |r, v| {
+            r + "pub mod " + v.as_str() + "_build;\n"
+        });
+
+    // Add precompiled modules for genesis-alkane
+    let networks = ["bellscoin", "luckycoin", "mainnet", "fractal", "regtest", "testnet"];
+    let genesis_base = "alkanes_std_genesis_alkane";
+    for network in networks {
+        mod_content.push_str(&format!("pub mod {}_{}_build;\n", genesis_base, network));
+    }
+
+    fs::write(&write_dir.join("std").join("mod.rs"), mod_content).unwrap();
     fs::write(
         &write_dir.join("std").join("mod.rs"),
         mods.into_iter()
