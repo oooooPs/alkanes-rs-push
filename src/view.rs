@@ -15,6 +15,7 @@ use alkanes_support::response::ExtendedCallResponse;
 use anyhow::Result;
 use bitcoin::blockdata::transaction::Version;
 use bitcoin::hashes::Hash;
+use protorune::balance_sheet::{MintableDebit};
 use bitcoin::{
     blockdata::block::Header, Block, BlockHash, CompactTarget, OutPoint, Transaction, TxMerkleNode,
 };
@@ -306,7 +307,7 @@ pub fn simulate_parcel(
     let mut combined = parcel.runtime_balances.as_ref().clone();
     <BalanceSheet as From<Vec<RuneTransfer>>>::from(parcel.runes.clone()).pipe(&mut combined);
     let sheet = <BalanceSheet as From<Vec<RuneTransfer>>>::from(response.alkanes.clone().into());
-    combined.debit(&sheet)?;
+    combined.debit_mintable(&sheet, &mut atomic)?;
     debit_balances(&mut atomic, &myself, &response.alkanes)?;
     Ok((response, gas_used))
 }
