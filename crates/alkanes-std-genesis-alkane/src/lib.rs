@@ -45,7 +45,7 @@ impl ChainConfiguration for GenesisAlkane {
     fn average_payout_from_genesis(&self) -> u128 {
         50_000_000
     }
-    fn total_supply(&self) -> u128 {
+    fn max_supply(&self) -> u128 {
         131250000000000
     }
 }
@@ -61,7 +61,7 @@ impl ChainConfiguration for GenesisAlkane {
     fn average_payout_from_genesis(&self) -> u128 {
         468750000
     }
-    fn total_supply(&self) -> u128 {
+    fn max_supply(&self) -> u128 {
         156250000000000
     }
 }
@@ -77,7 +77,7 @@ impl ChainConfiguration for GenesisAlkane {
     fn average_payout_from_genesis(&self) -> u128 {
         1_000_000_000_000u128
     }
-    fn total_supply(&self) -> u128 {
+    fn max_supply(&self) -> u128 {
         4_000_000_000_000_000_000u128
     }
 }
@@ -93,7 +93,7 @@ impl ChainConfiguration for GenesisAlkane {
     fn average_payout_from_genesis(&self) -> u128 {
         2_500_000_000
     }
-    fn total_supply(&self) -> u128 {
+    fn max_supply(&self) -> u128 {
         21_000_000_000_000_000
     }
 }
@@ -109,7 +109,7 @@ impl ChainConfiguration for GenesisAlkane {
     fn average_payout_from_genesis(&self) -> u128 {
         1_000_000_000
     }
-    fn total_supply(&self) -> u128 {
+    fn max_supply(&self) -> u128 {
         20e14
     }
 }
@@ -125,7 +125,7 @@ impl ChainConfiguration for GenesisAlkane {
     fn average_payout_from_genesis(&self) -> u128 {
         1_000_000_000
     }
-    fn total_supply(&self) -> u128 {
+    fn max_supply(&self) -> u128 {
         20e14
     }
 }
@@ -171,7 +171,7 @@ impl GenesisAlkane {
         let value = self.current_block_reward();
         let mut total_supply_pointer = self.total_supply_pointer();
         let total_supply = total_supply_pointer.get_value::<u128>();
-        if total_supply >= self.total_supply() {
+        if total_supply >= self.max_supply() {
             return Err(anyhow!("total supply has been reached"));
         }
         total_supply_pointer.set_value::<u128>(total_supply + value);
@@ -205,7 +205,7 @@ impl AlkaneResponder for GenesisAlkane {
                     id: context.myself.clone(),
                     value: premine,
                 });
-                self.increase_total_supply(premine)?;
+                self.increase_totalsupply(premine)?;
             }
             77 => {
                 response.alkanes.0.push(self.mint(&context)?);
