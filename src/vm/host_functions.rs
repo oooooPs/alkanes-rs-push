@@ -369,28 +369,36 @@ impl AlkanesHostFunctionsImpl {
                 run_special_cellpacks(caller.data_mut().context.clone(), &cellpack)?;
 
             // Re-acquire lock for state updates
-            let mut context_guard = caller.data_mut().context.lock().unwrap();
-            pipe_storagemap_to(
-                &storage_map,
-                &mut context_guard.message.atomic.derive(
-                    &IndexPointer::from_keyword("/alkanes/").select(&myself.clone().into()),
-                ),
-            );
+            let transfer_error = {
+                let mut context_guard = caller.data_mut().context.lock().unwrap();
+                pipe_storagemap_to(
+                    &storage_map,
+                    &mut context_guard.message.atomic.derive(
+                        &IndexPointer::from_keyword("/alkanes/").select(&myself.clone().into()),
+                    ),
+                );
 
-            if let Err(_) = transfer_from(
-                &incoming_alkanes,
-                &mut context_guard
-                    .message
-                    .atomic
-                    .derive(&IndexPointer::default()),
-                &myself,
-                &submyself,
-            ) {
-                context_guard.message.atomic.rollback();
-                context_guard.returndata = Vec::<u8>::new();
+                let _transfer_error = transfer_from(
+                    &incoming_alkanes,
+                    &mut context_guard
+                        .message
+                        .atomic
+                        .derive(&IndexPointer::default()),
+                    &myself,
+                    &submyself,
+                )
+                .is_err();
+                if _transfer_error {
+                    context_guard.message.atomic.rollback();
+                    context_guard.returndata = Vec::<u8>::new();
+                }
+                _transfer_error
+            };
+            if transfer_error {
                 Self::restore_context(caller);
                 return Ok(0);
             }
+            let mut context_guard = caller.data_mut().context.lock().unwrap();
 
             // Create subcontext
             let mut subbed = context_guard.clone();
@@ -431,7 +439,7 @@ impl AlkanesHostFunctionsImpl {
                     context_guard
                         .trace
                         .clock(TraceEvent::ReturnContext(return_context));
-                    let serialized = CallResponse::from(response).serialize();
+                    let serialized = CallResponse::from(response.into()).serialize();
                     context_guard.returndata = serialized.clone();
                     T::handle_atomic(&mut context_guard.message.atomic);
                     serialized.len() as i32
