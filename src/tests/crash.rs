@@ -31,9 +31,17 @@ fn test_owned_token_mint_crash() -> Result<()> {
         inputs: vec![100],
     };
 
+    let owned_token_factory_cellpack = Cellpack {
+        target: AlkaneId {
+            block: 3,
+            tx: 1,
+        },
+        inputs: vec![100],
+    };
+
     // Deploy and initialize owned token
     let owned_token_cellpack = Cellpack {
-        target: AlkaneId { block: 1, tx: 0 },
+        target: AlkaneId { block: 6, tx: 1 },
         inputs: vec![
             0,    // opcode (initialize)
             1,    // auth_token units
@@ -56,7 +64,7 @@ fn test_owned_token_mint_crash() -> Result<()> {
             alkanes_std_owned_token_build::get_bytes(),
         ]
         .into(),
-        [auth_factory_cellpack, owned_token_cellpack, mint_cellpack.clone()].into(),
+        [auth_factory_cellpack, owned_token_factory_cellpack, owned_token_cellpack, mint_cellpack.clone()].into(),
     );
 
     println!("Indexing initial deployment block...");
