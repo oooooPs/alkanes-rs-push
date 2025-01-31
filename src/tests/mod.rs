@@ -12,6 +12,8 @@ pub mod alkane;
 #[cfg(test)]
 pub mod auth_token;
 #[cfg(test)]
+pub mod crash;
+#[cfg(test)]
 pub mod genesis;
 #[cfg(test)]
 pub mod networks;
