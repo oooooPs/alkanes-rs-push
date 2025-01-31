@@ -28,6 +28,7 @@ impl AlkaneResponder for OwnedToken {
         match shift_or_err(&mut inputs)? {
             0 => {
                 self.observe_initialization()?;
+                println!("owned token initializing");
                 let auth_token_units = shift_or_err(&mut inputs)?;
                 let token_units = shift_or_err(&mut inputs)?;
                 response
@@ -41,6 +42,7 @@ impl AlkaneResponder for OwnedToken {
                 Ok(response)
             }
             77 => {
+                println!("owned token minting");
                 self.only_owner()?;
                 let token_units = shift_or_err(&mut inputs)?;
                 let transfer = self.mint(&context, token_units)?;

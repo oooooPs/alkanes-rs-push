@@ -31,17 +31,9 @@ fn test_owned_token_mint_crash() -> Result<()> {
         inputs: vec![100],
     };
 
-    let owned_token_factory_cellpack = Cellpack {
-        target: AlkaneId {
-            block: 3,
-            tx: 1,
-        },
-        inputs: vec![100],
-    };
-
     // Deploy and initialize owned token
     let owned_token_cellpack = Cellpack {
-        target: AlkaneId { block: 6, tx: 1 },
+        target: AlkaneId { block: 1, tx: 0 },
         inputs: vec![
             0,    // opcode (initialize)
             1,    // auth_token units
@@ -64,14 +56,16 @@ fn test_owned_token_mint_crash() -> Result<()> {
             alkanes_std_owned_token_build::get_bytes(),
         ]
         .into(),
-        [auth_factory_cellpack, owned_token_factory_cellpack, owned_token_cellpack, mint_cellpack.clone()].into(),
+        [auth_factory_cellpack, owned_token_cellpack].into(),
     );
 
-    println!("Indexing initial deployment block...");
+    println!("STEP 1: Indexing initial deployment block...");
     index_block(&test_block, block_height)?;
+    println!("STEP 1: Initial deployment block indexed successfully");
 
     let owned_token_id = AlkaneId { block: 2, tx: 1 };
     let auth_token_id = AlkaneId { block: 2, tx: 2 };
+    println!("STEP 2: Created token IDs: owned={:?}, auth={:?}", owned_token_id, auth_token_id);
 
     // Verify initial state
     let tx = test_block.txdata.last().ok_or(anyhow!("no last el"))?;
@@ -79,30 +73,50 @@ fn test_owned_token_mint_crash() -> Result<()> {
         txid: tx.compute_txid(),
         vout: 0,
     };
+    println!("STEP 3: Got outpoint: {:?}", outpoint);
 
-    println!("Loading initial balance sheet...");
+    println!("STEP 4: Loading initial balance sheet...");
     let sheet = load_sheet(
         &RuneTable::for_protocol(AlkaneMessageContext::protocol_tag())
             .OUTPOINT_TO_RUNES
             .select(&consensus_encode(&outpoint)?),
     );
+    println!("STEP 4: Balance sheet loaded successfully");
 
     // Verify initial balances
-    assert_eq!(sheet.get(&owned_token_id.into()), 1000, "Initial token balance incorrect");
-    assert_eq!(sheet.get(&auth_token_id.into()), 1, "Auth token balance incorrect");
+    let owned_balance = sheet.get(&owned_token_id.into());
+    let auth_balance = sheet.get(&auth_token_id.into());
+    println!("STEP 5: Initial balances - owned: {}, auth: {}", owned_balance, auth_balance);
+    assert_eq!(owned_balance, 1000, "Initial token balance incorrect");
+    assert_eq!(auth_balance, 1, "Auth token balance incorrect");
 
-    println!("Attempting mint operation that should crash indexer...");
-    
-    // This should trigger the indexer crash
+    println!("STEP 6: Creating mint block...");
     let mint_block = alkane_helpers::init_with_multiple_cellpacks(
         alkanes_std_owned_token_build::get_bytes(),
         vec![mint_cellpack.clone()],
     );
+    println!("STEP 6: Mint block created successfully");
 
+    println!("STEP 7: About to index mint block...");
+   
     index_block(&mint_block, block_height + 1)?;
+    println!("STEP 8: Mint block indexed successfully");
 
-    // We shouldn't reach here if the crash occurs as expected
-    println!("Warning: Expected indexer crash did not occur");
+    // Get the mint transaction info
+    println!("STEP 9: Checking mint transaction state...");
+    let mint_tx = mint_block.txdata.last().ok_or(anyhow!("no mint tx"))?;
+    let mint_outpoint = OutPoint {
+        txid: mint_tx.compute_txid(),
+        vout: 0,
+    };
+    let mint_sheet = load_sheet(
+        &RuneTable::for_protocol(AlkaneMessageContext::protocol_tag())
+            .OUTPOINT_TO_RUNES
+            .select(&consensus_encode(&mint_outpoint)?),
+    );
+    println!("STEP 10: Mint state - txid: {}, balances: {:?}", mint_tx.compute_txid(), mint_sheet.balances);
+
+    println!("Test completed successfully - no crash occurred");
 
     Ok(())
 }
