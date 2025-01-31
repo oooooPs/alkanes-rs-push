@@ -210,14 +210,23 @@ fn main() {
             .to_str()
             .unwrap()
     );
-    let mut mod_content = mods.clone().into_iter()
+    let mut mod_content = mods
+        .clone()
+        .into_iter()
         .map(|v| v.replace("-", "_"))
         .fold(String::default(), |r, v| {
             r + "pub mod " + v.as_str() + "_build;\n"
         });
 
     // Add precompiled modules for genesis-alkane
-    let networks = ["bellscoin", "luckycoin", "mainnet", "fractal", "regtest", "testnet"];
+    let networks = [
+        "bellscoin",
+        "luckycoin",
+        "mainnet",
+        "fractal",
+        "regtest",
+        "testnet",
+    ];
     let genesis_base = "alkanes_std_genesis_alkane";
     for network in networks {
         mod_content.push_str(&format!("pub mod {}_{}_build;\n", genesis_base, network));

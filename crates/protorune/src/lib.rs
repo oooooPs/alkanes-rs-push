@@ -884,7 +884,8 @@ impl Protorune {
         println!("Starting index_block");
         let init_result = initialized_protocol_index().map_err(|e| anyhow!(e.to_string()));
         println!("After initialized_protocol_index: {:?}", init_result);
-        let add_result = add_to_indexable_protocols(T::protocol_tag()).map_err(|e| anyhow!(e.to_string()));
+        let add_result =
+            add_to_indexable_protocols(T::protocol_tag()).map_err(|e| anyhow!(e.to_string()));
         println!("After add_to_indexable_protocols: {:?}", add_result);
         init_result?;
         add_result?;

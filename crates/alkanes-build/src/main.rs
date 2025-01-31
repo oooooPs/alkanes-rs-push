@@ -1,6 +1,6 @@
+use clap::Parser;
 use std::fs;
 use std::path::PathBuf;
-use clap::Parser;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -10,7 +10,7 @@ struct Args {
     input: PathBuf,
 
     /// Path to output _build.rs file
-    #[arg(short, long)] 
+    #[arg(short, long)]
     output: PathBuf,
 }
 
@@ -19,7 +19,7 @@ fn main() -> std::io::Result<()> {
 
     // Read WASM file bytes
     let wasm_bytes = fs::read(&args.input)?;
-    
+
     // Convert to hex string
     let hex_string = hex::encode(&wasm_bytes);
 
@@ -32,9 +32,11 @@ fn main() -> std::io::Result<()> {
     // Write output file
     fs::write(&args.output, build_content)?;
 
-    println!("Successfully converted {} to {}", 
+    println!(
+        "Successfully converted {} to {}",
         args.input.display(),
-        args.output.display());
+        args.output.display()
+    );
 
     Ok(())
 }

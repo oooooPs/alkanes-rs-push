@@ -15,7 +15,6 @@ use alkanes_support::response::ExtendedCallResponse;
 use anyhow::Result;
 use bitcoin::blockdata::transaction::Version;
 use bitcoin::hashes::Hash;
-use protorune::balance_sheet::{MintableDebit};
 use bitcoin::{
     blockdata::block::Header, Block, BlockHash, CompactTarget, OutPoint, Transaction, TxMerkleNode,
 };
@@ -24,6 +23,7 @@ use metashrew::index_pointer::{AtomicPointer, IndexPointer};
 use metashrew::{println, stdio::stdout};
 use metashrew_support::{index_pointer::KeyValuePointer, utils::consensus_encode};
 use protobuf::{Message, MessageField};
+use protorune::balance_sheet::MintableDebit;
 use protorune::message::{MessageContext, MessageContextParcel};
 use protorune::view;
 use protorune_support::balance_sheet::BalanceSheet;

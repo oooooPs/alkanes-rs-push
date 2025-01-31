@@ -45,8 +45,8 @@ fn test_owned_token_mint_crash() -> Result<()> {
     let mint_cellpack = Cellpack {
         target: AlkaneId { block: 2, tx: 1 }, // Points to the owned token
         inputs: vec![
-            77,   // mint opcode
-            500,  // amount to mint
+            77,  // mint opcode
+            500, // amount to mint
         ],
     };
 
@@ -65,7 +65,10 @@ fn test_owned_token_mint_crash() -> Result<()> {
 
     let owned_token_id = AlkaneId { block: 2, tx: 1 };
     let auth_token_id = AlkaneId { block: 2, tx: 2 };
-    println!("STEP 2: Created token IDs: owned={:?}, auth={:?}", owned_token_id, auth_token_id);
+    println!(
+        "STEP 2: Created token IDs: owned={:?}, auth={:?}",
+        owned_token_id, auth_token_id
+    );
 
     // Verify initial state
     let tx = test_block.txdata.last().ok_or(anyhow!("no last el"))?;
@@ -86,7 +89,10 @@ fn test_owned_token_mint_crash() -> Result<()> {
     // Verify initial balances
     let owned_balance = sheet.get(&owned_token_id.into());
     let auth_balance = sheet.get(&auth_token_id.into());
-    println!("STEP 5: Initial balances - owned: {}, auth: {}", owned_balance, auth_balance);
+    println!(
+        "STEP 5: Initial balances - owned: {}, auth: {}",
+        owned_balance, auth_balance
+    );
     assert_eq!(owned_balance, 1000, "Initial token balance incorrect");
     assert_eq!(auth_balance, 1, "Auth token balance incorrect");
 
@@ -98,7 +104,7 @@ fn test_owned_token_mint_crash() -> Result<()> {
     println!("STEP 6: Mint block created successfully");
 
     println!("STEP 7: About to index mint block...");
-   
+
     index_block(&mint_block, block_height + 1)?;
     println!("STEP 8: Mint block indexed successfully");
 
@@ -114,7 +120,11 @@ fn test_owned_token_mint_crash() -> Result<()> {
             .OUTPOINT_TO_RUNES
             .select(&consensus_encode(&mint_outpoint)?),
     );
-    println!("STEP 10: Mint state - txid: {}, balances: {:?}", mint_tx.compute_txid(), mint_sheet.balances);
+    println!(
+        "STEP 10: Mint state - txid: {}, balances: {:?}",
+        mint_tx.compute_txid(),
+        mint_sheet.balances
+    );
 
     println!("Test completed successfully - no crash occurred");
 

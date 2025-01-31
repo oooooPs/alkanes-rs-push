@@ -26,8 +26,8 @@ use std::sync::Arc;
 
 #[allow(unused_imports)]
 use {
-  metashrew::{println, stdio::{stdout}},
-  std::fmt::{Write}
+    metashrew::{println, stdio::stdout},
+    std::fmt::Write,
 };
 
 #[cfg(feature = "mainnet")]
@@ -177,11 +177,11 @@ pub fn genesis(block: &Block) -> Result<()> {
         runtime_balances: Box::<BalanceSheet>::new(BalanceSheet::default()),
     };
     let (response, _gas_used) = (match simulate_parcel(&parcel, u64::MAX) {
-      Ok((a, b)) => Ok((a, b)),
-      Err(e) => {
-        println!("{:?}", e);
-        Err(e)
-      }
+        Ok((a, b)) => Ok((a, b)),
+        Err(e) => {
+            println!("{:?}", e);
+            Err(e)
+        }
     })?;
     <AlkaneTransferParcel as Into<BalanceSheet>>::into(response.alkanes.into()).save(
         &mut atomic.derive(

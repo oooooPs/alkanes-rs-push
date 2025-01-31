@@ -57,9 +57,9 @@ mod exports {
         metashrew_support::{compat::to_passback_ptr, utils::ptr_to_vec},
     };
     pub fn set_mock_context(context: Context) {
-      unsafe {
-        _CONTEXT = Some(context);
-      }
+        unsafe {
+            _CONTEXT = Some(context);
+        }
     }
     pub fn abort(a: i32, b: i32, c: i32, d: i32) -> i32 {
         panic!("abort");

@@ -82,14 +82,10 @@ pub fn protorune_outpoint_to_outpoint_response(
     })
 }
 
-pub fn rune_outpoint_to_outpoint_response(
-    outpoint: &OutPoint
-) -> Result<OutpointResponse> {
+pub fn rune_outpoint_to_outpoint_response(outpoint: &OutPoint) -> Result<OutpointResponse> {
     let outpoint_bytes = outpoint_to_bytes(outpoint)?;
-    let balance_sheet: BalanceSheet = load_sheet(
-        &tables::RUNES.OUTPOINT_TO_RUNES
-            .select(&outpoint_bytes),
-    );
+    let balance_sheet: BalanceSheet =
+        load_sheet(&tables::RUNES.OUTPOINT_TO_RUNES.select(&outpoint_bytes));
 
     let mut height: u128 = tables::RUNES
         .OUTPOINT_TO_HEIGHT
@@ -163,7 +159,6 @@ pub fn outpoint_to_outpoint_response(outpoint: &OutPoint) -> Result<OutpointResp
     })
 }
 
-
 pub fn runes_by_address(input: &Vec<u8>) -> Result<WalletResponse> {
     let mut result: WalletResponse = WalletResponse::new();
     if let Some(req) = proto::protorune::WalletRequest::parse_from_bytes(input).ok() {
@@ -195,7 +190,6 @@ pub fn runes_by_address(input: &Vec<u8>) -> Result<WalletResponse> {
     }
     Ok(result)
 }
-
 
 pub fn protorunes_by_outpoint(input: &Vec<u8>) -> Result<OutpointResponse> {
     match proto::protorune::OutpointWithProtocol::parse_from_bytes(input).ok() {

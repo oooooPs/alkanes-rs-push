@@ -39,11 +39,11 @@ fn _abort() {
 static mut _CACHE: Option<StorageMap> = None;
 
 pub fn initialize_cache() {
-  unsafe {
-    if _CACHE.is_none() {
-      _CACHE = Some(StorageMap::default());
+    unsafe {
+        if _CACHE.is_none() {
+            _CACHE = Some(StorageMap::default());
+        }
     }
-  }
 }
 
 pub trait Extcall {

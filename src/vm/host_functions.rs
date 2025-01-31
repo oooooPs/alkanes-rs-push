@@ -34,6 +34,27 @@ use wasmi::*;
 pub struct AlkanesHostFunctionsImpl(());
 
 impl AlkanesHostFunctionsImpl {
+    fn preserve_context(caller: &mut Caller<'_, AlkanesState>) {
+        caller
+            .data_mut()
+            .context
+            .lock()
+            .unwrap()
+            .message
+            .atomic
+            .checkpoint();
+    }
+
+    fn restore_context(caller: &mut Caller<'_, AlkanesState>) {
+        caller
+            .data_mut()
+            .context
+            .lock()
+            .unwrap()
+            .message
+            .atomic
+            .commit();
+    }
     pub(super) fn _abort<'a>(caller: Caller<'_, AlkanesState>) {
         AlkanesHostFunctionsImpl::abort(caller, 0, 0, 0, 0);
     }
@@ -78,6 +99,8 @@ impl AlkanesHostFunctionsImpl {
         k: i32,
         v: i32,
     ) -> Result<i32> {
+        Self::preserve_context(caller);
+
         let (bytes_processed, value) = {
             let mem = get_memory(caller)?;
             let key = {
@@ -100,9 +123,13 @@ impl AlkanesHostFunctionsImpl {
             caller,
             overflow_error((bytes_processed as u64).checked_mul(FUEL_PER_LOAD_BYTE))?,
         )?;
+
+        Self::restore_context(caller);
         send_to_arraybuffer(caller, v.try_into()?, value.as_ref())
     }
     pub(super) fn request_context(caller: &mut Caller<'_, AlkanesState>) -> Result<i32> {
+        Self::preserve_context(caller);
+
         let result: i32 = caller
             .data_mut()
             .context
@@ -115,14 +142,20 @@ impl AlkanesHostFunctionsImpl {
             caller,
             overflow_error((result as u64).checked_mul(FUEL_PER_REQUEST_BYTE))?,
         )?;
+
+        Self::restore_context(caller);
         Ok(result)
     }
     pub(super) fn load_context(caller: &mut Caller<'_, AlkanesState>, v: i32) -> Result<i32> {
+        Self::preserve_context(caller);
+
         let result: Vec<u8> = caller.data_mut().context.lock().unwrap().serialize();
         consume_fuel(
             caller,
             overflow_error((result.len() as u64).checked_mul(FUEL_PER_LOAD_BYTE))?,
         )?;
+
+        Self::restore_context(caller);
         send_to_arraybuffer(caller, v.try_into()?, &result)
     }
     pub(super) fn request_transaction(caller: &mut Caller<'_, AlkanesState>) -> Result<i32> {
@@ -178,11 +211,15 @@ impl AlkanesHostFunctionsImpl {
     }
     */
     pub(super) fn returndatacopy(caller: &mut Caller<'_, AlkanesState>, output: i32) -> Result<()> {
+        Self::preserve_context(caller);
+
         let returndata: Vec<u8> = caller.data_mut().context.lock().unwrap().returndata.clone();
         consume_fuel(
             caller,
             overflow_error((returndata.len() as u64).checked_mul(FUEL_PER_LOAD_BYTE))?,
         )?;
+
+        Self::restore_context(caller);
         send_to_arraybuffer(caller, output.try_into()?, &returndata)?;
         Ok(())
     }
@@ -204,6 +241,8 @@ impl AlkanesHostFunctionsImpl {
         Ok(())
     }
     pub(super) fn request_block(caller: &mut Caller<'_, AlkanesState>) -> Result<i32> {
+        Self::preserve_context(caller);
+
         let len: i32 = consensus_encode(&caller.data_mut().context.lock().unwrap().message.block)?
             .len()
             .try_into()?;
@@ -211,15 +250,21 @@ impl AlkanesHostFunctionsImpl {
             caller,
             overflow_error((len as u64).checked_mul(FUEL_PER_REQUEST_BYTE))?,
         )?;
+
+        Self::restore_context(caller);
         Ok(len)
     }
     pub(super) fn load_block(caller: &mut Caller<'_, AlkanesState>, v: i32) -> Result<()> {
+        Self::preserve_context(caller);
+
         let block: Vec<u8> =
             consensus_encode(&caller.data_mut().context.lock().unwrap().message.block)?;
         consume_fuel(
             caller,
             overflow_error((block.len() as u64).checked_mul(FUEL_PER_LOAD_BYTE))?,
         )?;
+
+        Self::restore_context(caller);
         send_to_arraybuffer(caller, v.try_into()?, &block)?;
         Ok(())
     }
@@ -286,6 +331,9 @@ impl AlkanesHostFunctionsImpl {
         checkpoint_ptr: i32,
         start_fuel: u64,
     ) -> Result<i32> {
+        Self::preserve_context(caller);
+
+        // Read all input data first
         let (cellpack, incoming_alkanes, storage_map, storage_map_len) = {
             let mem = get_memory(caller)?;
             let data = mem.data(&caller);
@@ -303,100 +351,109 @@ impl AlkanesHostFunctionsImpl {
                 storage_map_len as u64,
             )
         };
+
+        // Handle deployment fuel first
+        if cellpack.target.is_deployment() {
+            caller.consume_fuel(FUEL_EXTCALL_DEPLOY)?;
+        }
+
+        // Prepare subcontext data
         let (subcontext, binary_rc) = {
-            if cellpack.target.is_deployment() {
-                caller.consume_fuel(FUEL_EXTCALL_DEPLOY)?;
-            }
-            let context = caller.data_mut().context.clone();
-            context.lock().unwrap().message.atomic.checkpoint();
-            let myself = context.lock().unwrap().myself.clone();
+            let mut context_guard = caller.data_mut().context.lock().unwrap();
+            context_guard.message.atomic.checkpoint();
+            let myself = context_guard.myself.clone();
+            let caller_id = context_guard.caller.clone();
+            std::mem::drop(context_guard); // Release lock before calling run_special_cellpacks
+
             let (_subcaller, submyself, binary) =
-                run_special_cellpacks(context.clone(), &cellpack)?;
+                run_special_cellpacks(caller.data_mut().context.clone(), &cellpack)?;
+
+            // Re-acquire lock for state updates
+            let mut context_guard = caller.data_mut().context.lock().unwrap();
             pipe_storagemap_to(
                 &storage_map,
-                &mut context.lock().unwrap().message.atomic.derive(
+                &mut context_guard.message.atomic.derive(
                     &IndexPointer::from_keyword("/alkanes/").select(&myself.clone().into()),
                 ),
             );
+
             if let Err(_) = transfer_from(
                 &incoming_alkanes,
-                &mut context
-                    .lock()
-                    .unwrap()
+                &mut context_guard
                     .message
                     .atomic
                     .derive(&IndexPointer::default()),
                 &myself,
                 &submyself,
             ) {
-                context.lock().unwrap().message.atomic.rollback();
-                context.lock().unwrap().returndata = Vec::<u8>::new();
+                context_guard.message.atomic.rollback();
+                context_guard.returndata = Vec::<u8>::new();
+                Self::restore_context(caller);
                 return Ok(0);
             }
-            let mut subbed = context.lock().unwrap().clone();
-            subbed.message.atomic = context
-                .lock()
-                .unwrap()
+
+            // Create subcontext
+            let mut subbed = context_guard.clone();
+            subbed.message.atomic = context_guard
                 .message
                 .atomic
                 .derive(&IndexPointer::default());
-            let caller = context.lock().unwrap().caller.clone();
             (subbed.caller, subbed.myself) =
-                T::change_context(submyself.clone(), caller, myself.clone());
+                T::change_context(submyself.clone(), caller_id, myself.clone());
             subbed.returndata = vec![];
             subbed.incoming_alkanes = incoming_alkanes.clone();
             subbed.inputs = cellpack.inputs.clone();
             (subbed, binary)
         };
+
         consume_fuel(
             caller,
             overflow_error(FUEL_EXTCALL.checked_add(overflow_error(
                 FUEL_PER_STORE_BYTE.checked_mul(storage_map_len),
             )?))?,
         )?;
+
         let mut trace_context: TraceContext = subcontext.flat().into();
         trace_context.fuel = start_fuel;
         let event: TraceEvent = T::event(trace_context);
         subcontext.trace.clock(event);
-        run_after_special(
-            Arc::new(Mutex::new(subcontext.clone())),
-            binary_rc,
-            start_fuel,
-        )
-        .and_then(|(response, gas_used)| {
-            caller.set_fuel(overflow_error(start_fuel.checked_sub(gas_used))?)?;
-            let mut return_context: TraceResponse = response.clone().into();
-            return_context.fuel_used = gas_used;
-            subcontext
-                .trace
-                .clock(TraceEvent::ReturnContext(return_context));
-            let mut context = caller.data().context.lock().unwrap();
-            let mut saveable: SaveableExtendedCallResponse = response.clone().into();
-            saveable.associate(&subcontext);
-            saveable.save(&mut context.message.atomic)?;
-            T::handle_atomic(&mut context.message.atomic);
-            let plain_response: CallResponse = response.clone().into();
-            let serialized = plain_response.serialize();
-            context.returndata = serialized;
-            Ok(context.returndata.len().try_into()?)
-        })
-        .and_then(|len| {
-            let mut context = caller.data_mut().context.lock().unwrap();
-            T::handle_atomic(&mut context.message.atomic);
-            Ok(len)
-        })
-        .or_else(|e| {
-            let mut context = caller.data_mut().context.lock().unwrap();
-            let mut revert_context: TraceResponse = TraceResponse::default();
-            revert_context.inner.data = vec![0x08, 0xc3, 0x79, 0xa0];
-            revert_context.inner.data.extend(e.to_string().as_bytes());
-            context
-                .trace
-                .clock(TraceEvent::RevertContext(revert_context));
-            context.message.atomic.rollback();
-            context.returndata = vec![];
-            Ok(0)
-        })
+
+        // Run the call in a new context
+        let result =
+            match run_after_special(Arc::new(Mutex::new(subcontext)), binary_rc, start_fuel) {
+                Ok((response, gas_used)) => {
+                    caller.set_fuel(overflow_error(start_fuel.checked_sub(gas_used))?)?;
+                    let mut return_context: TraceResponse = response.clone().into();
+                    return_context.fuel_used = gas_used;
+
+                    // Update trace and context state
+                    let mut context_guard = caller.data_mut().context.lock().unwrap();
+                    context_guard
+                        .trace
+                        .clock(TraceEvent::ReturnContext(return_context));
+                    let serialized = CallResponse::from(response).serialize();
+                    context_guard.returndata = serialized.clone();
+                    T::handle_atomic(&mut context_guard.message.atomic);
+                    serialized.len() as i32
+                }
+                Err(e) => {
+                    let mut revert_context: TraceResponse = TraceResponse::default();
+                    revert_context.inner.data = vec![0x08, 0xc3, 0x79, 0xa0];
+                    revert_context.inner.data.extend(e.to_string().as_bytes());
+
+                    // Handle revert state
+                    let mut context_guard = caller.data_mut().context.lock().unwrap();
+                    context_guard
+                        .trace
+                        .clock(TraceEvent::RevertContext(revert_context));
+                    context_guard.message.atomic.rollback();
+                    context_guard.returndata = vec![];
+                    0
+                }
+            };
+
+        Self::restore_context(caller);
+        Ok(result)
     }
     pub(super) fn log<'a>(caller: &mut Caller<'_, AlkanesState>, v: i32) -> Result<()> {
         let mem = get_memory(caller)?;

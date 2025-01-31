@@ -9,7 +9,7 @@ use metashrew::{
 };
 #[allow(unused_imports)]
 use metashrew_support::block::AuxpowBlock;
-use metashrew_support::compat::{export_bytes};
+use metashrew_support::compat::export_bytes;
 use metashrew_support::utils::{consensus_decode, consume_sized_int, consume_to_end};
 use protobuf::{Message, MessageField};
 use std::io::Cursor;
