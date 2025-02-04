@@ -81,19 +81,21 @@ impl MessageProcessor for Protostone {
         default_output: u32,
     ) -> Result<()> {
         if self.is_message() {
-            // Validate output indexes
+            // Validate output indexes and protomessage_vout
             let num_outputs = transaction.output.len() as u32;
             let pointer = self.pointer.unwrap_or(default_output);
             let refund_pointer = self.refund.unwrap_or(default_output);
-            
+
             // Ensure pointers are valid transaction outputs
             if pointer >= num_outputs || refund_pointer >= num_outputs {
                 return Err(anyhow::anyhow!("Invalid output pointer"));
             }
 
-            // Validate protomessage vout doesn't overflow
-            if protomessage_vout == u32::MAX {
-                return Err(anyhow::anyhow!("Invalid protomessage vout"));
+            // Validate protomessage vout to prevent overflow attacks
+            // Add a reasonable maximum based on transaction size
+            let max_virtual_vout = num_outputs + 100; // Adjust limit as needed
+            if protomessage_vout >= max_virtual_vout {
+                return Err(anyhow::anyhow!("Protomessage vout exceeds maximum allowed"));
             }
 
             let initial_sheet = balances_by_output
@@ -113,15 +115,11 @@ impl MessageProcessor for Protostone {
                 vout: protomessage_vout,
                 pointer,
                 refund_pointer,
-                calldata: self
-                    .message
-                    .iter()
-                    .flat_map(|v| v.to_be_bytes())
-                    .collect(),
+                calldata: self.message.iter().flat_map(|v| v.to_be_bytes()).collect(),
                 txindex,
                 runtime_balances: Box::new(
                     balances_by_output
-                        .get(&protomessage_vout)  // Use same vout instead of u32::MAX
+                        .get(&protomessage_vout)
                         .map(|v| v.clone())
                         .unwrap_or_else(|| BalanceSheet::default()),
                 ),
@@ -158,7 +156,6 @@ impl MessageProcessor for Protostone {
         Ok(())
     }
 }
-
 
 pub trait Protostones {
     fn burns(&self) -> Result<Vec<Protoburn>>;
