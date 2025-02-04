@@ -19,3 +19,5 @@ pub mod genesis;
 pub mod networks;
 #[cfg(test)]
 pub mod serialization;
+#[cfg(test)]
+pub mod forge;
