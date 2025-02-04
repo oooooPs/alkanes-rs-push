@@ -67,7 +67,6 @@ pub trait MessageProcessor {
         default_output: u32,
     ) -> Result<()>;
 }
-
 impl MessageProcessor for Protostone {
     fn process_message<T: MessageContext>(
         &self,
@@ -82,11 +81,29 @@ impl MessageProcessor for Protostone {
         default_output: u32,
     ) -> Result<()> {
         if self.is_message() {
+            // Validate output indexes
+            let num_outputs = transaction.output.len() as u32;
+            let pointer = self.pointer.unwrap_or(default_output);
+            let refund_pointer = self.refund.unwrap_or(default_output);
+            
+            // Ensure pointers are valid transaction outputs
+            if pointer >= num_outputs || refund_pointer >= num_outputs {
+                return Err(anyhow::anyhow!("Invalid output pointer"));
+            }
+
+            // Validate protomessage vout doesn't overflow
+            if protomessage_vout == u32::MAX {
+                return Err(anyhow::anyhow!("Invalid protomessage vout"));
+            }
+
             let initial_sheet = balances_by_output
                 .get(&protomessage_vout)
                 .map(|v| v.clone())
                 .unwrap_or_else(|| BalanceSheet::default());
+
+            // Create a nested atomic transaction for the entire message processing
             atomic.checkpoint();
+
             let parcel = MessageContextParcel {
                 atomic: atomic.derive(&IndexPointer::default()),
                 runes: RuneTransfer::from_balance_sheet(initial_sheet.clone()),
@@ -94,25 +111,23 @@ impl MessageProcessor for Protostone {
                 block: block.clone(),
                 height,
                 vout: protomessage_vout,
-                pointer: self.pointer.unwrap_or_else(|| default_output),
-                refund_pointer: self.pointer.unwrap_or_else(|| default_output),
+                pointer,
+                refund_pointer,
                 calldata: self
                     .message
                     .iter()
-                    .map(|v| v.to_be_bytes())
-                    .flatten()
-                    .collect::<Vec<u8>>(),
+                    .flat_map(|v| v.to_be_bytes())
+                    .collect(),
                 txindex,
                 runtime_balances: Box::new(
                     balances_by_output
-                        .get(&u32::MAX)
+                        .get(&protomessage_vout)  // Use same vout instead of u32::MAX
                         .map(|v| v.clone())
                         .unwrap_or_else(|| BalanceSheet::default()),
                 ),
                 sheets: Box::new(BalanceSheet::default()),
             };
-            let pointer = self.pointer.unwrap_or_else(|| default_output);
-            let refund_pointer = self.refund.unwrap_or_else(|| default_output);
+
             match T::handle(&parcel) {
                 Ok(values) => {
                     match values.reconcile(
@@ -143,6 +158,7 @@ impl MessageProcessor for Protostone {
         Ok(())
     }
 }
+
 
 pub trait Protostones {
     fn burns(&self) -> Result<Vec<Protoburn>>;
