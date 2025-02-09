@@ -46,7 +46,7 @@ impl ChainConfiguration for GenesisAlkane {
         50_000_000
     }
     fn max_supply(&self) -> u128 {
-        131250000000000
+        u128::MAX
     }
 }
 
