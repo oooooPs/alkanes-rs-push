@@ -1,0 +1,29 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --verbose
+    - name: Run wasm tests
+      run: cargo test
+    - name: Run unit tests
+      run: cargo test --target x86_64-unknown-linux-gnu
+    # TODO: Add these in when we clean up println from protorune unit tests
+    #- name: Run protorunes wasm tests
+    #  run: cargo test -p protorune --features test-utils
+    #- name: Run protorune unit tests
+    #  run: cargo test -p protorune --target x86_64-unknown-linux-gnu
