@@ -311,3 +311,20 @@ pub fn simulate_parcel(
     debit_balances(&mut atomic, &myself, &response.alkanes)?;
     Ok((response, gas_used))
 }
+
+pub fn multi_simulate(
+    parcels: &[MessageContextParcel],
+    fuel: u64,
+) -> Result<(Vec<ExtendedCallResponse>, u64)> {
+    let mut fuel = fuel;
+    let mut gas = 0;
+    let mut responses: Vec<ExtendedCallResponse> = vec![];
+    for parcel in parcels {
+        let (response, gas_used) = simulate_parcel(parcel, fuel)?;
+        fuel -= gas_used;
+        gas += gas_used;
+        responses.push(response);
+    }
+
+    Ok((responses, gas))
+}
