@@ -1,8 +1,8 @@
 use alkanes_runtime::{declare_alkane, runtime::AlkaneResponder};
 use alkanes_support::{
-    cellpack::Cellpack, parcel::AlkaneTransferParcel, response::CallResponse, utils::shift_or_err,
+    cellpack::Cellpack, parcel::{AlkaneTransfer, AlkaneTransferParcel}, response::CallResponse, utils::shift_or_err,
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
 use sha2::{Digest, Sha256};
 #[allow(unused_imports)]
@@ -31,6 +31,20 @@ impl AlkaneResponder for LoggerAlkane {
                         self.fuel(),
                     )?
                     .data;
+            }
+            3 => {
+                 if context.incoming_alkanes.0.len() != 1 {
+                   return Err(anyhow!("received either 0 or more than 1 alkane"));
+                 } else {
+                   return Ok(CallResponse::default());
+                 }
+            }
+            4 => {
+                 response.alkanes.0.push(AlkaneTransfer {
+                   id: context.myself.clone(),
+                   value: 100u128
+                 });
+                 return Ok(response);
             }
             78 => {
                 let mut data = vec![0x01, 0x02];

@@ -4,6 +4,7 @@ pub mod helpers;
 pub mod std;
 #[cfg(test)]
 pub mod utils;
+/*
 //pub mod index_alkanes;
 #[cfg(test)]
 //pub mod address;
@@ -21,3 +22,5 @@ pub mod networks;
 pub mod serialization;
 #[cfg(test)]
 pub mod forge;
+*/
+pub mod edict_then_message;
