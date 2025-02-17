@@ -251,9 +251,30 @@ fn test_auth_and_owned_token_multiple() -> Result<()> {
             alkanes_std_auth_token_build::get_bytes(),
             alkanes_std_owned_token_build::get_bytes(),
             [].into(),
+            [].into(),
+            [].into(),
+            [].into(),
+            [].into(),
+            [].into(),
+            [].into(),
+            [].into(),
+            [].into(),
         ]
         .into(),
-        [auth_cellpack, test_cellpack, owned_copy_cellpack].into(),
+        [
+            auth_cellpack,
+            test_cellpack,
+            owned_copy_cellpack.clone(),
+            owned_copy_cellpack.clone(),
+            owned_copy_cellpack.clone(),
+            owned_copy_cellpack.clone(),
+            owned_copy_cellpack.clone(),
+            owned_copy_cellpack.clone(),
+            owned_copy_cellpack.clone(),
+            owned_copy_cellpack.clone(),
+            owned_copy_cellpack.clone(),
+        ]
+        .into(),
     );
 
     index_block(&test_block, block_height)?;
@@ -300,6 +321,31 @@ fn test_auth_and_owned_token_multiple() -> Result<()> {
     );
     let _ = assert_binary_deployed_to_id(
         auth_token_id_deployment.clone(),
+        alkanes_std_auth_token_build::get_bytes(),
+    );
+
+    let _ = assert_binary_deployed_to_id(
+        AlkaneId { block: 2, tx: 3 },
+        alkanes_std_owned_token_build::get_bytes(),
+    );
+    let _ = assert_binary_deployed_to_id(
+        AlkaneId { block: 2, tx: 4 },
+        alkanes_std_auth_token_build::get_bytes(),
+    );
+    let _ = assert_binary_deployed_to_id(
+        AlkaneId { block: 2, tx: 5 },
+        alkanes_std_owned_token_build::get_bytes(),
+    );
+    let _ = assert_binary_deployed_to_id(
+        AlkaneId { block: 2, tx: 6 },
+        alkanes_std_auth_token_build::get_bytes(),
+    );
+    let _ = assert_binary_deployed_to_id(
+        AlkaneId { block: 2, tx: 7 },
+        alkanes_std_owned_token_build::get_bytes(),
+    );
+    let _ = assert_binary_deployed_to_id(
+        AlkaneId { block: 2, tx: 8 },
         alkanes_std_auth_token_build::get_bytes(),
     );
 
