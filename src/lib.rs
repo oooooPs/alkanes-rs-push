@@ -27,6 +27,28 @@ pub mod view;
 pub mod vm;
 use crate::indexer::index_block;
 
+/*
+All the #[no_mangle] configs will fail during github action cargo test step
+due to duplicate symbol:
+  rust-lld: error: duplicate symbol: runesbyheight
+  >>> defined in /home/runner/work/alkanes-rs/alkanes-rs/target/wasm32-unknown-unknown/debug/deps/alkanes-5b647d16704125c9.alkanes.7a19fa39330b2460-cgu.05.rcgu.o
+  >>> defined in /home/runner/work/alkanes-rs/alkanes-rs/target/wasm32-unknown-unknown/debug/deps/libalkanes.rlib(alkanes.alkanes.2dae95da706e3a8c-cgu.09.rcgu.o)
+
+This is because both
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+are defined in Cargo.toml since we want to build both the wasm and rust library.
+
+Running cargo test will compile an additional test harness binary that:
+Links libalkanes.rlib
+Compiles #[no_mangle] functions again into the test binary
+Then links everything together, leading to duplicate symbols
+
+Thus, going to add not(test) to all these functions
+*/
+
+#[cfg(not(test))]
 #[no_mangle]
 pub fn simulate() -> i32 {
     configure_network();
@@ -51,6 +73,7 @@ pub fn simulate() -> i32 {
     export_bytes(result.write_to_bytes().unwrap())
 }
 
+#[cfg(not(test))]
 #[no_mangle]
 pub fn runesbyaddress() -> i32 {
     configure_network();
@@ -62,6 +85,7 @@ pub fn runesbyaddress() -> i32 {
     export_bytes(result.write_to_bytes().unwrap())
 }
 
+#[cfg(not(test))]
 #[no_mangle]
 pub fn runesbyoutpoint() -> i32 {
     configure_network();
@@ -73,6 +97,7 @@ pub fn runesbyoutpoint() -> i32 {
     export_bytes(result.write_to_bytes().unwrap())
 }
 
+#[cfg(not(test))]
 #[no_mangle]
 pub fn spendablesbyaddress() -> i32 {
     configure_network();
@@ -84,6 +109,7 @@ pub fn spendablesbyaddress() -> i32 {
     export_bytes(result.write_to_bytes().unwrap())
 }
 
+#[cfg(not(test))]
 #[no_mangle]
 pub fn protorunesbyaddress() -> i32 {
     configure_network();
@@ -112,6 +138,7 @@ pub fn protorunesbyaddress() -> i32 {
     export_bytes(result.write_to_bytes().unwrap())
 }
 
+#[cfg(not(test))]
 #[no_mangle]
 pub fn protorunesbyheight() -> i32 {
     configure_network();
@@ -123,6 +150,7 @@ pub fn protorunesbyheight() -> i32 {
     export_bytes(result.write_to_bytes().unwrap())
 }
 
+#[cfg(not(test))]
 #[no_mangle]
 pub fn trace() -> i32 {
     configure_network();
@@ -137,6 +165,7 @@ pub fn trace() -> i32 {
     export_bytes(view::trace(&outpoint).unwrap())
 }
 
+#[cfg(not(test))]
 #[no_mangle]
 pub fn protorunesbyoutpoint() -> i32 {
     configure_network();
@@ -149,6 +178,7 @@ pub fn protorunesbyoutpoint() -> i32 {
     export_bytes(result.write_to_bytes().unwrap())
 }
 
+#[cfg(not(test))]
 #[no_mangle]
 pub fn runesbyheight() -> i32 {
     configure_network();
@@ -176,7 +206,7 @@ pub fn runesbyheight() -> i32 {
 //
 //
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", not(test)))]
 #[no_mangle]
 pub fn _start() {
     let data = input();
