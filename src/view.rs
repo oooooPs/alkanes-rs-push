@@ -1,6 +1,6 @@
 use crate::message::AlkaneMessageContext;
 use crate::network::set_view_mode;
-use crate::tables::TRACES;
+use crate::tables::{TRACES, TRACES_BY_HEIGHT};
 use crate::utils::{
     alkane_inventory_pointer, balance_pointer, credit_balances, debit_balances, pipe_storagemap_to,
 };
@@ -12,7 +12,7 @@ use alkanes_support::parcel::AlkaneTransfer;
 use alkanes_support::proto;
 use alkanes_support::proto::alkanes::{AlkaneInventoryRequest, AlkaneInventoryResponse};
 use alkanes_support::response::ExtendedCallResponse;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use bitcoin::blockdata::transaction::Version;
 use bitcoin::hashes::Hash;
 use bitcoin::{
@@ -25,6 +25,7 @@ use metashrew_support::{index_pointer::KeyValuePointer, utils::consensus_encode}
 use protobuf::{Message, MessageField};
 use protorune::balance_sheet::MintableDebit;
 use protorune::message::{MessageContext, MessageContextParcel};
+use protorune::tables::RUNES;
 use protorune::view;
 use protorune_support::balance_sheet::BalanceSheet;
 use protorune_support::balance_sheet::ProtoruneRuneId;
@@ -267,6 +268,36 @@ pub fn alkane_inventory(req: &AlkaneInventoryRequest) -> Result<AlkaneInventoryR
         })
         .collect::<Vec<proto::alkanes::AlkaneTransfer>>();
     Ok(result)
+}
+
+pub fn traceblock(height: u32) -> Result<Vec<u8>> {
+    let mut block_events: Vec<proto::alkanes::AlkanesBlockEvent> = vec![];
+    for outpoint in TRACES_BY_HEIGHT.select_value(height as u64).get_list() {
+        let op = outpoint.clone().to_vec();
+        let outpoint_decoded = consensus_decode::<OutPoint>(&mut Cursor::new(op))?;
+        let txid = outpoint_decoded.txid.as_byte_array().to_vec();
+        let txindex: u32 = RUNES.TXID_TO_TXINDEX.select(&txid).get_value();
+        let trace = TRACES.select(outpoint.as_ref()).get();
+        let trace = proto::alkanes::AlkanesTrace::parse_from_bytes(trace.as_ref())?;
+        let block_event = proto::alkanes::AlkanesBlockEvent {
+            txindex: txindex as u64,
+            outpoint: MessageField::some(proto::alkanes::Outpoint {
+                txid,
+                vout: outpoint_decoded.vout,
+                ..Default::default()
+            }),
+            traces: MessageField::some(trace),
+            ..Default::default()
+        };
+        block_events.push(block_event);
+    }
+
+    let result = proto::alkanes::AlkanesBlockTraceEvent {
+        events: block_events,
+        ..Default::default()
+    };
+
+    result.write_to_bytes().map_err(|e| anyhow!("{:?}", e))
 }
 
 pub fn trace(outpoint: &OutPoint) -> Result<Vec<u8>> {
