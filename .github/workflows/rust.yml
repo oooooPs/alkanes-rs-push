@@ -19,7 +19,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
-          components: wasm-bindgen-cli
+          components: rustc, cargo, rust-std, wasm-bindgen-test-runner
       - name: Build
         run: cargo build
       - name: Run wasm tests
