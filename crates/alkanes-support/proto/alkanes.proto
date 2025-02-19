@@ -85,6 +85,16 @@ message AlkanesTraceEvent {
   }
 }
 
+message AlkanesBlockEvent {
+    AlkanesTrace traces = 1;
+    Outpoint outpoint = 2;
+    uint64 txindex = 3;
+}
+
+message AlkanesBlockTraceEvent {
+    repeated AlkanesBlockEvent events = 1;
+}
+
 message AlkanesTrace {
   repeated AlkanesTraceEvent events = 1;
 }
