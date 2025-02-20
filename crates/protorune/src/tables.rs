@@ -29,8 +29,8 @@ pub struct RuneTable {
     pub HEIGHT_TO_RUNE_ID: IndexPointer,
     pub RUNE_ID_TO_INITIALIZED: IndexPointer,
     pub INTERNAL_MINT: IndexPointer,
+    pub TXID_TO_TXINDEX: IndexPointer,
     /*
-
     pub HEIGHT_TO_BLOCKHASH: IndexPointer::from_keyword("/blockhash/byheight/"),
     pub BLOCKHASH_TO_HEIGHT: IndexPointer::from_keyword("/height/byblockhash/"),
     pub OUTPOINT_TO_RUNES : IndexPointer::from_keyword("/runes/byoutpoint/"),
@@ -39,11 +39,11 @@ pub struct RuneTable {
     pub SYMBOL : IndexPointer::from_keyword("/runes/symbol/"),
     pub CAP : IndexPointer::from_keyword("/runes/cap/"),
     pub SPACERS : IndexPointer::from_keyword("/runes/spaces/"),
-       pub OFFSETEND : IndexPointer::from_keyword("/runes/offset/end/"),
+        pub OFFSETEND : IndexPointer::from_keyword("/runes/offset/end/"),
     pub OFFSETSTART : IndexPointer::from_keyword("/runes/offset/start/"),
     pub HEIGHTSTART : IndexPointer::from_keyword("/runes/height/start/"),
     pub HEIGHTEND : IndexPointer::from_keyword("/runes/height/end/"),
-       pub AMOUNT : IndexPointer::from_keyword("/runes/amount/"),
+        pub AMOUNT : IndexPointer::from_keyword("/runes/amount/"),
     pub MINTS_REMAINING : IndexPointer::from_keyword("/runes/mints-remaining/"),
     pub PREMINE : IndexPointer::from_keyword("/runes/premine/"),
     pub DIVISIBILITY : IndexPointer::from_keyword("/runes/divisibility/"),
@@ -81,6 +81,7 @@ impl RuneTable {
             HEIGHT_TO_RUNE_ID: IndexPointer::from_keyword("/runes/null"),
             RUNE_ID_TO_INITIALIZED: IndexPointer::from_keyword("/runes/null"),
             INTERNAL_MINT: IndexPointer::from_keyword("/runes/null"),
+            TXID_TO_TXINDEX: IndexPointer::from_keyword("/txindex/byid"),
         }
     }
     pub fn for_protocol(tag: u128) -> Self {
@@ -127,6 +128,7 @@ impl RuneTable {
             INTERNAL_MINT: IndexPointer::from_keyword(
                 format!("/runes/proto/{tag}/mint/isinternal").as_str(),
             ),
+            TXID_TO_TXINDEX: IndexPointer::from_keyword("/txindex/byid"),
         }
     }
 }

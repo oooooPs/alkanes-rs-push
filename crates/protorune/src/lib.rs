@@ -606,9 +606,12 @@ impl Protorune {
         Ok(())
     }
     pub fn index_spendables(txdata: &Vec<Transaction>) -> Result<()> {
-        for (_txindex, transaction) in txdata.iter().enumerate() {
+        for (txindex, transaction) in txdata.iter().enumerate() {
             let tx_id = transaction.compute_txid();
-
+            tables::RUNES
+                .TXID_TO_TXINDEX
+                .select(&tx_id.as_byte_array().to_vec())
+                .set_value(txindex as u32);
             for (index, output) in transaction.output.iter().enumerate() {
                 let outpoint = OutPoint {
                     txid: tx_id.clone(),
