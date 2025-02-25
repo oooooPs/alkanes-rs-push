@@ -771,7 +771,7 @@ impl Protorune {
                 unallocated_to,
                 tx.compute_txid(),
             )?;
-
+            let num_protostones = protostones.len();
             let protostones_iter = protostones.into_iter();
             // by default, all protorunes that come in as input will be given to the
             // first protostone with a matching protocol_tag
@@ -823,6 +823,7 @@ impl Protorune {
                             shadow_vout,
                             &mut proto_balances_by_output,
                             protostone_unallocated_to,
+                            num_protostones,
                         )?;
                         // Get the post-message balance to use for edicts
                         prior_balance_sheet = match proto_balances_by_output.get(&refund) {

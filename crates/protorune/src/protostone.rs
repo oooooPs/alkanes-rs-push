@@ -65,6 +65,7 @@ pub trait MessageProcessor {
         protomessage_vout: u32,
         balances_by_output: &mut HashMap<u32, BalanceSheet>,
         default_output: u32,
+        num_protostones: usize,
     ) -> Result<()>;
 }
 impl MessageProcessor for Protostone {
@@ -79,22 +80,25 @@ impl MessageProcessor for Protostone {
         protomessage_vout: u32,
         balances_by_output: &mut HashMap<u32, BalanceSheet>,
         default_output: u32,
+        num_protostones: usize,
     ) -> Result<()> {
         if self.is_message() {
             // Validate output indexes and protomessage_vout
-            let num_outputs = transaction.output.len() as u32;
+            let num_outputs = transaction.output.len();
             let pointer = self.pointer.unwrap_or(default_output);
             let refund_pointer = self.refund.unwrap_or(default_output);
 
             // Ensure pointers are valid transaction outputs
-            if pointer >= num_outputs || refund_pointer >= num_outputs {
+            if pointer > (num_outputs + num_protostones) as u32
+                || refund_pointer > (num_outputs + num_protostones) as u32
+            {
                 return Err(anyhow::anyhow!("Invalid output pointer"));
             }
 
             // Validate protomessage vout to prevent overflow attacks
             // Add a reasonable maximum based on transaction size
             let max_virtual_vout = num_outputs + 100; // Adjust limit as needed
-            if protomessage_vout >= max_virtual_vout {
+            if protomessage_vout >= max_virtual_vout as u32 {
                 return Err(anyhow::anyhow!("Protomessage vout exceeds maximum allowed"));
             }
 
