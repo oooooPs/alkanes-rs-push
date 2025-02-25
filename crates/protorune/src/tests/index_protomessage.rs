@@ -69,6 +69,7 @@ mod tests {
                 id: parcel.runes[0].id,
                 value: parcel.runes[0].value / 8,
             };
+            println!("{:?}", transfer_to_runtime);
             <BalanceSheet as TryFrom<Vec<RuneTransfer>>>::try_from(vec![transfer_to_runtime])?
                 .pipe(&mut new_runtime_balances);
             Ok((vec![transfer], *new_runtime_balances))

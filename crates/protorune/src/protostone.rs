@@ -82,79 +82,76 @@ impl MessageProcessor for Protostone {
         default_output: u32,
         num_protostones: usize,
     ) -> Result<()> {
-        if self.is_message() {
-            // Validate output indexes and protomessage_vout
-            let num_outputs = transaction.output.len();
-            let pointer = self.pointer.unwrap_or(default_output);
-            let refund_pointer = self.refund.unwrap_or(default_output);
+        // Validate output indexes and protomessage_vout
+        let num_outputs = transaction.output.len();
+        let pointer = self.pointer.unwrap_or(default_output);
+        let refund_pointer = self.refund.unwrap_or(default_output);
 
-            // Ensure pointers are valid transaction outputs
-            if pointer > (num_outputs + num_protostones) as u32
-                || refund_pointer > (num_outputs + num_protostones) as u32
-            {
-                return Err(anyhow::anyhow!("Invalid output pointer"));
-            }
+        // Ensure pointers are valid transaction outputs
+        if pointer > (num_outputs + num_protostones) as u32
+            || refund_pointer > (num_outputs + num_protostones) as u32
+        {
+            return Err(anyhow::anyhow!("Invalid output pointer"));
+        }
 
-            // Validate protomessage vout to prevent overflow attacks
-            // Add a reasonable maximum based on transaction size
-            let max_virtual_vout = num_outputs + 100; // Adjust limit as needed
-            if protomessage_vout >= max_virtual_vout as u32 {
-                return Err(anyhow::anyhow!("Protomessage vout exceeds maximum allowed"));
-            }
+        // Validate protomessage vout to prevent overflow attacks
+        // Add a reasonable maximum based on transaction size
+        let max_virtual_vout = num_outputs + 100; // Adjust limit as needed
+        if protomessage_vout >= max_virtual_vout as u32 {
+            return Err(anyhow::anyhow!("Protomessage vout exceeds maximum allowed"));
+        }
+        let initial_sheet = balances_by_output
+            .get(&protomessage_vout)
+            .map(|v| v.clone())
+            .unwrap_or_else(|| BalanceSheet::default());
 
-            let initial_sheet = balances_by_output
-                .get(&protomessage_vout)
-                .map(|v| v.clone())
-                .unwrap_or_else(|| BalanceSheet::default());
+        // Create a nested atomic transaction for the entire message processing
+        atomic.checkpoint();
 
-            // Create a nested atomic transaction for the entire message processing
-            atomic.checkpoint();
+        let parcel = MessageContextParcel {
+            atomic: atomic.derive(&IndexPointer::default()),
+            runes: RuneTransfer::from_balance_sheet(initial_sheet.clone()),
+            transaction: transaction.clone(),
+            block: block.clone(),
+            height,
+            vout: protomessage_vout,
+            pointer,
+            refund_pointer,
+            calldata: self.message.iter().flat_map(|v| v.to_be_bytes()).collect(),
+            txindex,
+            runtime_balances: Box::new(
+                balances_by_output
+                    .get(&u32::MAX)
+                    .map(|v| v.clone())
+                    .unwrap_or_else(|| BalanceSheet::default()),
+            ),
+            sheets: Box::new(BalanceSheet::default()),
+        };
 
-            let parcel = MessageContextParcel {
-                atomic: atomic.derive(&IndexPointer::default()),
-                runes: RuneTransfer::from_balance_sheet(initial_sheet.clone()),
-                transaction: transaction.clone(),
-                block: block.clone(),
-                height,
-                vout: protomessage_vout,
-                pointer,
-                refund_pointer,
-                calldata: self.message.iter().flat_map(|v| v.to_be_bytes()).collect(),
-                txindex,
-                runtime_balances: Box::new(
-                    balances_by_output
-                        .get(&protomessage_vout)
-                        .map(|v| v.clone())
-                        .unwrap_or_else(|| BalanceSheet::default()),
-                ),
-                sheets: Box::new(BalanceSheet::default()),
-            };
-
-            match T::handle(&parcel) {
-                Ok(values) => {
-                    match values.reconcile(
-                        atomic,
-                        balances_by_output,
-                        protomessage_vout,
-                        pointer,
-                        refund_pointer,
-                    ) {
-                        Ok(_) => atomic.commit(),
-                        Err(e) => {
-                            println!("Got error inside reconcile! {:?} \n\n", e);
-                            refund_to_refund_pointer(
-                                balances_by_output,
-                                protomessage_vout,
-                                refund_pointer,
-                            );
-                            atomic.rollback()
-                        }
+        match T::handle(&parcel) {
+            Ok(values) => {
+                match values.reconcile(
+                    atomic,
+                    balances_by_output,
+                    protomessage_vout,
+                    pointer,
+                    refund_pointer,
+                ) {
+                    Ok(_) => atomic.commit(),
+                    Err(e) => {
+                        println!("Got error inside reconcile! {:?} \n\n", e);
+                        refund_to_refund_pointer(
+                            balances_by_output,
+                            protomessage_vout,
+                            refund_pointer,
+                        );
+                        atomic.rollback()
                     }
                 }
-                Err(_) => {
-                    refund_to_refund_pointer(balances_by_output, protomessage_vout, refund_pointer);
-                    atomic.rollback();
-                }
+            }
+            Err(_) => {
+                refund_to_refund_pointer(balances_by_output, protomessage_vout, refund_pointer);
+                atomic.rollback();
             }
         }
         Ok(())

@@ -771,6 +771,7 @@ impl Protorune {
                 unallocated_to,
                 tx.compute_txid(),
             )?;
+
             let num_protostones = protostones.len();
             let protostones_iter = protostones.into_iter();
             // by default, all protorunes that come in as input will be given to the
@@ -792,11 +793,6 @@ impl Protorune {
                     if !proto_balances_by_output.contains_key(&shadow_vout) {
                         proto_balances_by_output.insert(shadow_vout, BalanceSheet::default());
                     }
-                    // println!(
-                    //     "shadow vout {} has bs: {:?}",
-                    //     shadow_vout,
-                    //     proto_balances_by_output.get(&shadow_vout)
-                    // );
                     let protostone_unallocated_to = match stone.pointer {
                         Some(v) => v,
                         None => default_output(tx),
@@ -827,6 +823,11 @@ impl Protorune {
                         )?;
                         // Get the post-message balance to use for edicts
                         prior_balance_sheet = match proto_balances_by_output.get(&refund) {
+                            Some(sheet) => sheet.clone(),
+                            None => prior_balance_sheet,
+                        };
+                    } else {
+                        prior_balance_sheet = match proto_balances_by_output.remove(&shadow_vout) {
                             Some(sheet) => sheet.clone(),
                             None => prior_balance_sheet,
                         };
