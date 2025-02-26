@@ -49,7 +49,6 @@ pub trait MessageProcessor {
     ///   protomessage_vout: The vout of the current protomessage. These are "virtual"
     ///                 vouts, meaning they are greater than the number of real vouts
     ///                 and increase by 1 for each new protostone in the op_return.
-    ///
     ///                 Protoburns and protostone edicts can target these vouts, so they
     ///                 will hold balances before the process message
     ///   balances_by_output: The running store of balances by each transaction output for
