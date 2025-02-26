@@ -34,31 +34,26 @@ impl MessageContext for ForwardAll {
 }
 
 fn protomessages_from_protocol_ids(protocol_ids: Vec<u128>) -> bitcoin::Block {
-    let mut protoburn_txs = protocol_ids
-        .clone()
-        .into_iter()
-        .map(|tag| {
-            let mock_output = OutPoint {
-                txid: bitcoin::Txid::from_str(
-                    "0000000000000000000000000000000000000000000000000000000000000000",
-                )
-                .unwrap(),
-                vout: 0,
-            };
-            helpers::create_default_protoburn_transaction(mock_output, tag)
-        })
-        .collect::<Vec<Transaction>>();
+    let mock_output = OutPoint {
+        txid: bitcoin::Txid::from_str(
+            "0000000000000000000000000000000000000000000000000000000000000000",
+        )
+        .unwrap(),
+        vout: 0,
+    };
+    let transaction = helpers::create_multi_protoburn_transaction(mock_output, &protocol_ids);
 
-    let inputs = protoburn_txs
+    let inputs = protocol_ids
         .clone()
         .into_iter()
-        .map(|protoburn_tx| OutPoint {
-            txid: protoburn_tx.compute_txid(),
-            vout: 0,
+        .enumerate()
+        .map(|(i, _)| OutPoint {
+            txid: transaction.compute_txid(),
+            vout: i as u32,
         })
         .collect::<Vec<OutPoint>>();
     // output 0 holds all the protorunes
-
+    let mut protoburn_txs: Vec<Transaction> = vec![transaction];
     let protomessage_tx =
         helpers::create_multiple_protomessage_from_edict_tx(inputs, protocol_ids, vec![]);
     protoburn_txs.push(protomessage_tx);
@@ -84,15 +79,15 @@ fn multi_protomessage_protocol_test_template<T: MessageContext>(
     // print_cache();
     // tx 0 is protoburn, tx 2 is protomessage
     let outpoint_address0: OutPoint = OutPoint {
-        txid: test_block.txdata[1].compute_txid(),
+        txid: test_block.txdata[0].compute_txid(),
         vout: 0,
     };
     let outpoint_address1: OutPoint = OutPoint {
-        txid: test_block.txdata[2].compute_txid(),
+        txid: test_block.txdata[1].compute_txid(),
         vout: 1,
     };
     let outpoint_address2: OutPoint = OutPoint {
-        txid: test_block.txdata[2].compute_txid(),
+        txid: test_block.txdata[1].compute_txid(),
         vout: 2,
     };
     // check runes balance
