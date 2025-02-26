@@ -636,6 +636,84 @@ pub fn create_protostone_encoded_tx(
     }
 }
 
+pub fn create_multi_protoburn_transaction(
+    previous_output: OutPoint,
+    burn_protocol_ids: &[u128],
+) -> Transaction {
+    let input_script = ScriptBuf::new();
+
+    // Create a transaction input
+    let txin = TxIn {
+        previous_output,
+        script_sig: input_script,
+        sequence: Sequence::MAX,
+        witness: Witness::new(),
+    };
+
+    let address: Address<NetworkChecked> = get_address(&ADDRESS1().as_str());
+
+    let script_pubkey = address.script_pubkey();
+
+    let txout = TxOut {
+        value: Amount::from_sat(100_000_000),
+        script_pubkey,
+    };
+
+    let etching = Some(Etching {
+        divisibility: Some(2),
+        premine: Some(1000),
+        rune: Some(Rune::from_str("TESTTESTTESTTEST").unwrap()),
+        spacers: Some(0),
+        symbol: Some(char::from_str("A").unwrap()),
+        turbo: true,
+        terms: None,
+    });
+
+    let runestone: ScriptBuf = (Runestone {
+        etching,
+        pointer: Some(1),
+        edicts: Vec::new(),
+        mint: None,
+        protocol: match burn_protocol_ids
+            .into_iter()
+            .enumerate()
+            .map(|(i, id)| Protostone {
+                burn: Some(*id),
+                edicts: vec![],
+                pointer: Some(i as u32),
+                refund: None,
+                from: None,
+                protocol_tag: 13,
+                message: vec![],
+            })
+            .collect::<Vec<Protostone>>()
+            .encipher()
+        {
+            Ok(v) => Some(v),
+            Err(_) => None,
+        },
+    })
+    .encipher();
+
+    // op return is at output 1
+    let op_return = TxOut {
+        value: Amount::from_sat(0),
+        script_pubkey: runestone,
+    };
+
+    let mut output = burn_protocol_ids
+        .into_iter()
+        .map(|_| txout.clone())
+        .collect::<Vec<TxOut>>();
+    output.push(op_return);
+    Transaction {
+        version: Version::ONE,
+        lock_time: bitcoin::absolute::LockTime::ZERO,
+        input: vec![txin],
+        output,
+    }
+}
+
 pub fn create_default_protoburn_transaction(
     previous_output: OutPoint,
     burn_protocol_id: u128,

@@ -278,7 +278,9 @@ impl Protorune {
         } else {
             std::cmp::min(edict_amount, balance_sheet.get(&(*rune_id).into()))
         };
+        // Ensure we decrease the source balance first
         balance_sheet.decrease(rune_id, amount);
+        // Then increase the destination balance
         sheet.increase(rune_id, amount);
         Ok(())
     }
@@ -770,6 +772,7 @@ impl Protorune {
                 tx.compute_txid(),
             )?;
 
+            let num_protostones = protostones.len();
             let protostones_iter = protostones.into_iter();
             // by default, all protorunes that come in as input will be given to the
             // first protostone with a matching protocol_tag
@@ -790,11 +793,6 @@ impl Protorune {
                     if !proto_balances_by_output.contains_key(&shadow_vout) {
                         proto_balances_by_output.insert(shadow_vout, BalanceSheet::default());
                     }
-                    // println!(
-                    //     "shadow vout {} has bs: {:?}",
-                    //     shadow_vout,
-                    //     proto_balances_by_output.get(&shadow_vout)
-                    // );
                     let protostone_unallocated_to = match stone.pointer {
                         Some(v) => v,
                         None => default_output(tx),
@@ -802,10 +800,11 @@ impl Protorune {
                     // README: now calculates the amount left over for edicts in this fashion:
                     // the protomessage is executed first, and all the runes that go to the refund pointer are available for the edicts to then transfer
                     // if there is no protomessage, all incoming runes will be available to be transferred by the edict
-                    let mut prior_balance_sheet = balance_sheet.clone();
+                    let mut prior_balance_sheet = BalanceSheet::default();
                     let is_message = stone.is_message();
                     if is_message {
                         let refund = stone.refund.unwrap();
+                        // Start with a fresh balance sheet for edicts
                         prior_balance_sheet = match proto_balances_by_output.get(&refund) {
                             Some(sheet) => sheet.clone(),
                             None => BalanceSheet::default(),
@@ -820,24 +819,21 @@ impl Protorune {
                             shadow_vout,
                             &mut proto_balances_by_output,
                             protostone_unallocated_to,
+                            num_protostones,
                         )?;
+                        // Get the post-message balance to use for edicts
                         prior_balance_sheet = match proto_balances_by_output.get(&refund) {
-                            Some(sheet) => {
-                                let mut sheet = sheet.clone();
-                                sheet.debit(&prior_balance_sheet)?;
-                                sheet
-                            }
+                            Some(sheet) => sheet.clone(),
+                            None => prior_balance_sheet,
+                        };
+                    } else {
+                        prior_balance_sheet = match proto_balances_by_output.remove(&shadow_vout) {
+                            Some(sheet) => sheet.clone(),
                             None => prior_balance_sheet,
                         };
                     }
-                    // Is this necessary? the process_message already removes all balances from shadow_vout
-                    // proto_balances_by_output
-                    //     .get_mut(&shadow_vout)
-                    //     .unwrap()
-                    //     .debit(&balance_sheet)?;
 
-                    // TODO: Handle what happens if edicts overflow the amount in the
-                    // refund pointer
+                    // Process edicts using the current balance state
                     Self::process_edicts(
                         tx,
                         &stone.edicts,
@@ -846,12 +842,7 @@ impl Protorune {
                         &tx.output,
                     )?;
 
-                    // TODO: After edicts, we may need to update the remaining
-                    // amount in the refund pointer
-
-                    // leftover runes should stay with the refund pointer, and
-                    // should not be transferred to the default pointer
-                    // transfer them to default pointer if the protostone doesnt contain a message
+                    // Handle any remaining balance
                     if !is_message {
                         Self::handle_leftover_runes(
                             &mut prior_balance_sheet,

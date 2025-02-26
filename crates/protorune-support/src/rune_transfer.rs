@@ -12,9 +12,12 @@ impl RuneTransfer {
     pub fn from_balance_sheet(s: BalanceSheet) -> Vec<Self> {
         s.balances
             .iter()
-            .map(|(id, v)| Self {
-                id: id.clone(),
-                value: *v,
+            .filter_map(|(id, v)| {
+                if *v > 0 {
+                    Some(RuneTransfer { id: *id, value: *v })
+                } else {
+                    None
+                }
             })
             .collect::<Vec<RuneTransfer>>()
     }

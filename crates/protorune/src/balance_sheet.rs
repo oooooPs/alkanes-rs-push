@@ -5,6 +5,9 @@ use protorune_support::balance_sheet::{BalanceSheet, ProtoruneRuneId};
 use protorune_support::rune_transfer::{increase_balances_using_sheet, RuneTransfer};
 use std::collections::HashMap;
 
+use metashrew::{println, stdio::stdout};
+use std::fmt::Write;
+
 // use metashrew::{println, stdio::stdout};
 // use std::fmt::Write;
 //
@@ -111,7 +114,6 @@ impl OutgoingRunes for (Vec<RuneTransfer>, BalanceSheet) {
             .map_err(|_| anyhow!("balance sheet not found"))?
             .clone();
         let mut initial = BalanceSheet::merge(&incoming_initial, &runtime_initial);
-        // println!("initial: {:?}", initial);
 
         // self.0 is the amount to forward to the pointer
         // self.1 is the amount to put into the runtime balance
