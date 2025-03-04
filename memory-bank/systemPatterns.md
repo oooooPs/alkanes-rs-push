@@ -52,12 +52,13 @@ The protorune system uses several key tables to track rune ownership and balance
   - Populated during normal transaction indexing
   - Used by functions like `protorunes_by_address` to check balances
   - Updated whenever a transaction affects rune balances
+  - Primary source of truth for token balances
 
 - **RUNE_ID_TO_OUTPOINTS**: Maps rune IDs to the outpoints that hold them
   - Populated by the `add_rune_outpoint` function
   - Called during runestone processing and edict handling
-  - Used by functions like `protorune_holders` to find holders of a specific rune
   - Only populated for transactions recognized as runestones
+  - Can be manually populated using `populate_rune_id_to_outpoints` for testing
 
 - **OUTPOINTS_FOR_ADDRESS**: Maps addresses to their associated outpoints
   - Populated during normal transaction indexing in `index_spendables`
@@ -68,10 +69,25 @@ The protorune system uses several key tables to track rune ownership and balance
   - Populated during normal transaction indexing
   - Used to determine which address owns an outpoint
 
-These table relationships are critical for the proper functioning of view functions like `protorune_holders` and `protorunes_by_address`. The key insight is that different tables are populated through different paths:
+These table relationships are critical for the proper functioning of view functions like `protorunes_by_address`. The key insight is that different tables are populated through different paths:
 
 - `OUTPOINTS_FOR_ADDRESS` and `OUTPOINT_SPENDABLE_BY` are populated for ALL transactions with valid addresses
 - `RUNE_ID_TO_OUTPOINTS` is only populated for runestone transactions or when edicts are processed
+
+#### Indexing Process and Table Population
+
+The indexing process is a critical part of the ALKANES system. It processes Bitcoin blocks and updates the state of the ALKANES ecosystem. The key steps in the indexing process are:
+
+1. **Block Processing**: The `index_block` function processes a Bitcoin block and extracts ALKANES protocol messages.
+2. **State Management**: The indexer updates the state of the ALKANES ecosystem based on the extracted messages.
+3. **Table Population**: Different tables are populated through different paths during the indexing process.
+
+**Important**: Double indexing (calling `index_block` or `Protorune::index_block` multiple times for the same block) should never be done as it leads to inconsistent state and confusing test results. This can cause:
+- Additional tokens to be created with unexpected IDs
+- Balances to be swapped or duplicated
+- Inconsistent state between different tables
+
+When writing tests, ensure that you only call `index_block` once per block to maintain consistent state.
 
 ### 2. Alkanes and AlkaneId
 
@@ -94,7 +110,7 @@ Alkanes are executable programs in the ALKANES metaprotocol that also function a
 
 **Important**: The `block` parameter in AlkaneId is NOT the same as the block height of the chain. It's a sequence number or a specific u128 value used for addressing.
 
-### 2. Cellpack Structure
+### 2. Cellpack Structure and Alkane Deployment
 
 Cellpacks are protomessages that interact with alkanes:
 
@@ -103,6 +119,169 @@ Cellpacks are protomessages that interact with alkanes:
 - **Inputs**: The remaining varints after the target are considered inputs to the alkane
 - **Opcodes**: By convention, the first input after the cellpack target is interpreted as an opcode
 - **Initialization**: The 0 opcode following the cellpack target should call the initialization logic for the alkane
+
+#### Deployment Headers and Addressing
+
+When deploying an Alkane, the cellpack header determines the deployment address:
+
+1. **[1, 0] Header**: Deploys the WASM at address `[2, n]`, where n is the next available sequence number
+   ```rust
+   let cellpack = Cellpack {
+       target: AlkaneId { block: 1, tx: 0 },
+       inputs: vec![
+           0,    /* opcode (initialization) */
+           // Additional parameters...
+       ],
+   };
+   ```
+   - The remaining values after `[1, 0]` are passed as inputs to the alkane
+   - By convention, the first input (0) is the initialization opcode
+
+2. **[3, n] Header**: Deploys the alkane to address `[4, n]`, if the number is not already occupied
+   ```rust
+   let cellpack = Cellpack {
+       target: AlkaneId { block: 3, tx: some_value },
+       inputs: vec![
+           0,    /* opcode (initialization) */
+           // Additional parameters...
+       ],
+   };
+   ```
+   - This allows deploying to a predictable address
+
+#### Factory Opcodes
+
+Alkanes can also be deployed using factory opcodes:
+
+1. **[5, n] Header**: Clones the WASM stored at `[2, n]` and deploys to `[2, next_sequence_number]`
+
+2. **[6, n] Header**: Clones the WASM at `[3, n]` and deploys to `[2, next_sequence_number]`
+
+This enables a pattern similar to precompiled contracts, where templates can be deployed at static addresses and then cloned:
+
+```rust
+// Deploy a template at a static address
+let template_cellpack = Cellpack {
+    target: AlkaneId { block: 3, tx: 0xffddffee },
+    inputs: vec![/* initialization parameters */],
+};
+
+// Later, clone the template using [6, 0xffddffee]
+let factory_cellpack = Cellpack {
+    target: AlkaneId { block: 6, tx: 0xffddffee },
+    inputs: vec![/* parameters for the new instance */],
+};
+```
+
+#### Cellpack Parameters and Opcodes
+
+When interacting with alkanes, the inputs in a cellpack have specific meanings:
+
+1. **Opcode (First Input)**: By convention, the first input after the cellpack target is interpreted as an opcode
+   - Opcode 0 typically calls the initialization logic
+   - Other opcodes correspond to different functions in the alkane
+
+2. **Function Parameters**: The remaining inputs are parameters for the function specified by the opcode
+   ```rust
+   let auth_cellpack = Cellpack {
+       target: AlkaneId {
+           block: 3,
+           tx: AUTH_TOKEN_FACTORY_ID,
+       },
+       inputs: vec![100], // Parameter for the auth token factory
+   };
+   ```
+   - The input value (100) is a parameter for the factory contract, not the number of token units
+   - This parameter might specify configuration options, permissions, or other settings
+
+This flexible parameter system allows alkanes to implement complex logic while maintaining a consistent interface.
+
+### 3. Standard Contract Implementations
+
+Examining the smart contract implementations in the crates folder reveals several standard contract types and their implementation patterns:
+
+#### Auth Token Contract
+
+The auth token contract (`alkanes-std-auth-token`) provides authentication and access control:
+
+```rust
+impl AlkaneResponder for AuthToken {
+    fn execute(&self) -> Result<CallResponse> {
+        match shift_or_err(&mut inputs)? {
+            0 => {
+                // Initialization logic
+                let amount = shift_or_err(&mut inputs)?;
+                response.alkanes.0.push(AlkaneTransfer {
+                    id: context.myself.clone(),
+                    value: amount,
+                });
+                pointer.set(Arc::new(vec![0x01]));
+                Ok(response)
+            }
+            1 => {
+                // Authentication logic
+                if context.incoming_alkanes.0.len() != 1 {
+                    return Err(anyhow!("did not authenticate with only the authentication token"));
+                }
+                let transfer = context.incoming_alkanes.0[0].clone();
+                if transfer.id != context.myself.clone() {
+                    return Err(anyhow!("supplied alkane is not authentication token"));
+                }
+                if transfer.value < 1 {
+                    return Err(anyhow!("less than 1 unit of authentication token supplied"));
+                }
+                response.data = vec![0x01];
+                response.alkanes.0.push(transfer);
+                Ok(response)
+            }
+            // Other opcodes...
+        }
+    }
+}
+```
+
+Key features:
+- Opcode 0: Initializes the token with a specified amount
+- Opcode 1: Verifies authentication by checking if the caller sent at least 1 unit of the auth token
+- Returns the auth token in the response to maintain ownership
+
+#### Owned Token Contract
+
+The owned token contract (`alkanes-std-owned-token`) implements a token with ownership verification:
+
+```rust
+impl AlkaneResponder for OwnedToken {
+    fn execute(&self) -> Result<CallResponse> {
+        match shift_or_err(&mut inputs)? {
+            0 => {
+                self.observe_initialization()?;
+                let auth_token_units = shift_or_err(&mut inputs)?;
+                let token_units = shift_or_err(&mut inputs)?;
+                response.alkanes.0.push(self.deploy_auth_token(auth_token_units)?);
+                response.alkanes.0.push(AlkaneTransfer {
+                    id: context.myself.clone(),
+                    value: token_units,
+                });
+                Ok(response)
+            }
+            77 => {
+                self.only_owner()?;
+                let token_units = shift_or_err(&mut inputs)?;
+                let transfer = self.mint(&context, token_units)?;
+                response.alkanes.0.push(transfer);
+                Ok(response)
+            }
+            // Other opcodes...
+        }
+    }
+}
+```
+
+Key features:
+- Implements `AuthenticatedResponder` trait for ownership verification
+- Opcode 0: Initializes the token and deploys an auth token
+- Opcode 77: Mints new tokens (only callable by the owner)
+- Uses the `deploy_auth_token` method to create an auth token during initialization
 
 ### 3. Standard Contract Dependencies
 

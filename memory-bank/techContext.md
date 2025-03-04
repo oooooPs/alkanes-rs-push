@@ -97,42 +97,54 @@ metashrew-keydb --redis <redis-url> --rpc-url <bitcoin-rpc> --auth <auth> --inde
 
 ### View Function Architecture
 
-ALKANES-RS provides several view functions for querying the state of the system:
-
-- **protorune_holders**: Returns all outpoints that hold a specific rune ID
-  ```rust
-  pub fn protorune_holders(input: &Vec<u8>) -> Result<WalletResponse>
-  ```
+ALKANES-RS provides several view functions for querying the state of the system including but not limited to:
 
 - **protorunes_by_address**: Returns all protorunes held by a specific address
   ```rust
   pub fn protorunes_by_address(input: &Vec<u8>) -> Result<WalletResponse>
   ```
+  - Uses the `OUTPOINTS_FOR_ADDRESS` table to find outpoints associated with an address
+  - Then uses the `OUTPOINT_TO_RUNES` table to get the balances for those outpoints
+  - Takes a `ProtorunesWalletRequest` with wallet (address) and protocol_tag parameters
+  - Returns a `WalletResponse` with outpoints and their balances
 
 - **runes_by_address**: Returns all runes held by a specific address
   ```rust
   pub fn runes_by_address(input: &Vec<u8>) -> Result<WalletResponse>
   ```
+  - Similar to `protorunes_by_address` but for all runes, not just protorunes
+  - Uses the same tables but doesn't filter by protocol_tag
 
 - **protorunes_by_outpoint**: Returns protorune balances for a specific outpoint
   ```rust
   pub fn protorunes_by_outpoint(input: &Vec<u8>) -> Result<OutpointResponse>
   ```
+  - Directly queries the `OUTPOINT_TO_RUNES` table for a specific outpoint
+  - Takes an `OutpointRequest` with outpoint and protocol_tag parameters
+  - Returns an `OutpointResponse` with the balances for that outpoint
 
 These functions are exposed through the WASM runtime and can be called via RPC.
+
+#### View Function Dependencies and Testing
+
+When testing view functions, it's important to understand their dependencies:
+
+1. **Table Dependencies**:
+   - `protorunes_by_address` depends on the `OUTPOINTS_FOR_ADDRESS` and `OUTPOINT_TO_RUNES` tables
+   - `protorunes_by_outpoint` depends on the `OUTPOINT_TO_RUNES` table
+
+2. **Testing Considerations**:
+   - Ensure that the necessary tables are populated before calling view functions
+   - Avoid double indexing as it can lead to inconsistent state between tables
+   - Use the `clear()` function between tests to ensure a clean state
+
+3. **Common Issues**:
+   - Double indexing can cause token IDs to be assigned differently than expected
+   - Incorrect token IDs in requests will result in empty responses
 
 ### Protobuf Message Encoding
 
 The view functions use Protocol Buffers for input and output serialization. Key message types include:
-
-- **ProtoruneHoldersRequest**: Request for the `protorune_holders` function
-  ```protobuf
-  message ProtoruneHoldersRequest {
-    optional Uint128 protocol_tag = 1;
-    optional Uint128 height = 2;
-    optional Uint128 txindex = 3;
-  }
-  ```
 
 - **ProtorunesWalletRequest**: Request for the `protorunes_by_address` function
   ```protobuf
@@ -162,15 +174,6 @@ The view functions use Protocol Buffers for input and output serialization. Key 
   ```
 
 When using these messages in RPC calls, it's important to ensure proper encoding of nested message types like `Uint128`, which should be encoded as length-delimited fields rather than simple varints.
-
-### RPC Message Prefixing
-
-When view functions are called via RPC, the input data may include a 4-byte prefix before the actual protobuf message. This prefix is added by the RPC layer and needs to be handled by the view functions. The prefix format is:
-
-- 4 bytes: Prefix (e.g., `61010000` or `62010000`)
-- Remaining bytes: Actual protobuf message
-
-The `protoruneholders` function in `src/lib.rs` includes code to detect and strip this prefix before parsing the protobuf message.
 
 ## Technical Constraints
 
