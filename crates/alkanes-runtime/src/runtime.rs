@@ -104,7 +104,8 @@ impl Extcall for Staticcall {
     }
 }
 
-pub trait AlkaneResponder {
+pub trait AlkaneResponder: 'static {
+    // Remove the as_any method since we're not using trait objects anymore
     fn context(&self) -> Result<Context> {
         unsafe {
             let mut buffer: Vec<u8> = to_arraybuffer_layout(vec![0; __request_context() as usize]);
@@ -267,6 +268,14 @@ pub trait AlkaneResponder {
                 response.into()
             }
         };
+        extended.serialize()
+    }
+
+    #[allow(static_mut_refs)]
+    fn run_with_response(&self, response: CallResponse) -> Vec<u8> {
+        let mut extended: ExtendedCallResponse = response.into();
+        initialize_cache();
+        extended.storage = unsafe { _CACHE.as_ref().unwrap().clone() };
         extended.serialize()
     }
     #[allow(static_mut_refs)]
