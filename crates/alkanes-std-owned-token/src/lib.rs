@@ -64,6 +64,8 @@ impl OwnedToken {
             value: token_units,
         });
 
+        println!("finished init owned token {:?}", response);
+
         Ok(response)
     }
 
@@ -120,20 +122,12 @@ impl OwnedToken {
 
 impl AlkaneResponder for OwnedToken {
     fn execute(&self) -> Result<CallResponse> {
-        let context = self.context()?;
-        let mut inputs = context.inputs.clone();
-
-        if inputs.is_empty() {
-            return Err(anyhow!("No opcode provided"));
-        }
-
-        let opcode = inputs[0];
-        inputs.remove(0);
-
-        match OwnedTokenMessage::from_opcode(opcode, inputs) {
-            Ok(message) => message.dispatch(self),
-            Err(err) => Err(anyhow!("Failed to parse message: {}", err)),
-        }
+        // The opcode extraction and dispatch logic is now handled by the declare_alkane macro
+        // This method is still required by the AlkaneResponder trait, but we can just return an error
+        // indicating that it should not be called directly
+        Err(anyhow!(
+            "This method should not be called directly. Use the declare_alkane macro instead."
+        ))
     }
 }
 
