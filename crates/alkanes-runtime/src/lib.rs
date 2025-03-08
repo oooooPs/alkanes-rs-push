@@ -32,7 +32,6 @@ macro_rules! declare_alkane {
             let mut inputs = context.inputs.clone();
 
             if inputs.is_empty() {
-                // Use the handle_error helper function
                 let extended = handle_error("No opcode provided");
                 return alkanes_runtime::runtime::response_to_i32(extended);
             }
@@ -46,19 +45,14 @@ macro_rules! declare_alkane {
             };
 
             let extended = match result {
-                Ok(res) => {
-                    // Use the handle_success helper function
-                    handle_success(res)
-                }
+                Ok(res) => handle_success(res),
                 Err(err) => {
-                    // Use the handle_error helper function
                     let error_msg = format!("Error: {}", err);
                     let extended = handle_error(&error_msg);
                     return alkanes_runtime::runtime::response_to_i32(extended);
                 }
             };
 
-            // Use the response_to_i32 helper function
             alkanes_runtime::runtime::response_to_i32(extended)
         }
 
@@ -69,7 +63,6 @@ macro_rules! declare_alkane {
         }
 
         fn export_bytes(data: &[u8]) -> i32 {
-            // Use the to_arraybuffer_layout function directly for raw bytes
             let response_bytes = to_arraybuffer_layout(data);
             Box::leak(Box::new(response_bytes)).as_mut_ptr() as usize as i32 + 4
         }

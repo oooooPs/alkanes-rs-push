@@ -54,7 +54,6 @@ pub fn get_cache() -> StorageMap {
     }
 }
 
-/// Helper function to handle successful responses
 #[allow(static_mut_refs)]
 pub fn handle_success(response: CallResponse) -> ExtendedCallResponse {
     let mut extended: ExtendedCallResponse = response.into();
@@ -63,7 +62,6 @@ pub fn handle_success(response: CallResponse) -> ExtendedCallResponse {
     extended
 }
 
-/// Helper function to handle errors
 pub fn handle_error(error: &str) -> ExtendedCallResponse {
     let mut response = CallResponse::default();
     let mut data: Vec<u8> = vec![0x08, 0xc3, 0x79, 0xa0];
@@ -73,12 +71,10 @@ pub fn handle_error(error: &str) -> ExtendedCallResponse {
     response.into()
 }
 
-/// Helper function to serialize and prepare response for return
 pub fn prepare_response(response: ExtendedCallResponse) -> Vec<u8> {
     response.serialize()
 }
 
-/// Helper function to convert a response to an i32 pointer for WASM
 pub fn response_to_i32(response: ExtendedCallResponse) -> i32 {
     let serialized = prepare_response(response);
     let response_bytes = to_arraybuffer_layout(&serialized);
@@ -291,20 +287,8 @@ pub trait AlkaneResponder: 'static {
     #[allow(static_mut_refs)]
     fn run(&self) -> Vec<u8> {
         let extended: ExtendedCallResponse = match self.initialize().execute() {
-            Ok(v) => {
-                let mut response: ExtendedCallResponse = v.into();
-                initialize_cache();
-                response.storage = unsafe { _CACHE.as_ref().unwrap().clone() };
-                response
-            }
-            Err(e) => {
-                let mut response = CallResponse::default();
-                let mut data: Vec<u8> = vec![0x08, 0xc3, 0x79, 0xa0];
-                data.extend(e.to_string().as_bytes());
-                response.data = data;
-                _abort();
-                response.into()
-            }
+            Ok(v) => handle_success(v),
+            Err(e) => handle_error(&e.to_string()),
         };
         extended.serialize()
     }

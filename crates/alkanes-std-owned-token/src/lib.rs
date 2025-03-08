@@ -52,7 +52,6 @@ impl OwnedToken {
         let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes.clone());
 
         self.observe_initialization()?;
-        println!("owned token initializing");
 
         response
             .alkanes
@@ -64,8 +63,6 @@ impl OwnedToken {
             value: token_units,
         });
 
-        println!("finished init owned token {:?}", response);
-
         Ok(response)
     }
 
@@ -73,7 +70,6 @@ impl OwnedToken {
         let context = self.context()?;
         let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes.clone());
 
-        println!("owned token minting");
         self.only_owner()?;
 
         // Call the mint method from the MintableToken trait

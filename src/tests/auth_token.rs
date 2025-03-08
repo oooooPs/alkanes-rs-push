@@ -187,7 +187,6 @@ fn test_auth_and_owned_token() -> Result<()> {
             .OUTPOINT_TO_RUNES
             .select(&consensus_encode(&outpoint)?),
     );
-    println!("sheet: {:?}", sheet);
     assert_eq!(sheet.get(&owned_token_id.into()), 1000);
     assert_eq!(sheet.get(&auth_token_id_deployment.into()), 1);
 
