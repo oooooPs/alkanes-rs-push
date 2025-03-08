@@ -46,6 +46,45 @@ pub fn initialize_cache() {
     }
 }
 
+#[allow(static_mut_refs)]
+pub fn get_cache() -> StorageMap {
+    unsafe {
+        initialize_cache();
+        _CACHE.as_ref().unwrap().clone()
+    }
+}
+
+/// Helper function to handle successful responses
+#[allow(static_mut_refs)]
+pub fn handle_success(response: CallResponse) -> ExtendedCallResponse {
+    let mut extended: ExtendedCallResponse = response.into();
+    initialize_cache();
+    extended.storage = get_cache();
+    extended
+}
+
+/// Helper function to handle errors
+pub fn handle_error(error: &str) -> ExtendedCallResponse {
+    let mut response = CallResponse::default();
+    let mut data: Vec<u8> = vec![0x08, 0xc3, 0x79, 0xa0];
+    data.extend(error.as_bytes());
+    response.data = data;
+    _abort();
+    response.into()
+}
+
+/// Helper function to serialize and prepare response for return
+pub fn prepare_response(response: ExtendedCallResponse) -> Vec<u8> {
+    response.serialize()
+}
+
+/// Helper function to convert a response to an i32 pointer for WASM
+pub fn response_to_i32(response: ExtendedCallResponse) -> i32 {
+    let serialized = prepare_response(response);
+    let response_bytes = to_arraybuffer_layout(&serialized);
+    Box::leak(Box::new(response_bytes)).as_mut_ptr() as usize as i32 + 4
+}
+
 pub trait Extcall {
     fn __call(cellpack: i32, outgoing_alkanes: i32, checkpoint: i32, fuel: u64) -> i32;
     #[allow(static_mut_refs)]

@@ -9,8 +9,6 @@ pub mod storage;
 pub mod token;
 pub use crate::stdio::stdout;
 
-use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
-
 #[macro_export]
 macro_rules! declare_alkane {
     ($struct_name:ident) => {
@@ -27,13 +25,16 @@ macro_rules! declare_alkane {
         #[no_mangle]
         pub extern "C" fn __execute() -> i32 {
             use alkanes_runtime::runtime::AlkaneResponder;
+            use alkanes_runtime::runtime::{handle_error, handle_success, prepare_response};
             use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
 
             let mut context = $struct_name::default().context().unwrap();
             let mut inputs = context.inputs.clone();
 
             if inputs.is_empty() {
-                return handle_error("No opcode provided");
+                // Use the handle_error helper function
+                let extended = handle_error("No opcode provided");
+                return alkanes_runtime::runtime::response_to_i32(extended);
             }
 
             let opcode = inputs[0];
@@ -44,17 +45,21 @@ macro_rules! declare_alkane {
                 Err(err) => Err(anyhow::anyhow!("Failed to parse message: {}", err)),
             };
 
-            let response = match result {
-                Ok(res) => res,
+            let extended = match result {
+                Ok(res) => {
+                    // Use the handle_success helper function
+                    handle_success(res)
+                }
                 Err(err) => {
-                    return handle_error(&format!("Error: {}", err));
+                    // Use the handle_error helper function
+                    let error_msg = format!("Error: {}", err);
+                    let extended = handle_error(&error_msg);
+                    return alkanes_runtime::runtime::response_to_i32(extended);
                 }
             };
 
-            // Convert CallResponse to Vec<u8> using serialize
-            let serialized_response = response.serialize();
-            let response_bytes = to_arraybuffer_layout(&serialized_response);
-            Box::leak(Box::new(response_bytes)).as_mut_ptr() as usize as i32 + 4
+            // Use the response_to_i32 helper function
+            alkanes_runtime::runtime::response_to_i32(extended)
         }
 
         #[no_mangle]
@@ -63,21 +68,8 @@ macro_rules! declare_alkane {
             export_bytes(&abi)
         }
 
-        fn handle_error(msg: &str) -> i32 {
-            use alkanes_support::response::CallResponse;
-            use metashrew_support::compat::to_arraybuffer_layout;
-
-            // Create a default response with error message in data field
-            let mut error_response = CallResponse::default();
-            error_response.data = msg.as_bytes().to_vec();
-
-            // Convert CallResponse to Vec<u8> using serialize
-            let serialized_response = error_response.serialize();
-            let response_bytes = to_arraybuffer_layout(&serialized_response);
-            Box::leak(Box::new(response_bytes)).as_mut_ptr() as usize as i32 + 4
-        }
-
         fn export_bytes(data: &[u8]) -> i32 {
+            // Use the to_arraybuffer_layout function directly for raw bytes
             let response_bytes = to_arraybuffer_layout(data);
             Box::leak(Box::new(response_bytes)).as_mut_ptr() as usize as i32 + 4
         }
