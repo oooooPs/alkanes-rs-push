@@ -127,6 +127,47 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
     // Get the concrete type name by removing "Message" from the enum name
     let concrete_type_name = format_ident!("{}", name.to_string().trim_end_matches("Message"));
 
+    // Build a string of method JSON entries
+    let mut method_json_entries = String::new();
+    let mut first = true;
+
+    for variant in variants.iter() {
+        let method_name = extract_method_attr(&variant.attrs);
+        let opcode = extract_opcode_attr(&variant.attrs);
+
+        // Determine parameter count based on the variant fields
+        let field_count = match &variant.fields {
+            Fields::Unnamed(fields) => fields.unnamed.len(),
+            Fields::Unit => 0,
+            _ => panic!("Named fields are not supported"),
+        };
+
+        // Generate parameter types as a simple array
+        let params_types = if field_count == 0 {
+            "[]".to_string()
+        } else {
+            let mut types = Vec::new();
+            for _ in 0..field_count {
+                types.push("\"u128\"");
+            }
+            format!("[{}]", types.join(", "))
+        };
+
+        // Create the complete method JSON
+        let method_json = format!(
+            "{{ \"name\": \"{}\", \"opcode\": {}, \"params\": {} }}",
+            method_name, opcode, params_types
+        );
+
+        if !first {
+            method_json_entries.push_str(", ");
+        }
+        method_json_entries.push_str(&method_json);
+        first = false;
+    }
+
+    let method_json_str = format!("{}", method_json_entries);
+
     let expanded = quote! {
         impl alkanes_runtime::message::MessageDispatch<#concrete_type_name> for #name {
             fn from_opcode(opcode: u128, inputs: Vec<u128>) -> Result<Self, anyhow::Error> {
@@ -143,11 +184,13 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
             }
 
             fn export_abi() -> Vec<u8> {
-                // Simple string representation of the ABI
+                // Generate a JSON representation of the ABI with methods
                 let abi_string = format!(
-                    "{{ \"contract\": \"{}\", \"methods\": [] }}",
-                    stringify!(#concrete_type_name)
+                    "{{ \"contract\": \"{}\", \"methods\": [{}] }}",
+                    stringify!(#concrete_type_name),
+                    #method_json_str
                 );
+
                 abi_string.into_bytes()
             }
         }
