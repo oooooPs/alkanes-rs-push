@@ -31,10 +31,11 @@ use protorune_support::balance_sheet::BalanceSheet;
 use protorune_support::balance_sheet::ProtoruneRuneId;
 use protorune_support::rune_transfer::RuneTransfer;
 use protorune_support::utils::{consensus_decode, decode_varint_list};
+use std::collections::HashMap;
 #[allow(unused_imports)]
 use std::fmt::Write;
 use std::io::Cursor;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 
 pub fn parcel_from_protobuf(v: proto::alkanes::MessageContextParcel) -> MessageContextParcel {
     let mut result = MessageContextParcel::default();
@@ -133,7 +134,19 @@ pub const STATIC_FUEL: u64 = 100_000;
 pub const NAME_OPCODE: u128 = 99;
 pub const SYMBOL_OPCODE: u128 = 100;
 
+// Cache for storing name and symbol values for AlkaneIds
+static STATICS_CACHE: LazyLock<Mutex<HashMap<AlkaneId, (String, String)>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
 pub fn get_statics(id: &AlkaneId) -> (String, String) {
+    // Try to get from cache first
+    if let Ok(cache) = STATICS_CACHE.lock() {
+        if let Some(cached_values) = cache.get(id) {
+            return cached_values.clone();
+        }
+    }
+
+    // If not in cache, fetch the values
     let name = call_view(id, &vec![NAME_OPCODE], STATIC_FUEL)
         .and_then(|v| Ok(String::from_utf8(v)))
         .unwrap_or_else(|_| Ok(String::from("{REVERT}")))
@@ -142,6 +155,12 @@ pub fn get_statics(id: &AlkaneId) -> (String, String) {
         .and_then(|v| Ok(String::from_utf8(v)))
         .unwrap_or_else(|_| Ok(String::from("{REVERT}")))
         .unwrap();
+
+    // Store in cache
+    if let Ok(mut cache) = STATICS_CACHE.lock() {
+        cache.insert(id.clone(), (name.clone(), symbol.clone()));
+    }
+
     (name, symbol)
 }
 
