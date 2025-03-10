@@ -148,6 +148,15 @@ mod tests {
                 .select(&test_stored_target.into())
                 .get()
                 .as_ref()
+                .clone()
+                .length(),
+            compress(alkanes_std_test_build::get_bytes()).length()?
+        );
+        assert_eq!(
+            IndexPointer::from_keyword("/alkanes/")
+                .select(&test_stored_target.into())
+                .get()
+                .as_ref()
                 .clone(),
             compress(alkanes_std_test_build::get_bytes())?
         );

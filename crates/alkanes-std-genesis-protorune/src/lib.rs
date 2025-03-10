@@ -61,7 +61,8 @@ impl GenesisProtorune {
         self.total_supply_pointer().set_value::<u128>(v);
     }
 
-    pub fn mint(&self, context: &Context) -> Result<AlkaneTransfer> {
+    // Helper method that creates a mint transfer
+    pub fn create_mint_transfer(&self, context: &Context) -> Result<AlkaneTransfer> {
         if context.incoming_alkanes.0.len() != 1
             || &context.incoming_alkanes.0[0].id
                 != &(AlkaneId {
@@ -89,11 +90,15 @@ impl GenesisProtorune {
         Ok(response)
     }
 
-    fn mint_tokens(&self) -> Result<CallResponse> {
+    // Method that matches the MessageDispatch enum
+    fn mint(&self) -> Result<CallResponse> {
         let context = self.context()?;
         let mut response = CallResponse::forward(&context.incoming_alkanes);
 
-        response.alkanes.0.push(self.mint(&context)?);
+        response
+            .alkanes
+            .0
+            .push(self.create_mint_transfer(&context)?);
 
         Ok(response)
     }

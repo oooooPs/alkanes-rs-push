@@ -201,7 +201,9 @@ impl GenesisAlkane {
         }
     }
 
-    pub fn mint(&self, context: &Context) -> Result<AlkaneTransfer> {
+    // Helper method that creates a mint transfer
+    pub fn create_mint_transfer(&self) -> Result<AlkaneTransfer> {
+        let context = self.context()?;
         self.observe_mint(&self.block()?)?;
         let value = self.current_block_reward();
         let mut total_supply_pointer = self.total_supply_pointer();
@@ -242,11 +244,12 @@ impl GenesisAlkane {
         Ok(response)
     }
 
-    fn mint_tokens(&self) -> Result<CallResponse> {
+    // Method that matches the MessageDispatch enum
+    fn mint(&self) -> Result<CallResponse> {
         let context = self.context()?;
         let mut response = CallResponse::forward(&context.incoming_alkanes);
 
-        response.alkanes.0.push(self.mint(&context)?);
+        response.alkanes.0.push(self.create_mint_transfer()?);
 
         Ok(response)
     }
