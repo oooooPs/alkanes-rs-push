@@ -6,6 +6,8 @@ pub mod std;
 pub mod utils;
 //pub mod index_alkanes;
 #[cfg(test)]
+pub mod abi_test;
+#[cfg(test)]
 //pub mod address;
 #[cfg(test)]
 pub mod alkane;
@@ -21,8 +23,6 @@ pub mod forge;
 pub mod genesis;
 #[cfg(test)]
 pub mod networks;
-#[cfg(test)]
-pub mod owned_token_abi;
 #[cfg(test)]
 pub mod serialization;
 #[cfg(test)]
