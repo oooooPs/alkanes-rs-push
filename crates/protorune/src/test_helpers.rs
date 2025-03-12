@@ -538,7 +538,7 @@ pub fn create_transaction_with_middle_op_return(
         etching: Some(Etching {
             divisibility: Some(2),
             premine: Some(1000),
-            rune: Some(Rune::from_str("TESTTESTTESTTEST").unwrap()),
+            rune: Some(Rune::from_str("MIDDLERUNEOPRET").unwrap()),
             spacers: Some(0),
             symbol: Some(char::from_str("A").unwrap()),
             turbo: true,
@@ -843,7 +843,7 @@ pub fn create_protostone_transaction(
         Some(Etching {
             divisibility: Some(2),
             premine: Some(1000),
-            rune: Some(Rune::from_str("TESTTESTTESTTEST").unwrap()),
+            rune: Some(Rune::from_str("ENDRUNEOPRETURN").unwrap()),
             spacers: Some(0),
             symbol: Some(char::from_str("A").unwrap()),
             turbo: true,
