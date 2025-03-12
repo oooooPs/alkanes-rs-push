@@ -81,7 +81,7 @@ mod tests {
 
         // Call protorunes_by_address
         let response: WalletResponse =
-            view::protorunes_by_address(&request.write_to_bytes().unwrap())?;
+            view::protorunes_by_address2(&request.write_to_bytes().unwrap())?;
 
         println!("Response outpoints count: {}", response.outpoints.len());
 
