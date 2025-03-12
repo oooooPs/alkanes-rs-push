@@ -5,6 +5,10 @@ mod tests {
     use crate::{view, Protorune};
     use anyhow::Result;
     use bitcoin::OutPoint;
+    use metashrew::{
+        println,
+        stdio::{stdout, Write},
+    };
     use protobuf::{Message, MessageField};
     use protorune_support::balance_sheet::BalanceSheet;
     use protorune_support::proto::protorune::{ProtorunesWalletRequest, WalletResponse};
@@ -52,9 +56,9 @@ mod tests {
         helpers::create_block_with_txs(vec![tx])
     }
 
-    // Test that protorunes_by_address runs without errors
+    // Test that protorunes_by_address returns all protorunes for a given address
     #[wasm_bindgen_test]
-    fn test_protorunes_by_address_runs() -> Result<()> {
+    fn test_protorunes_by_address() -> Result<()> {
         clear();
         let block_height = 840000;
         let protocol_id = 122;
@@ -66,8 +70,13 @@ mod tests {
         );
 
         // Get the address from the transaction
+        let tx = &test_block.txdata[0];
         let address = helpers::get_address(&helpers::ADDRESS1().as_str());
         let address_bytes = address.script_pubkey().as_bytes().to_vec();
+
+        println!("Address: {}", helpers::ADDRESS1());
+        println!("Address bytes length: {}", address_bytes.len());
+        println!("Address bytes: {:?}", address_bytes);
 
         // Create a request to get protorunes for the address
         let mut request = ProtorunesWalletRequest::new();
@@ -75,58 +84,20 @@ mod tests {
         request.protocol_tag = MessageField::some(protocol_id.into());
 
         // Call protorunes_by_address
-        let _response: WalletResponse =
+        let response: WalletResponse =
             view::protorunes_by_address(&request.write_to_bytes().unwrap())?;
 
-        // The test passes even if there are no outpoints
-        // In a real-world scenario, we would expect outpoints to be returned
-        // but for testing purposes, we're just checking that the function runs without errors
+        println!("Response outpoints count: {}", response.outpoints.len());
 
-        Ok(())
-    }
+        // If there are outpoints, print some information about them
+        if !response.outpoints.is_empty() {
+            println!("First outpoint: {:?}", response.outpoints[0]);
+        }
 
-    // Test that protorunes_by_address returns all protorunes for a given address
-    #[wasm_bindgen_test]
-    fn test_protorunes_by_address_returns_all() -> Result<()> {
-        clear();
-        let block_height = 840000;
-        let protocol_id = 122;
-
-        // Create and index multiple blocks with transactions that have OP_RETURN at the end
-        let test_block1 = create_block_with_end_op_return(protocol_id);
-        let test_block2 = create_block_with_end_op_return(protocol_id);
-
-        // Index the blocks
         assert!(
-            Protorune::index_block::<NoopMessageContext>(test_block1.clone(), block_height).is_ok()
+            response.outpoints.len() > 0,
+            "must return at least one outpoint"
         );
-        assert!(Protorune::index_block::<NoopMessageContext>(
-            test_block2.clone(),
-            block_height + 1
-        )
-        .is_ok());
-
-        // Get the address from the transaction
-        let address = helpers::get_address(&helpers::ADDRESS1().as_str());
-        let address_bytes = address.script_pubkey().as_bytes().to_vec();
-
-        // Create a request to get protorunes for the address
-        let mut request = ProtorunesWalletRequest::new();
-        request.wallet = address_bytes.clone();
-        request.protocol_tag = MessageField::some(protocol_id.into());
-
-        // Call protorunes_by_address
-        let _response: WalletResponse =
-            view::protorunes_by_address(&request.write_to_bytes().unwrap())?;
-
-        // Check if the response contains outpoints
-        // Note: This test may fail if the protorunes_by_address function is not working correctly
-        // The test is designed to check if the function returns all protorunes for a given address
-        // If the function is not working correctly, this test will fail
-
-        // In a real-world scenario, we would expect the response to contain outpoints
-        // for both blocks that we indexed. However, since we're testing a potentially
-        // faulty implementation, we're just checking that the function runs without errors.
 
         Ok(())
     }
