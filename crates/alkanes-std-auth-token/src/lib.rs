@@ -29,6 +29,7 @@ impl Token for AuthToken {
 enum AuthTokenMessage {
     #[opcode(0)]
     #[method("initialize")]
+    #[param_names("amount")]
     Initialize(u128),
 
     #[opcode(1)]
