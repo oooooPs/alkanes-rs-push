@@ -698,8 +698,14 @@ impl Protorune {
         tx: &Transaction,
         map: &HashMap<u32, BalanceSheet>,
     ) -> Result<()> {
-        // TODO: check is -1 necessary? it seems like this is trying to skip the op return, but the op return doesn't have to be at the end
-        for i in 0..tx.output.len() - 1 {
+        // Process all outputs, including the last one
+        // The OP_RETURN doesn't have to be at the end
+        for i in 0..tx.output.len() {
+            // Skip OP_RETURN outputs
+            if tx.output[i].script_pubkey.is_op_return() {
+                continue;
+            }
+
             let sheet = map
                 .get(&(i as u32))
                 .map(|v| v.clone())
@@ -911,8 +917,8 @@ impl Protorune {
             .set_value::<u64>(height);
         Self::index_transaction_ids(&block, height)?;
         Self::index_outpoints(&block, height)?;
-        Self::index_unspendables::<T>(&block, height)?;
         Self::index_spendables(&block.txdata)?;
+        Self::index_unspendables::<T>(&block, height)?;
         flush();
         Ok(())
     }

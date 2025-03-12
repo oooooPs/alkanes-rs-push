@@ -228,31 +228,17 @@ pub fn protorunes_by_address(input: &Vec<u8>) -> Result<WalletResponse> {
     if let Some(req) = proto::protorune::ProtorunesWalletRequest::parse_from_bytes(input).ok() {
         result.outpoints = tables::OUTPOINT_SPENDABLE_BY_ADDRESS
             .select(&req.wallet)
-            .map_ll(|ptr, _| -> Result<OutPoint> {
+            .map_ll(|ptr, _| -> Result<OutpointResponse> {
                 let mut cursor = Cursor::new(ptr.get().as_ref().clone());
-                Ok(consensus_decode::<bitcoin::blockdata::transaction::OutPoint>(&mut cursor)?)
+                let outpoint =
+                    consensus_decode::<bitcoin::blockdata::transaction::OutPoint>(&mut cursor)?;
+                protorune_outpoint_to_outpoint_response(
+                    &outpoint,
+                    req.clone().protocol_tag.into_option().unwrap().into(),
+                )
             })
             .into_iter()
-            .collect::<Result<Vec<OutPoint>>>()?
-            .into_iter()
-            .filter_map(|v| -> Option<Result<OutpointResponse>> {
-                let outpoint_bytes = match outpoint_to_bytes(&v) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        return Some(Err(e));
-                    }
-                };
-                let _address = tables::OUTPOINT_SPENDABLE_BY.select(&outpoint_bytes).get();
-                if req.wallet.len() == _address.len() {
-                    Some(protorune_outpoint_to_outpoint_response(
-                        &v,
-                        req.clone().protocol_tag.into_option().unwrap().into(),
-                    ))
-                } else {
-                    None
-                }
-            })
-            .collect::<Result<Vec<OutpointResponse>>>()?;
+            .collect::<Result<Vec<OutpointResponse>>>()?
     }
     Ok(result)
 }
