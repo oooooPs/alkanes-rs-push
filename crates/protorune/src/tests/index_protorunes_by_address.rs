@@ -72,11 +72,7 @@ mod tests {
         // Get the address from the transaction
         let tx = &test_block.txdata[0];
         let address = helpers::get_address(&helpers::ADDRESS1().as_str());
-        let address_bytes = address.script_pubkey().as_bytes().to_vec();
-
-        println!("Address: {}", helpers::ADDRESS1());
-        println!("Address bytes length: {}", address_bytes.len());
-        println!("Address bytes: {:?}", address_bytes);
+        let address_bytes = address.to_string().into_bytes();
 
         // Create a request to get protorunes for the address
         let mut request = ProtorunesWalletRequest::new();
@@ -90,9 +86,6 @@ mod tests {
         println!("Response outpoints count: {}", response.outpoints.len());
 
         // If there are outpoints, print some information about them
-        if !response.outpoints.is_empty() {
-            println!("First outpoint: {:?}", response.outpoints[0]);
-        }
 
         assert!(
             response.outpoints.len() > 0,

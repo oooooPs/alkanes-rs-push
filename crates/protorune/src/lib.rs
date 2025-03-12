@@ -193,18 +193,6 @@ impl Protorune {
             .iter()
             .map(|input| {
                 let outpoint_bytes = consensus_encode(&input.previous_output)?;
-                let pos: u32 = tables::OUTPOINT_SPENDABLE_BY_ADDRESS
-                    .select(&outpoint_bytes)
-                    .get_value();
-                let address = tables::OUTPOINT_SPENDABLE_BY.select(&outpoint_bytes).get();
-                tables::OUTPOINT_SPENDABLE_BY_ADDRESS
-                    .select(&address)
-                    .delete_value(pos);
-                if pos > 0 {
-                    tables::OUTPOINT_SPENDABLE_BY_ADDRESS
-                        .select(&outpoint_bytes)
-                        .nullify();
-                }
                 Ok(load_sheet(&mut atomic.derive(
                     &tables::RUNES.OUTPOINT_TO_RUNES.select(&outpoint_bytes),
                 )))
@@ -626,11 +614,13 @@ impl Protorune {
                     txid: tx_id.clone(),
                     vout: index as u32,
                 };
-
+                println!("outpoint: {:?}", outpoint);
                 let output_script_pubkey: &ScriptBuf = &output.script_pubkey;
                 if Payload::from_script(output_script_pubkey).is_ok() {
                     let outpoint_bytes: Vec<u8> = consensus_encode(&outpoint)?;
-                    let address = to_address_str(output_script_pubkey).unwrap().into_bytes();
+                    let address_str = to_address_str(output_script_pubkey).unwrap();
+                    println!("address: {:?}", address_str);
+                    let address = address_str.into_bytes();
                     tables::OUTPOINTS_FOR_ADDRESS
                         .select(&address.clone())
                         .append(Arc::new(outpoint_bytes.clone()));
@@ -647,6 +637,24 @@ impl Protorune {
                     tables::OUTPOINT_SPENDABLE_BY
                         .select(&outpoint_bytes.clone())
                         .set(Arc::new(address.clone()))
+                }
+            }
+            for input in transaction.input.iter() {
+                let outpoint_bytes = consensus_encode(&input.previous_output)?;
+                let pos: u32 = tables::OUTPOINT_SPENDABLE_BY_ADDRESS
+                    .select(&outpoint_bytes)
+                    .get_value();
+                let address = tables::OUTPOINT_SPENDABLE_BY.select(&outpoint_bytes).get();
+                println!("address in: {:?}", address);
+                if address.len() > 0 {
+                    tables::OUTPOINT_SPENDABLE_BY_ADDRESS
+                        .select(&address)
+                        .delete_value(pos);
+                    if pos > 0 {
+                        tables::OUTPOINT_SPENDABLE_BY_ADDRESS
+                            .select(&outpoint_bytes)
+                            .nullify();
+                    }
                 }
             }
         }
