@@ -3,9 +3,10 @@ use crate::{
     vm::{AlkanesInstance, AlkanesState},
 };
 use alkanes_support::utils::overflow_error;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use bitcoin::{Block, Transaction, Witness};
 use ordinals::{Artifact, Runestone};
+use crate::vm::fuel::{FUEL_LOAD_TRANSACTION, FUEL_LOAD_BLOCK};
 use protorune::message::MessageContext;
 use protorune_support::protostone::Protostone;
 use protorune_support::utils::decode_varint_list;
