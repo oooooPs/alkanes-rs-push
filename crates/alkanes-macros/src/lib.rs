@@ -1,8 +1,7 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    parse_macro_input, Attribute, Data, DeriveInput, Fields, Ident, Lit, LitInt, LitStr, Meta,
-    NestedMeta,
+    parse_macro_input, Attribute, Data, DeriveInput, Fields, Ident, Lit, LitInt, Meta, NestedMeta,
 };
 
 /// Extracts the opcode attribute from a variant's attributes
@@ -35,34 +34,8 @@ fn extract_method_attr(attrs: &[Attribute]) -> String {
     panic!("Missing or invalid #[method(\"name\")] attribute");
 }
 
-/// Extracts the param_names attribute from a variant's attributes
-fn extract_param_names_attr(attrs: &[Attribute]) -> Option<Vec<String>> {
-    for attr in attrs {
-        if attr.path.is_ident("param_names") {
-            if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
-                let param_names = meta_list
-                    .nested
-                    .iter()
-                    .filter_map(|nested_meta| {
-                        if let NestedMeta::Lit(Lit::Str(lit_str)) = nested_meta {
-                            Some(lit_str.value())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<_>>();
-
-                if !param_names.is_empty() {
-                    return Some(param_names);
-                }
-            }
-        }
-    }
-    None
-}
-
 /// Derive macro for MessageDispatch trait
-#[proc_macro_derive(MessageDispatch, attributes(opcode, method, param_names))]
+#[proc_macro_derive(MessageDispatch, attributes(opcode, method))]
 pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
@@ -152,11 +125,9 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
     });
 
     // Get the concrete type name by removing "Message" from the enum name
-    let name_string = name.to_string();
-    let concrete_type_name_string = name_string.trim_end_matches("Message").to_string();
-    let concrete_type_name = format_ident!("{}", concrete_type_name_string);
+    let concrete_type_name = format_ident!("{}", name.to_string().trim_end_matches("Message"));
 
-    // Build method JSON entries for ABI
+    // Build a string of method JSON entries
     let mut method_json_entries = String::new();
     let mut first = true;
 
@@ -171,42 +142,21 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
             _ => panic!("Named fields are not supported"),
         };
 
-        // Get parameter names if provided
-        let param_names_opt = extract_param_names_attr(&variant.attrs);
-
-        // Generate parameter JSON
-        let mut params_json = String::new();
-        if field_count > 0 {
-            params_json.push_str("[");
-            for i in 0..field_count {
-                if i > 0 {
-                    params_json.push_str(", ");
-                }
-
-                let param_name = if let Some(ref names) = param_names_opt {
-                    if i < names.len() {
-                        names[i].clone()
-                    } else {
-                        format!("param{}", i)
-                    }
-                } else {
-                    format!("param{}", i)
-                };
-
-                params_json.push_str(&format!(
-                    "{{ \"type\": \"u128\", \"name\": \"{}\" }}",
-                    param_name
-                ));
-            }
-            params_json.push_str("]");
+        // Generate parameter types as a simple array
+        let params_types = if field_count == 0 {
+            "[]".to_string()
         } else {
-            params_json.push_str("[]");
-        }
+            let mut types = Vec::new();
+            for _ in 0..field_count {
+                types.push("\"u128\"");
+            }
+            format!("[{}]", types.join(", "))
+        };
 
         // Create the complete method JSON
         let method_json = format!(
             "{{ \"name\": \"{}\", \"opcode\": {}, \"params\": {} }}",
-            method_name, opcode, params_json
+            method_name, opcode, params_types
         );
 
         if !first {
@@ -237,7 +187,7 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                 // Generate a JSON representation of the ABI with methods
                 let abi_string = format!(
                     "{{ \"contract\": \"{}\", \"methods\": [{}] }}",
-                    #concrete_type_name_string,
+                    stringify!(#concrete_type_name),
                     #method_json_str
                 );
 
