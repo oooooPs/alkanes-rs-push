@@ -118,6 +118,8 @@ Based on the documentation, the following issues or challenges may exist:
    - **Fuel Refunding**: Fixed an issue where the fuel refunded to the block was the entire initially allocated amount rather than the actual remaining fuel leftover from running the transaction.
    - **Fuel Consumption**: Fixed an issue where WebAssembly execution was consuming all available fuel, leading to "ALKANES: revert: all fuel consumed by WebAssembly" errors.
    - **Diagnostic Logging**: Added comprehensive logging throughout the fuel management system to provide detailed information for debugging fuel-related issues.
+   - **Fuel Benchmarking**: Implemented a benchmarking framework in the test suite to measure and analyze fuel consumption patterns.
+   - **Fixed Fuel Costs**: Optimized fuel costs for large data operations by replacing variable costs with fixed costs.
    
    The fixes ensure:
    - Only the actual remaining fuel is refunded to the block
@@ -131,6 +133,16 @@ Based on the documentation, the following issues or challenges may exist:
      - Block size and fuel allocation
      - Storage size and associated fuel costs
      - Step-by-step tracking of fuel allocation, consumption, and refunding
+   - Comprehensive fuel benchmarking capabilities:
+     - Tabular display of fuel consumption metrics
+     - Per-operation fuel tracking
+     - Percentage-based analysis of fuel usage
+     - Aggregated statistics for total fuel consumption
+   - Efficient handling of large data structures:
+     - Block loading operations now use a fixed cost of 1000 fuel units regardless of block size
+     - Transaction loading operations now use a fixed cost of 500 fuel units regardless of transaction size
+     - Request operations use proportionally smaller fixed costs
+     - Prevents excessive fuel consumption when working with large blocks (up to 4MB)
 
 ## Next Development Priorities
 
