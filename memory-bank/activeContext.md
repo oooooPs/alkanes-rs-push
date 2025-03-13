@@ -35,6 +35,11 @@ Based on the existing codebase, the project appears to have established:
    - Updated the `drain_fuel` method to avoid incorrect fuel deductions in error cases
    - Ensured that only the actual remaining fuel (not the initially allocated amount) is refunded to the block
    - Added explicit fuel consumption checks to prevent "all fuel consumed by WebAssembly" errors
+   - Enhanced logging throughout the fuel management system to provide detailed diagnostic information:
+     - Added comprehensive logging to `consume_fuel` with detailed error information
+     - Added execution tracking logs to `run_after_special` to monitor fuel usage during WebAssembly execution
+     - Added allocation tracking logs to `fuel_transaction` to monitor initial fuel allocation
+     - Added refunding tracking logs to `refuel_block` to monitor fuel refunding process
 
 ## Next Steps
 

@@ -117,6 +117,7 @@ Based on the documentation, the following issues or challenges may exist:
 1. **Fuel Management**: Fixed multiple issues in the fuel management system:
    - **Fuel Refunding**: Fixed an issue where the fuel refunded to the block was the entire initially allocated amount rather than the actual remaining fuel leftover from running the transaction.
    - **Fuel Consumption**: Fixed an issue where WebAssembly execution was consuming all available fuel, leading to "ALKANES: revert: all fuel consumed by WebAssembly" errors.
+   - **Diagnostic Logging**: Added comprehensive logging throughout the fuel management system to provide detailed information for debugging fuel-related issues.
    
    The fixes ensure:
    - Only the actual remaining fuel is refunded to the block
@@ -124,6 +125,12 @@ Based on the documentation, the following issues or challenges may exist:
    - Explicit checks for fuel exhaustion with clearer error messages
    - Consistent error handling in fuel consumption
    - No incorrect fuel deductions in error cases
+   - Detailed diagnostic information when fuel issues occur, including:
+     - Transaction size and index
+     - Initial and remaining fuel amounts
+     - Block size and fuel allocation
+     - Storage size and associated fuel costs
+     - Step-by-step tracking of fuel allocation, consumption, and refunding
 
 ## Next Development Priorities
 
