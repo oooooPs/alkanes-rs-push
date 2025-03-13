@@ -30,10 +30,11 @@ Based on the existing codebase, the project appears to have established:
    - Bellscoin
    - Fractal
 
-4. **Fuel Management Improvements**: The fuel system has been updated to correctly handle fuel refunding:
-   - Fixed the `consume_fuel` method to properly track remaining fuel
+4. **Fuel Management Improvements**: The fuel system has been updated to correctly handle fuel refunding and consumption:
+   - Fixed the `consume_fuel` method to properly track remaining fuel and provide clearer error messages
    - Updated the `drain_fuel` method to avoid incorrect fuel deductions in error cases
    - Ensured that only the actual remaining fuel (not the initially allocated amount) is refunded to the block
+   - Added explicit fuel consumption checks to prevent "all fuel consumed by WebAssembly" errors
 
 ## Next Steps
 

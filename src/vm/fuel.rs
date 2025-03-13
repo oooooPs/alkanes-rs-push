@@ -154,8 +154,14 @@ impl FuelTank {
     pub fn consume_fuel(n: u64) -> Result<()> {
         unsafe {
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
+            
+            // Check if we have enough transaction_fuel
+            if tank.transaction_fuel < n {
+                return Err(anyhow!("all fuel consumed by WebAssembly"));
+            }
+            
             // Update transaction_fuel - this is used to check if we have enough fuel
-            tank.transaction_fuel = overflow_error(tank.transaction_fuel.checked_sub(n))?;
+            tank.transaction_fuel = tank.transaction_fuel - n;
             
             // Update block_metered_fuel - this is the amount that will be refunded to the block
             // If we don't have enough block_metered_fuel, set it to 0 (no refund)
