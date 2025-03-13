@@ -258,6 +258,26 @@ pub fn protorunes_by_address(input: &Vec<u8>) -> Result<WalletResponse> {
     Ok(result)
 }
 
+pub fn protorunes_by_address2(input: &Vec<u8>) -> Result<WalletResponse> {
+    let mut result: WalletResponse = WalletResponse::new();
+    if let Some(req) = proto::protorune::ProtorunesWalletRequest::parse_from_bytes(input).ok() {
+        result.outpoints = tables::OUTPOINT_SPENDABLE_BY_ADDRESS
+            .select(&req.wallet)
+            .map_ll(|ptr, _| -> Result<OutpointResponse> {
+                let mut cursor = Cursor::new(ptr.get().as_ref().clone());
+                let outpoint =
+                    consensus_decode::<bitcoin::blockdata::transaction::OutPoint>(&mut cursor)?;
+                protorune_outpoint_to_outpoint_response(
+                    &outpoint,
+                    req.clone().protocol_tag.into_option().unwrap().into(),
+                )
+            })
+            .into_iter()
+            .collect::<Result<Vec<OutpointResponse>>>()?
+    }
+    Ok(result)
+}
+
 pub fn runes_by_height(input: &Vec<u8>) -> Result<RunesResponse> {
     let mut result: RunesResponse = RunesResponse::new();
     if let Some(req) = proto::protorune::RunesByHeightRequest::parse_from_bytes(input).ok() {
