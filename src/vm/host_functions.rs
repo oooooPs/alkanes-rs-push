@@ -13,7 +13,7 @@ use alkanes_support::{
     trace::{TraceContext, TraceEvent, TraceResponse},
     utils::overflow_error,
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use metashrew::index_pointer::IndexPointer;
 #[allow(unused_imports)]
 use metashrew::{
@@ -23,7 +23,7 @@ use metashrew::{
 use metashrew_support::index_pointer::KeyValuePointer;
 
 use crate::vm::fuel::{
-    consume_fuel, Fuelable, FUEL_BALANCE, FUEL_EXTCALL, FUEL_EXTCALL_DEPLOY, FUEL_FUEL,
+    consume_fuel, Fuelable, FUEL_LOAD_BLOCK, FUEL_LOAD_TRANSACTION, FUEL_BALANCE, FUEL_EXTCALL, FUEL_EXTCALL_DEPLOY, FUEL_FUEL,
     FUEL_HEIGHT, FUEL_PER_LOAD_BYTE, FUEL_PER_REQUEST_BYTE, FUEL_PER_STORE_BYTE, FUEL_SEQUENCE,
 };
 use protorune_support::utils::consensus_encode;
