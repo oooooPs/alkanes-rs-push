@@ -65,6 +65,11 @@ Based on the existing codebase, the project appears to have established:
        - Loading a 1.5MB block now costs only 1,000 fuel units (fixed)
        - Previously would have cost ~3,000,000 fuel units (2 units per byte)
        - Significant savings that prevent "all fuel consumed" errors
+     - Implemented memory pre-allocation for WebAssembly instances:
+       - Maintained memory limit at 32MB
+       - Pre-allocates 512 pages (64KB each) of memory when instantiating WebAssembly modules
+       - Prevents high fuel costs associated with dynamic memory allocation during block loading
+       - Logs memory growth operations for debugging
 
 ## Next Steps
 

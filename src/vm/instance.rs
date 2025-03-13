@@ -336,10 +336,32 @@ impl AlkanesInstance {
                 )
             },
         )?;
+        // Instantiate the module
+        let instance = linker
+            .instantiate(&mut store, &module)?
+            .ensure_no_start(&mut store)?;
+            
+        // Pre-allocate memory to avoid high fuel costs when loading large blocks
+        // Each page is 64KB, so we need to pre-allocate enough pages for large blocks
+        if let Some(memory) = instance.get_memory(&mut store, "memory") {
+            // Calculate number of pages needed (32MB / 64KB = 512 pages)
+            let target_pages = 512;
+            let current_pages = memory.size(&store);
+            
+            if current_pages < target_pages {
+                println!("Pre-allocating memory: growing from {} pages to {} pages",
+                    current_pages, target_pages);
+                    
+                // Grow memory to target size
+                match memory.grow(&mut store, target_pages - current_pages) {
+                    Ok(_) => println!("Memory pre-allocation successful"),
+                    Err(e) => println!("Memory pre-allocation failed: {:?}", e),
+                }
+            }
+        }
+        
         Ok(AlkanesInstance {
-            instance: linker
-                .instantiate(&mut store, &module)?
-                .ensure_no_start(&mut store)?,
+            instance,
             store,
         })
     }
