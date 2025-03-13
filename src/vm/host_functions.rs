@@ -159,7 +159,7 @@ impl AlkanesHostFunctionsImpl {
         send_to_arraybuffer(caller, v.try_into()?, &result)
     }
     pub(super) fn request_transaction(caller: &mut Caller<'_, AlkanesState>) -> Result<i32> {
-        let result: i32 = consensus_encode(
+        let tx_data = consensus_encode(
             &caller
                 .data_mut()
                 .context
@@ -167,13 +167,17 @@ impl AlkanesHostFunctionsImpl {
                 .unwrap()
                 .message
                 .transaction,
-        )?
-        .len()
-        .try_into()?;
-        consume_fuel(
-            caller,
-            overflow_error((result as u64).checked_mul(FUEL_PER_REQUEST_BYTE))?,
         )?;
+        let result: i32 = tx_data.len().try_into()?;
+        
+        // Use a small fixed cost for requesting transaction size
+        // This is just getting the size, not loading the full transaction
+        let request_fuel = std::cmp::min(50, FUEL_LOAD_TRANSACTION / 10);
+        consume_fuel(caller, request_fuel)?;
+        
+        println!("Requesting transaction size: {} bytes, fuel cost={} (fixed)",
+            result, request_fuel);
+            
         Ok(result)
     }
     /*
@@ -233,23 +237,30 @@ impl AlkanesHostFunctionsImpl {
                 .message
                 .transaction,
         )?;
-        consume_fuel(
-            caller,
-            overflow_error((transaction.len() as u64).checked_mul(FUEL_PER_LOAD_BYTE))?,
-        )?;
+        
+        // Use fixed fuel cost instead of scaling with transaction size
+        consume_fuel(caller, FUEL_LOAD_TRANSACTION)?;
+        
+        // Log transaction size and fuel cost
+        println!("Loading transaction: size={} bytes, fuel cost={} (fixed)",
+            transaction.len(), FUEL_LOAD_TRANSACTION);
+            
         send_to_arraybuffer(caller, v.try_into()?, &transaction)?;
         Ok(())
     }
     pub(super) fn request_block(caller: &mut Caller<'_, AlkanesState>) -> Result<i32> {
         Self::preserve_context(caller);
 
-        let len: i32 = consensus_encode(&caller.data_mut().context.lock().unwrap().message.block)?
-            .len()
-            .try_into()?;
-        consume_fuel(
-            caller,
-            overflow_error((len as u64).checked_mul(FUEL_PER_REQUEST_BYTE))?,
-        )?;
+        let block_data = consensus_encode(&caller.data_mut().context.lock().unwrap().message.block)?;
+        let len: i32 = block_data.len().try_into()?;
+        
+        // Use a small fixed cost for requesting block size
+        // This is just getting the size, not loading the full block
+        let request_fuel = std::cmp::min(100, FUEL_LOAD_BLOCK / 10);
+        consume_fuel(caller, request_fuel)?;
+        
+        println!("Requesting block size: {} bytes, fuel cost={} (fixed)",
+            len, request_fuel);
 
         Self::restore_context(caller);
         Ok(len)
@@ -259,10 +270,13 @@ impl AlkanesHostFunctionsImpl {
 
         let block: Vec<u8> =
             consensus_encode(&caller.data_mut().context.lock().unwrap().message.block)?;
-        consume_fuel(
-            caller,
-            overflow_error((block.len() as u64).checked_mul(FUEL_PER_LOAD_BYTE))?,
-        )?;
+            
+        // Use fixed fuel cost instead of scaling with block size
+        consume_fuel(caller, FUEL_LOAD_BLOCK)?;
+        
+        // Log block size and fuel cost
+        println!("Loading block: size={} bytes, fuel cost={} (fixed)",
+            block.len(), FUEL_LOAD_BLOCK);
 
         Self::restore_context(caller);
         send_to_arraybuffer(caller, v.try_into()?, &block)?;

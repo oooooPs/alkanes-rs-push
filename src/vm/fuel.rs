@@ -236,6 +236,8 @@ pub const FUEL_EXTCALL: u64 = 500;
 pub const FUEL_HEIGHT: u64 = 10;
 pub const FUEL_BALANCE: u64 = 10;
 pub const FUEL_EXTCALL_DEPLOY: u64 = 10_000;
+pub const FUEL_LOAD_BLOCK: u64 = 1000; // Fixed cost for loading a block
+pub const FUEL_LOAD_TRANSACTION: u64 = 500; // Fixed cost for loading a transaction
 
 pub trait Fuelable {
     fn consume_fuel(&mut self, n: u64) -> Result<()>;
