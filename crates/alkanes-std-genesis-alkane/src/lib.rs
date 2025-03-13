@@ -188,7 +188,7 @@ impl GenesisAlkane {
     }
 
     pub fn observe_mint(&self, block: &Block) -> Result<()> {
-        let hash = self.hash(block);
+        let hash = self.height().to_le_bytes().to_vec();
         let mut pointer = self.seen_pointer(&hash);
         if pointer.get().len() == 0 {
             pointer.set_value::<u32>(1);
