@@ -147,12 +147,6 @@ Based on the documentation, the following issues or challenges may exist:
        - Loading a 1.5MB block costs only 1,000 fuel units with fixed costs
        - Would have cost ~3,000,000 fuel units with previous per-byte charging
        - Represents a 99.97% reduction in fuel cost for this operation
-     - Memory pre-allocation for WebAssembly instances:
-       - Maintains 32MB memory limit for WebAssembly instances
-       - Pre-allocates 512 pages (64KB each) of memory when instantiating WebAssembly modules
-       - Prevents high fuel costs associated with dynamic memory allocation during execution
-       - Reduces the likelihood of "all fuel consumed" errors when working with large blocks
-       - Optimizes memory management for better performance
    - Complete fuel usage visibility:
      - Added logging to all host functions that consume fuel
      - Each function logs its operation type, data sizes, and fuel cost
@@ -184,8 +178,6 @@ Based on the current status, the following priorities may be considered for the 
    - **WebAssembly Optimization**: Transaction logs show that WebAssembly execution consumes the majority of fuel (~78M units in sample transaction)
    - **Fuel Profiling**: Implement more granular profiling within WebAssembly execution to identify specific operations consuming the most fuel
    - **Execution Efficiency**: Optimize frequently used operations in standard contracts to reduce overall fuel consumption
-   - **Memory Management**: Continue to refine memory pre-allocation strategies based on real-world usage patterns
-   - **Dynamic Memory Sizing**: Consider implementing adaptive memory sizing based on transaction characteristics
 
 4. **Strengthen Security**: Conduct security audits and implement formal verification for critical contracts.
 
