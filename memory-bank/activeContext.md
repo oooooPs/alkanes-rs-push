@@ -46,6 +46,11 @@ Based on the existing codebase, the project appears to have established:
        - Block and transaction operations: `request_block`, `load_block`, `request_transaction`, `load_transaction`
        - Utility operations: `sequence`, `fuel`, `height`, `balance`, `returndatacopy`
        - Contract operations: `extcall` (including deployment fuel)
+     - Added transaction-level cellpack logging:
+       - Logs detailed information about the contract being called at the start of each transaction
+       - Shows target contract address, input count, and first opcode (operation being performed)
+       - Logs resolved contract addresses after address resolution
+       - Provides enhanced error reporting with contract-specific context for fuel-related errors
    - Implemented fuel benchmarking in the test suite:
      - Added a benchmarking framework to `src/tests/genesis.rs`
      - Created utilities for tracking and displaying fuel consumption metrics

@@ -159,6 +159,12 @@ Based on the documentation, the following issues or challenges may exist:
        - Most fuel consumption (~78M units in sample transaction) occurs in WebAssembly execution
        - Storage operations are minimal in comparison to execution costs
        - Detailed logs help identify specific operations consuming fuel
+     - Transaction-level contract identification:
+       - Added logging at the beginning of each transaction to identify the contract being called
+       - Shows target contract address (block, tx), input count, and first opcode
+       - Logs resolved contract addresses after address resolution
+       - Provides enhanced error reporting with contract-specific context for fuel-related errors
+       - Helps identify which specific contracts and operations are consuming excessive fuel
 
 ## Next Development Priorities
 
