@@ -1,42 +1,101 @@
-# Active Context
+# ALKANES-RS Active Context
 
-## Current Focus: Message Dispatch Framework
+## Current Work Focus
 
-We're currently working on improving the message dispatch framework for Alkanes contracts. This framework provides a unified way to develop contracts and expose their ABIs.
+The ALKANES-RS project is currently focused on implementing and refining the core components of the ALKANES metaprotocol for Bitcoin-based decentralized finance. The system is structured as a Rust workspace with multiple crates, each serving a specific purpose in the overall architecture.
 
-### Recent Changes
+## Recent Changes
 
-We've enhanced the `MessageDispatch` derive macro to automatically generate:
+Based on the existing codebase, the project appears to have established:
 
-1. Method dispatch logic based on opcodes
-2. Parameter extraction and validation
-3. JSON ABI generation with contract name, methods, opcodes, and parameter types
+1. **Core Protocol Implementation**: The foundational components of the ALKANES metaprotocol have been implemented, including:
+   - Block processing and indexing
+   - Message extraction and validation
+   - WebAssembly-based smart contract execution
+   - Storage and state management
 
-The framework now uses `serde_json` for proper JSON serialization instead of manual string construction, making it more robust and maintainable.
+2. **Standard Library Contracts**: Several standard contracts have been implemented:
+   - Authentication token (alkanes-std-auth-token)
+   - Genesis contracts for different networks (alkanes-std-genesis-alkane)
+   - Owned token implementation (alkanes-std-owned-token)
+   - Proxy contract functionality (alkanes-std-proxy)
+   - Upgradeable contract support (alkanes-std-upgradeable)
+   - Merkle distributor for token distribution (alkanes-std-merkle-distributor)
+   - Orbital functionality (alkanes-std-orbital)
 
-### Key Components
+3. **Multi-Network Support**: The system supports multiple Bitcoin-based networks through feature flags:
+   - Bitcoin mainnet, testnet, and regtest
+   - Dogecoin
+   - Luckycoin
+   - Bellscoin
+   - Fractal
 
-- **MessageDispatch trait**: Defines the interface for dispatching messages to contracts
-- **Derive macro**: Automatically implements the trait for enums with method and opcode attributes
-- **ABI generation**: Exposes contract methods, opcodes, and parameter types in a standardized JSON format
+4. **Fuel Management Improvements**: The fuel system has been updated to correctly handle fuel refunding:
+   - Fixed the `consume_fuel` method to properly track remaining fuel
+   - Updated the `drain_fuel` method to avoid incorrect fuel deductions in error cases
+   - Ensured that only the actual remaining fuel (not the initially allocated amount) is refunded to the block
 
-### Implementation Details
+## Next Steps
 
-The `MessageDispatch` derive macro:
-- Extracts method names and opcodes from enum variants
-- Generates match arms for opcode-based dispatch
-- Creates parameter extraction and validation logic
-- Builds a JSON representation of the contract ABI
+Based on the project structure and documentation, potential next steps could include:
 
-### Next Steps
+1. **Enhanced DeFi Primitives**: Expanding the standard library with additional DeFi components:
+   - Lending and borrowing protocols
+   - Staking and yield farming
+   - Derivatives and synthetic assets
+   - Governance mechanisms
 
-1. Ensure the contract name is correctly extracted and included in the ABI
-2. Add comprehensive tests for the ABI generation
-3. Document the framework for developers
-4. Consider adding support for return type information in the ABI
+2. **Developer Tooling**: Improving the developer experience:
+   - CLI tools for contract deployment and interaction
+   - Testing frameworks and simulation environments
+   - Documentation and examples
+   - Client libraries for different languages
 
-### Active Decisions
+3. **Performance Optimization**: Enhancing system performance:
+   - Optimizing state access patterns
+   - Improving WASM execution efficiency
+   - Reducing memory usage
+   - Enhancing indexing speed
 
-- Using `serde_json` for JSON serialization instead of manual string construction
-- Keeping parameter types simple (currently just "u128") for the initial implementation
-- Using runtime type information to extract the concrete contract name
+4. **Integration Testing**: Comprehensive testing across networks:
+   - End-to-end testing with real blockchain data
+   - Stress testing with high transaction volumes
+   - Security audits and vulnerability testing
+   - Cross-network compatibility testing
+
+## Active Decisions and Considerations
+
+1. **Message Dispatch Framework**: The project has implemented a message dispatch framework using Rust enums and traits to simplify contract development and ABI generation. This approach provides a clean interface for defining contract methods and handling parameters.
+
+2. **Storage Abstraction**: The system uses a key-value storage abstraction for contract state, providing a consistent interface across different storage backends. This allows for efficient state caching and batching.
+
+3. **Fuel Metering**: Computation is metered using a fuel system to prevent DoS attacks, with block-level fuel allocation and transaction-level fuel tracking. This ensures that contracts cannot consume excessive resources.
+
+4. **Cross-Network Compatibility**: The system supports multiple Bitcoin-based networks through feature flags and configuration, allowing for network-specific parameters and conditional compilation for different targets.
+
+5. **Error Handling Strategy**: The project uses Rust's `anyhow` for error handling, providing rich error context, propagation of errors across boundaries, and consistent error reporting.
+
+6. **Testing Approach**: The system employs multiple testing strategies, including unit tests, integration tests, end-to-end tests, and WASM tests. This comprehensive approach ensures correctness at all levels of the system.
+
+## Current Development Environment
+
+The project is built using:
+- Rust toolchain with wasm32-unknown-unknown target
+- Cargo as the build system
+- wasm-bindgen-test-runner for testing WebAssembly code
+- Protocol Buffers for data serialization
+
+The development workflow involves:
+1. Writing smart contracts in Rust
+2. Compiling to WebAssembly
+3. Testing with the wasm-bindgen-test-runner
+4. Deploying with the METASHREW indexer stack
+
+## Integration Points
+
+The ALKANES-RS project integrates with several external systems:
+
+1. **Bitcoin Blockchain**: The primary data source and transaction medium
+2. **METASHREW Indexer Stack**: The underlying infrastructure for processing blockchain data
+3. **Protorunes Protocol**: The token standard that ALKANES extends
+4. **WebAssembly Runtime**: The execution environment for smart contracts

@@ -144,6 +144,9 @@ impl FuelTank {
     pub fn refuel_block() {
         unsafe {
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
+            // Only refund the remaining fuel (block_metered_fuel) that wasn't consumed
+            // This value is updated by consume_fuel() to reflect the remaining amount
+            // after transaction execution
             tank.block_fuel = tank.block_fuel + tank.block_metered_fuel;
             tank.size = tank.size - tank.txsize;
         }
@@ -151,17 +154,22 @@ impl FuelTank {
     pub fn consume_fuel(n: u64) -> Result<()> {
         unsafe {
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
+            // Update transaction_fuel - this is used to check if we have enough fuel
             tank.transaction_fuel = overflow_error(tank.transaction_fuel.checked_sub(n))?;
+            
+            // Update block_metered_fuel - this is the amount that will be refunded to the block
+            // If we don't have enough block_metered_fuel, set it to 0 (no refund)
+            // This ensures we don't refund more fuel than was allocated
             tank.block_metered_fuel =
-                overflow_error(tank.block_metered_fuel.checked_sub(n)).unwrap_or_else(|_| 0);
+                tank.block_metered_fuel.checked_sub(n).unwrap_or(0);
+            
             Ok(())
         }
     }
     pub fn drain_fuel() {
         unsafe {
-            let transaction_fuel = _FUEL_TANK.as_ref().unwrap().block_metered_fuel;
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
-            tank.block_fuel = tank.block_fuel - std::cmp::min(tank.block_fuel, transaction_fuel);
+            // Don't subtract from block_fuel since we're not refunding in error case
             tank.transaction_fuel = 0;
             tank.block_metered_fuel = 0;
         }
