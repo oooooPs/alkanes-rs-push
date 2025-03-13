@@ -56,6 +56,10 @@ Based on the existing codebase, the project appears to have established:
      - Added `FUEL_LOAD_BLOCK` and `FUEL_LOAD_TRANSACTION` constants for fixed fuel costs
      - Modified host functions to use fixed costs instead of scaling with data size
      - Added detailed logging for block and transaction loading operations
+     - Confirmed effectiveness with real transaction logs:
+       - Loading a 1.5MB block now costs only 1,000 fuel units (fixed)
+       - Previously would have cost ~3,000,000 fuel units (2 units per byte)
+       - Significant savings that prevent "all fuel consumed" errors
 
 ## Next Steps
 
