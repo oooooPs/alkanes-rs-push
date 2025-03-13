@@ -40,6 +40,12 @@ Based on the existing codebase, the project appears to have established:
      - Added execution tracking logs to `run_after_special` to monitor fuel usage during WebAssembly execution
      - Added allocation tracking logs to `fuel_transaction` to monitor initial fuel allocation
      - Added refunding tracking logs to `refuel_block` to monitor fuel refunding process
+     - Added detailed logging to all host functions that consume fuel:
+       - Storage operations: `request_storage`, `load_storage`
+       - Context operations: `request_context`, `load_context`
+       - Block and transaction operations: `request_block`, `load_block`, `request_transaction`, `load_transaction`
+       - Utility operations: `sequence`, `fuel`, `height`, `balance`, `returndatacopy`
+       - Contract operations: `extcall` (including deployment fuel)
    - Implemented fuel benchmarking in the test suite:
      - Added a benchmarking framework to `src/tests/genesis.rs`
      - Created utilities for tracking and displaying fuel consumption metrics

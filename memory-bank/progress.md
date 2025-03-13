@@ -143,6 +143,12 @@ Based on the documentation, the following issues or challenges may exist:
      - Transaction loading operations now use a fixed cost of 500 fuel units regardless of transaction size
      - Request operations use proportionally smaller fixed costs
      - Prevents excessive fuel consumption when working with large blocks (up to 4MB)
+   - Complete fuel usage visibility:
+     - Added logging to all host functions that consume fuel
+     - Each function logs its operation type, data sizes, and fuel cost
+     - Contract calls log target information, input counts, and storage sizes
+     - Special handling for deployment operations with additional fuel costs
+     - Provides a comprehensive trace of all fuel consumption during execution
 
 ## Next Development Priorities
 
