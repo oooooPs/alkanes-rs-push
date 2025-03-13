@@ -111,7 +111,7 @@ pub fn spendablesbyaddress() -> i32 {
 
 #[cfg(not(test))]
 #[no_mangle]
-pub fn spendablesbyaddress() -> i32 {
+pub fn spendablesbyaddress2() -> i32 {
     configure_network();
     let mut data: Cursor<Vec<u8>> = Cursor::new(input());
     let _height = consume_sized_int::<u32>(&mut data).unwrap();
