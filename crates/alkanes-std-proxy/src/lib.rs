@@ -26,10 +26,12 @@ enum ProxyMessage {
 
     #[opcode(1)]
     #[method("call_witness")]
+    #[param_names("witness_index")]
     CallWitness(u128),
 
     #[opcode(2)]
     #[method("delegatecall_witness")]
+    #[param_names("witness_index")]
     DelegatecallWitness(u128),
 
     #[opcode(3)]
