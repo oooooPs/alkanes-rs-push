@@ -130,3 +130,7 @@ message TraceBlockRequest {
 message TraceBlockResponse {
   repeated Trace traces = 1;
 }
+
+message BytecodeRequest {
+  AlkaneId id = 1;
+}

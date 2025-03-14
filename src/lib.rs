@@ -272,6 +272,15 @@ pub fn trace() -> i32 {
 
 #[cfg(not(test))]
 #[no_mangle]
+pub fn getbytecode() -> i32 {
+    configure_network();
+    let mut data: Cursor<Vec<u8>> = Cursor::new(input());
+    let _height = consume_sized_int::<u32>(&mut data).unwrap();
+    export_bytes(view::getbytecode(&consume_to_end(&mut data).unwrap()).unwrap_or_default())
+}
+
+#[cfg(not(test))]
+#[no_mangle]
 pub fn protorunesbyoutpoint() -> i32 {
     configure_network();
     let mut data: Cursor<Vec<u8>> = Cursor::new(input());

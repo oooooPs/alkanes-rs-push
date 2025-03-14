@@ -457,3 +457,21 @@ pub fn multi_simulate(
 
     Ok((responses, gas))
 }
+
+pub fn getbytecode(input: &Vec<u8>) -> Result<Vec<u8>> {
+    let request = alkanes_support::proto::alkanes::BytecodeRequest::parse_from_bytes(input)?;
+    let alkane_id = request.id.unwrap();
+    let alkane_id = crate::utils::from_protobuf(alkane_id);
+    
+    // Get the bytecode from the storage
+    let bytecode = metashrew::index_pointer::IndexPointer::from_keyword("/alkanes/")
+        .select(&alkane_id.into())
+        .get();
+    
+    // Return the uncompressed bytecode
+    if bytecode.len() > 0 {
+        Ok(alkanes_support::gz::decompress(bytecode.to_vec())?)
+    } else {
+        Err(anyhow!("No bytecode found for the given AlkaneId"))
+    }
+}
