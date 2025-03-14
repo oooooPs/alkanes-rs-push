@@ -86,17 +86,17 @@ impl VirtualFuelBytes for Block {
     feature = "fractal",
     feature = "luckycoin"
 )))]
-const TOTAL_FUEL: u64 = 100_000_000;
+pub const TOTAL_FUEL: u64 = 100_000_000;
 #[cfg(feature = "mainnet")]
-const TOTAL_FUEL: u64 = 100_000_000;
+pub const TOTAL_FUEL: u64 = 100_000_000;
 #[cfg(feature = "dogecoin")]
-const TOTAL_FUEL: u64 = 60_000_000;
+pub const TOTAL_FUEL: u64 = 60_000_000;
 #[cfg(feature = "fractal")]
-const TOTAL_FUEL: u64 = 50_000_000;
+pub const TOTAL_FUEL: u64 = 50_000_000;
 #[cfg(feature = "luckycoin")]
-const TOTAL_FUEL: u64 = 50_000_000;
+pub const TOTAL_FUEL: u64 = 50_000_000;
 #[cfg(feature = "bellscoin")]
-const TOTAL_FUEL: u64 = 50_000_000;
+pub const TOTAL_FUEL: u64 = 50_000_000;
 
 #[derive(Default, Clone, Debug)]
 pub struct FuelTank {
@@ -112,6 +112,9 @@ static mut _FUEL_TANK: Option<FuelTank> = None;
 
 #[allow(static_mut_refs)]
 impl FuelTank {
+    pub fn get_fuel_tank_copy() -> Option<FuelTank> {
+        unsafe { _FUEL_TANK.clone() }
+    }
     pub fn should_advance(txindex: u32) -> bool {
         unsafe { _FUEL_TANK.as_ref().unwrap().current_txindex != txindex }
     }
@@ -134,19 +137,19 @@ impl FuelTank {
         unsafe {
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
             tank.current_txindex = txindex;
-            
+
             // Calculate fuel allocation based on transaction size
             let block_fuel_before = tank.block_fuel;
             tank.block_metered_fuel = tank.block_fuel * txsize / tank.size;
-            
+
             // Ensure minimum fuel allocation
             tank.transaction_fuel = std::cmp::max(MINIMUM_FUEL, tank.block_metered_fuel);
-            
+
             // Deduct allocated fuel from block fuel
             tank.block_fuel =
                 tank.block_fuel - std::cmp::min(tank.block_fuel, tank.block_metered_fuel);
             tank.txsize = txsize;
-            
+
             // Log fuel allocation details
             println!("Fuel allocation for transaction {}:", txindex);
             println!("  - Transaction size: {} bytes", txsize);
@@ -160,20 +163,23 @@ impl FuelTank {
     pub fn refuel_block() {
         unsafe {
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
-            
+
             // Log refunding details before refunding
-            println!("Refunding fuel to block after transaction {}:", tank.current_txindex);
+            println!(
+                "Refunding fuel to block after transaction {}:",
+                tank.current_txindex
+            );
             println!("  - Block fuel before refund: {}", tank.block_fuel);
             println!("  - Remaining metered fuel: {}", tank.block_metered_fuel);
             println!("  - Transaction size: {} bytes", tank.txsize);
             println!("  - Block size before update: {} bytes", tank.size);
-            
+
             // Only refund the remaining fuel (block_metered_fuel) that wasn't consumed
             // This value is updated by consume_fuel() to reflect the remaining amount
             // after transaction execution
             tank.block_fuel = tank.block_fuel + tank.block_metered_fuel;
             tank.size = tank.size - tank.txsize;
-            
+
             // Log after refunding
             println!("  - Block fuel after refund: {}", tank.block_fuel);
             println!("  - Block size after update: {} bytes", tank.size);
@@ -182,7 +188,7 @@ impl FuelTank {
     pub fn consume_fuel(n: u64) -> Result<()> {
         unsafe {
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
-            
+
             // Check if we have enough transaction_fuel
             if tank.transaction_fuel < n {
                 // Add detailed logging for fuel exhaustion
@@ -199,16 +205,15 @@ impl FuelTank {
                     tank.size
                 ));
             }
-            
+
             // Update transaction_fuel - this is used to check if we have enough fuel
             tank.transaction_fuel = tank.transaction_fuel - n;
-            
+
             // Update block_metered_fuel - this is the amount that will be refunded to the block
             // If we don't have enough block_metered_fuel, set it to 0 (no refund)
             // This ensures we don't refund more fuel than was allocated
-            tank.block_metered_fuel =
-                tank.block_metered_fuel.checked_sub(n).unwrap_or(0);
-            
+            tank.block_metered_fuel = tank.block_metered_fuel.checked_sub(n).unwrap_or(0);
+
             Ok(())
         }
     }
