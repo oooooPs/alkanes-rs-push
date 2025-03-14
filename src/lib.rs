@@ -11,6 +11,7 @@ use metashrew::{
 use metashrew_support::block::AuxpowBlock;
 use metashrew_support::compat::export_bytes;
 use metashrew_support::utils::{consensus_decode, consume_sized_int, consume_to_end};
+use metashrew_support::index_pointer::KeyValuePointer;
 use protobuf::{Message, MessageField};
 use std::io::Cursor;
 pub mod block;
@@ -127,9 +128,35 @@ pub fn protorunesbyaddress() -> i32 {
     configure_network();
     let mut data: Cursor<Vec<u8>> = Cursor::new(input());
     let _height = consume_sized_int::<u32>(&mut data).unwrap();
+    
+    let input_data = consume_to_end(&mut data).unwrap();
+    let request = protorune_support::proto::protorune::ProtorunesWalletRequest::parse_from_bytes(&input_data).unwrap();
+    
+    #[cfg(feature = "cache")]
+    {
+        // Check if we have a cached filtered response for this address
+        let cached_response = protorune::tables::CACHED_FILTERED_WALLET_RESPONSE.select(&request.wallet).get();
+        
+        if !cached_response.is_empty() {
+            // Use the cached filtered response if available
+            match protorune_support::proto::protorune::WalletResponse::parse_from_bytes(&cached_response) {
+                Ok(response) => {
+                    return export_bytes(response.write_to_bytes().unwrap());
+                },
+                Err(e) => {
+                    println!("Error parsing cached filtered wallet response: {:?}", e);
+                    // Fall back to computing the response if parsing fails
+                }
+            }
+        }
+    }
+    
+    // If no cached response or parsing failed, compute it
     let mut result: protorune_support::proto::protorune::WalletResponse =
-        view::protorunes_by_address(&consume_to_end(&mut data).unwrap())
+        view::protorunes_by_address(&input_data)
             .unwrap_or_else(|_| protorune_support::proto::protorune::WalletResponse::new());
+    
+    // Filter the outpoints to only include those with runes
     result.outpoints = result
         .outpoints
         .into_iter()
@@ -147,6 +174,7 @@ pub fn protorunesbyaddress() -> i32 {
             }
         })
         .collect::<Vec<protorune_support::proto::protorune::OutpointResponse>>();
+    
     export_bytes(result.write_to_bytes().unwrap())
 }
 
@@ -156,9 +184,35 @@ pub fn protorunesbyaddress2() -> i32 {
     configure_network();
     let mut data: Cursor<Vec<u8>> = Cursor::new(input());
     let _height = consume_sized_int::<u32>(&mut data).unwrap();
+    
+    let input_data = consume_to_end(&mut data).unwrap();
+    let request = protorune_support::proto::protorune::ProtorunesWalletRequest::parse_from_bytes(&input_data).unwrap();
+    
+    #[cfg(feature = "cache")]
+    {
+        // Check if we have a cached filtered response for this address
+        let cached_response = protorune::tables::CACHED_FILTERED_WALLET_RESPONSE.select(&request.wallet).get();
+        
+        if !cached_response.is_empty() {
+            // Use the cached filtered response if available
+            match protorune_support::proto::protorune::WalletResponse::parse_from_bytes(&cached_response) {
+                Ok(response) => {
+                    return export_bytes(response.write_to_bytes().unwrap());
+                },
+                Err(e) => {
+                    println!("Error parsing cached filtered wallet response: {:?}", e);
+                    // Fall back to computing the response if parsing fails
+                }
+            }
+        }
+    }
+    
+    // If no cached response or parsing failed, compute it
     let mut result: protorune_support::proto::protorune::WalletResponse =
-        view::protorunes_by_address2(&consume_to_end(&mut data).unwrap())
+        view::protorunes_by_address2(&input_data)
             .unwrap_or_else(|_| protorune_support::proto::protorune::WalletResponse::new());
+    
+    // Filter the outpoints to only include those with runes
     result.outpoints = result
         .outpoints
         .into_iter()
@@ -176,6 +230,7 @@ pub fn protorunesbyaddress2() -> i32 {
             }
         })
         .collect::<Vec<protorune_support::proto::protorune::OutpointResponse>>();
+    
     export_bytes(result.write_to_bytes().unwrap())
 }
 

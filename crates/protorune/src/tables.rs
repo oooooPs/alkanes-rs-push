@@ -148,7 +148,12 @@ pub static OUTPOINT_SPENDABLE_BY_ADDRESS: Lazy<IndexPointer> =
 pub static OUTPOINT_TO_OUTPUT: Lazy<IndexPointer> =
     Lazy::new(|| IndexPointer::from_keyword("/output/byoutpoint/"));
 
-// Table to store cached WalletResponse for each address
+// Table to store cached WalletResponse for each address (full set of spendable outputs)
 #[cfg(feature = "cache")]
 pub static CACHED_WALLET_RESPONSE: Lazy<IndexPointer> =
     Lazy::new(|| IndexPointer::from_keyword("/cached/wallet/byaddress/"));
+
+// Table to store cached filtered WalletResponse for each address (only outpoints with runes)
+#[cfg(feature = "cache")]
+pub static CACHED_FILTERED_WALLET_RESPONSE: Lazy<IndexPointer> =
+    Lazy::new(|| IndexPointer::from_keyword("/cached/filtered/wallet/byaddress/"));
