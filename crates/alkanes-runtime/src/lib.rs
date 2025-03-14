@@ -11,14 +11,6 @@ pub use crate::stdio::stdout;
 
 #[macro_export]
 macro_rules! declare_alkane {
-    ($struct_name:ident) => {
-        #[no_mangle]
-        pub extern "C" fn __execute() -> i32 {
-            let mut response = to_arraybuffer_layout(&$struct_name::default().run());
-            Box::leak(Box::new(response)).as_mut_ptr() as usize as i32 + 4
-        }
-    };
-
     (impl AlkaneResponder for $struct_name:ident {
         type Message = $message_type:ident;
     }) => {

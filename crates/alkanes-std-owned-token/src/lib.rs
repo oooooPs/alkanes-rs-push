@@ -23,10 +23,12 @@ impl AuthenticatedResponder for OwnedToken {}
 enum OwnedTokenMessage {
     #[opcode(0)]
     #[method("initialize")]
+    #[param_names("auth_token_units", "token_units")]
     Initialize(u128, u128),
 
     #[opcode(77)]
     #[method("mint")]
+    #[param_names("token_units")]
     Mint(u128),
 
     #[opcode(99)]
