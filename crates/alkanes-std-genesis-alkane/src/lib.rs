@@ -187,7 +187,7 @@ impl GenesisAlkane {
         self.total_supply_pointer().set_value::<u128>(v);
     }
 
-    pub fn observe_mint(&self, block: &Block) -> Result<()> {
+    pub fn observe_mint(&self) -> Result<()> {
         let hash = self.height().to_le_bytes().to_vec();
         let mut pointer = self.seen_pointer(&hash);
         if pointer.get().len() == 0 {
@@ -204,7 +204,7 @@ impl GenesisAlkane {
     // Helper method that creates a mint transfer
     pub fn create_mint_transfer(&self) -> Result<AlkaneTransfer> {
         let context = self.context()?;
-        self.observe_mint(&self.block()?)?;
+        self.observe_mint()?;
         let value = self.current_block_reward();
         let mut total_supply_pointer = self.total_supply_pointer();
         let total_supply = total_supply_pointer.get_value::<u128>();
@@ -219,7 +219,7 @@ impl GenesisAlkane {
     }
 
     pub fn observe_initialization(&self) -> Result<()> {
-        self.observe_mint(&self.block()?)?;
+        self.observe_mint()?;
         let mut initialized_pointer = StoragePointer::from_keyword("/initialized");
         if initialized_pointer.get().len() == 0 {
             initialized_pointer.set_value::<u32>(1);
