@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
     parse_macro_input, Attribute, Data, DeriveInput, Fields, Ident, Lit, LitInt, LitStr, Meta,
-    NestedMeta, Type,
+    NestedMeta, Type, TypePath,
 };
 
 /// Extracts the opcode attribute from a variant's attributes
@@ -36,11 +36,7 @@ fn extract_method_attr(attrs: &[Attribute]) -> String {
 }
 
 /// Extracts the param_names attribute from a variant's attributes
-fn extract_param_names_attr(
-    attrs: &[Attribute],
-    expected_count: usize,
-    variant_name: &str,
-) -> Option<Vec<String>> {
+fn extract_param_names_attr(attrs: &[Attribute], expected_count: usize, variant_name: &str) -> Option<Vec<String>> {
     for attr in attrs {
         if attr.path.is_ident("param_names") {
             if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
@@ -66,13 +62,23 @@ fn extract_param_names_attr(
                             expected_count
                         );
                     }
-
+                    
                     return Some(param_names);
                 }
             }
         }
     }
     None
+}
+
+/// Check if a type is a String
+fn is_string_type(ty: &Type) -> bool {
+    if let Type::Path(TypePath { path, .. }) = ty {
+        if let Some(segment) = path.segments.last() {
+            return segment.ident == "String";
+        }
+    }
+    false
 }
 
 /// Get a string representation of a Rust type
@@ -113,9 +119,42 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
 
         let param_extractions = match &variant.fields {
             Fields::Unnamed(fields) => {
-                let extractions = fields.unnamed.iter().enumerate().map(|(i, _field)| {
-                    quote! {
-                        inputs.get(#i).cloned().ok_or_else(|| anyhow::anyhow!("Missing parameter"))?
+                let extractions = fields.unnamed.iter().enumerate().map(|(i, field)| {
+                    if is_string_type(&field.ty) {
+                        // For String types, read the length and then read that many u128s to form the string
+                        quote! {
+                            {
+                                let len_index = #i;
+                                let len = inputs.get(len_index).cloned().ok_or_else(|| anyhow::anyhow!("Missing string length parameter"))?;
+                                let len_usize = len as usize;
+                                
+                                // Check if we have enough inputs for the string
+                                if inputs.len() < len_index + 1 + len_usize {
+                                    return Err(anyhow::anyhow!("Not enough parameters provided for string"));
+                                }
+                                
+                                // Extract the string bytes from the inputs
+                                let mut string_bytes = Vec::new();
+                                for j in 0..len_usize {
+                                    let value = inputs[len_index + 1 + j];
+                                    // Convert u128 to bytes and append to string_bytes
+                                    let bytes = value.to_le_bytes();
+                                    for byte in bytes {
+                                        if byte != 0 {
+                                            string_bytes.push(byte);
+                                        }
+                                    }
+                                }
+                                
+                                // Convert bytes to string
+                                String::from_utf8(string_bytes).map_err(|e| anyhow::anyhow!("Invalid UTF-8 string: {}", e))?
+                            }
+                        }
+                    } else {
+                        // For non-String types, just extract the value
+                        quote! {
+                            inputs.get(#i).cloned().ok_or_else(|| anyhow::anyhow!("Missing parameter"))?
+                        }
                     }
                 });
 
@@ -161,7 +200,7 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                 } else {
                     let params = fields.unnamed.iter().enumerate().map(|(i, _)| {
                         let param = format_ident!("param{}", i);
-                        quote! { *#param }
+                        quote! { #param.clone() }
                     });
                     quote! { #(#params),* }
                 }
@@ -196,20 +235,17 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
         // Determine parameter count and types based on the variant fields
         let (field_count, field_types) = match &variant.fields {
             Fields::Unnamed(fields) => {
-                let types = fields
-                    .unnamed
-                    .iter()
+                let types = fields.unnamed.iter()
                     .map(|field| get_type_string(&field.ty))
                     .collect::<Vec<_>>();
                 (fields.unnamed.len(), types)
-            }
+            },
             Fields::Unit => (0, Vec::new()),
             _ => panic!("Named fields are not supported"),
         };
 
         // Get parameter names if provided, with validation
-        let param_names_opt =
-            extract_param_names_attr(&variant.attrs, field_count, &variant_name.to_string());
+        let param_names_opt = extract_param_names_attr(&variant.attrs, field_count, &variant_name.to_string());
 
         // Generate parameter JSON
         let mut params_json = String::new();
