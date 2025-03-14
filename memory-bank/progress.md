@@ -54,26 +54,9 @@ Based on the project structure and documentation, the following components may s
    - Development environments and templates
    - Visual tools for contract design and testing
 
-3. **Performance Optimizations**:
-   - State access pattern improvements
-   - WASM execution efficiency enhancements
-   - Memory usage reduction
-   - Indexing speed improvements
-   - Caching strategies for frequently accessed data
-
-4. **Security Enhancements**:
-   - Formal verification of critical contracts
-   - Security audit implementation
-   - Vulnerability testing framework
-   - Monitoring and alerting systems
-   - Emergency response procedures
-
-5. **Ecosystem Development**:
-   - Community building and governance
-   - Integration with existing Bitcoin tools and services
-   - Educational resources and tutorials
-   - Grants and incentives for developers
-   - Partnerships with other projects
+3. **ABI enhancements**:
+I now want to add another attribute to define the return type of each function. The return type is specifically what gets put in the .data of the CallResponse. 
+For example, in crates/alkanes-std-owned-token/src/lib.rs, get_name would have the return type of string
 
 ## Current Status
 

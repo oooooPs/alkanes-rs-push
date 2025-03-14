@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
     parse_macro_input, Attribute, Data, DeriveInput, Fields, Ident, Lit, LitInt, LitStr, Meta,
-    NestedMeta,
+    NestedMeta, Type,
 };
 
 /// Extracts the opcode attribute from a variant's attributes
@@ -73,6 +73,20 @@ fn extract_param_names_attr(
         }
     }
     None
+}
+
+/// Get a string representation of a Rust type
+fn get_type_string(ty: &Type) -> String {
+    match ty {
+        Type::Path(type_path) => {
+            if let Some(segment) = type_path.path.segments.last() {
+                segment.ident.to_string()
+            } else {
+                "unknown".to_string()
+            }
+        }
+        _ => "unknown".to_string(),
+    }
 }
 
 /// Derive macro for MessageDispatch trait
@@ -179,10 +193,17 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
         let method_name = extract_method_attr(&variant.attrs);
         let opcode = extract_opcode_attr(&variant.attrs);
 
-        // Determine parameter count based on the variant fields
-        let field_count = match &variant.fields {
-            Fields::Unnamed(fields) => fields.unnamed.len(),
-            Fields::Unit => 0,
+        // Determine parameter count and types based on the variant fields
+        let (field_count, field_types) = match &variant.fields {
+            Fields::Unnamed(fields) => {
+                let types = fields
+                    .unnamed
+                    .iter()
+                    .map(|field| get_type_string(&field.ty))
+                    .collect::<Vec<_>>();
+                (fields.unnamed.len(), types)
+            }
+            Fields::Unit => (0, Vec::new()),
             _ => panic!("Named fields are not supported"),
         };
 
@@ -209,9 +230,11 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                     format!("param{}", i)
                 };
 
+                let param_type = &field_types[i];
+
                 params_json.push_str(&format!(
-                    "{{ \"type\": \"u128\", \"name\": \"{}\" }}",
-                    param_name
+                    "{{ \"type\": \"{}\", \"name\": \"{}\" }}",
+                    param_type, param_name
                 ));
             }
             params_json.push_str("]");
