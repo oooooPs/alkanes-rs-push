@@ -617,6 +617,33 @@ impl Protorune {
                 let output_script_pubkey: &ScriptBuf = &output.script_pubkey;
                 if Payload::from_script(output_script_pubkey).is_ok() {
                     let outpoint_bytes: Vec<u8> = consensus_encode(&outpoint)?;
+                    let address = to_address_str(output_script_pubkey).unwrap().into_bytes();
+                    tables::OUTPOINTS_FOR_ADDRESS
+                        .select(&address.clone())
+                        .append(Arc::new(outpoint_bytes.clone()));
+                    tables::OUTPOINT_SPENDABLE_BY
+                        .select(&outpoint_bytes.clone())
+                        .set(Arc::new(address.clone()))
+                }
+            }
+        }
+        Ok(())
+    }
+    pub fn index_spendables_ll(txdata: &Vec<Transaction>) -> Result<()> {
+        for (txindex, transaction) in txdata.iter().enumerate() {
+            let tx_id = transaction.compute_txid();
+            tables::RUNES
+                .TXID_TO_TXINDEX
+                .select(&tx_id.as_byte_array().to_vec())
+                .set_value(txindex as u32);
+            for (index, output) in transaction.output.iter().enumerate() {
+                let outpoint = OutPoint {
+                    txid: tx_id.clone(),
+                    vout: index as u32,
+                };
+                let output_script_pubkey: &ScriptBuf = &output.script_pubkey;
+                if Payload::from_script(output_script_pubkey).is_ok() {
+                    let outpoint_bytes: Vec<u8> = consensus_encode(&outpoint)?;
                     let address_str = to_address_str(output_script_pubkey).unwrap();
                     let address = address_str.into_bytes();
                     tables::OUTPOINTS_FOR_ADDRESS
