@@ -258,6 +258,24 @@ pub fn protorunes_by_address(
 ) -> Result<protorune_support::proto::protorune::WalletResponse> {
     let request =
         protorune_support::proto::protorune::ProtorunesWalletRequest::parse_from_bytes(input)?;
+    
+    // Check if we have a cached response for this address
+    let cached_response = protorune::tables::CACHED_WALLET_RESPONSE.select(&request.wallet).get();
+    
+    if !cached_response.is_empty() {
+        // Use the cached response if available
+        match protorune_support::proto::protorune::WalletResponse::parse_from_bytes(&cached_response) {
+            Ok(response) => {
+                return Ok(response);
+            },
+            Err(e) => {
+                println!("Error parsing cached wallet response: {:?}", e);
+                // Fall back to computing the response if parsing fails
+            }
+        }
+    }
+    
+    // If no cached response or parsing failed, compute it
     view::protorunes_by_address(input).and_then(|mut response| {
         if into_u128(request.protocol_tag.unwrap_or_else(|| {
             <u128 as Into<protorune_support::proto::protorune::Uint128>>::into(1u128)
@@ -274,6 +292,24 @@ pub fn protorunes_by_address2(
 ) -> Result<protorune_support::proto::protorune::WalletResponse> {
     let request =
         protorune_support::proto::protorune::ProtorunesWalletRequest::parse_from_bytes(input)?;
+    
+    // Check if we have a cached response for this address
+    let cached_response = protorune::tables::CACHED_WALLET_RESPONSE.select(&request.wallet).get();
+    
+    if !cached_response.is_empty() {
+        // Use the cached response if available
+        match protorune_support::proto::protorune::WalletResponse::parse_from_bytes(&cached_response) {
+            Ok(response) => {
+                return Ok(response);
+            },
+            Err(e) => {
+                println!("Error parsing cached wallet response: {:?}", e);
+                // Fall back to computing the response if parsing fails
+            }
+        }
+    }
+    
+    // If no cached response or parsing failed, compute it
     view::protorunes_by_address2(input).and_then(|mut response| {
         if into_u128(request.protocol_tag.unwrap_or_else(|| {
             <u128 as Into<protorune_support::proto::protorune::Uint128>>::into(1u128)

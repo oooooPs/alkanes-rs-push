@@ -8,6 +8,8 @@ use metashrew::{
     println,
     stdio::{stdout, Write},
 };
+use metashrew_support::index_pointer::KeyValuePointer;
+use protorune::message::MessageContext;
 use protorune::Protorune;
 use protorune_support::network::{set_network, NetworkParams};
 
@@ -67,6 +69,12 @@ pub fn configure_network() {
     });
 }
 
+use crate::view::protorunes_by_address;
+use protorune::tables::CACHED_WALLET_RESPONSE;
+use protorune_support::proto::protorune::ProtorunesWalletRequest;
+use protobuf::{Message, MessageField};
+use std::sync::Arc;
+
 pub fn index_block(block: &Block, height: u32) -> Result<()> {
     configure_network();
     let really_is_genesis = is_genesis(height.into());
@@ -74,6 +82,37 @@ pub fn index_block(block: &Block, height: u32) -> Result<()> {
         genesis(&block).unwrap();
     }
     FuelTank::initialize(&block);
-    Protorune::index_block::<AlkaneMessageContext>(block.clone(), height.into())?;
+    
+    // Get the set of updated addresses from the indexing process
+    let updated_addresses = Protorune::index_block::<AlkaneMessageContext>(block.clone(), height.into())?;
+    
+    // Cache the WalletResponse for each updated address
+    for address in updated_addresses {
+        // Skip empty addresses
+        if address.is_empty() {
+            continue;
+        }
+        
+        // Create a request for this address
+        let mut request = ProtorunesWalletRequest::new();
+        request.wallet = address.clone();
+        request.protocol_tag = Some(<u128 as Into<protorune_support::proto::protorune::Uint128>>::into(
+            AlkaneMessageContext::protocol_tag()
+        )).into();
+        
+        // Get the WalletResponse for this address
+        match protorunes_by_address(&request.write_to_bytes()?) {
+            Ok(response) => {
+                // Cache the serialized WalletResponse
+                CACHED_WALLET_RESPONSE
+                    .select(&address)
+                    .set(Arc::new(response.write_to_bytes()?));
+            },
+            Err(e) => {
+                println!("Error caching wallet response for address: {:?}", e);
+            }
+        }
+    }
+    
     Ok(())
 }
