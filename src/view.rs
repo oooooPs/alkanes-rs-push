@@ -259,18 +259,21 @@ pub fn protorunes_by_address(
     let request =
         protorune_support::proto::protorune::ProtorunesWalletRequest::parse_from_bytes(input)?;
     
-    // Check if we have a cached response for this address
-    let cached_response = protorune::tables::CACHED_WALLET_RESPONSE.select(&request.wallet).get();
-    
-    if !cached_response.is_empty() {
-        // Use the cached response if available
-        match protorune_support::proto::protorune::WalletResponse::parse_from_bytes(&cached_response) {
-            Ok(response) => {
-                return Ok(response);
-            },
-            Err(e) => {
-                println!("Error parsing cached wallet response: {:?}", e);
-                // Fall back to computing the response if parsing fails
+    #[cfg(feature = "cache")]
+    {
+        // Check if we have a cached response for this address
+        let cached_response = protorune::tables::CACHED_WALLET_RESPONSE.select(&request.wallet).get();
+        
+        if !cached_response.is_empty() {
+            // Use the cached response if available
+            match protorune_support::proto::protorune::WalletResponse::parse_from_bytes(&cached_response) {
+                Ok(response) => {
+                    return Ok(response);
+                },
+                Err(e) => {
+                    println!("Error parsing cached wallet response: {:?}", e);
+                    // Fall back to computing the response if parsing fails
+                }
             }
         }
     }
@@ -293,18 +296,21 @@ pub fn protorunes_by_address2(
     let request =
         protorune_support::proto::protorune::ProtorunesWalletRequest::parse_from_bytes(input)?;
     
-    // Check if we have a cached response for this address
-    let cached_response = protorune::tables::CACHED_WALLET_RESPONSE.select(&request.wallet).get();
-    
-    if !cached_response.is_empty() {
-        // Use the cached response if available
-        match protorune_support::proto::protorune::WalletResponse::parse_from_bytes(&cached_response) {
-            Ok(response) => {
-                return Ok(response);
-            },
-            Err(e) => {
-                println!("Error parsing cached wallet response: {:?}", e);
-                // Fall back to computing the response if parsing fails
+    #[cfg(feature = "cache")]
+    {
+        // Check if we have a cached response for this address
+        let cached_response = protorune::tables::CACHED_WALLET_RESPONSE.select(&request.wallet).get();
+        
+        if !cached_response.is_empty() {
+            // Use the cached response if available
+            match protorune_support::proto::protorune::WalletResponse::parse_from_bytes(&cached_response) {
+                Ok(response) => {
+                    return Ok(response);
+                },
+                Err(e) => {
+                    println!("Error parsing cached wallet response: {:?}", e);
+                    // Fall back to computing the response if parsing fails
+                }
             }
         }
     }

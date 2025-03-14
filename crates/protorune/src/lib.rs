@@ -604,6 +604,10 @@ impl Protorune {
     }
     pub fn index_spendables(txdata: &Vec<Transaction>) -> Result<HashSet<Vec<u8>>> {
         // Track unique addresses that have their spendable outpoints updated
+        #[cfg(feature = "cache")]
+        let mut updated_addresses: HashSet<Vec<u8>> = HashSet::new();
+        
+        #[cfg(not(feature = "cache"))]
         let mut updated_addresses: HashSet<Vec<u8>> = HashSet::new();
         
         for (txindex, transaction) in txdata.iter().enumerate() {
@@ -624,6 +628,7 @@ impl Protorune {
                     let address = address_str.into_bytes();
                     
                     // Add address to the set of updated addresses
+                    #[cfg(feature = "cache")]
                     updated_addresses.insert(address.to_vec());
                     
                     tables::OUTPOINTS_FOR_ADDRESS
@@ -641,6 +646,10 @@ impl Protorune {
     }
     pub fn index_spendables_ll(txdata: &Vec<Transaction>) -> Result<HashSet<Vec<u8>>> {
         // Track unique addresses that have their spendable outpoints updated
+        #[cfg(feature = "cache")]
+        let mut updated_addresses: HashSet<Vec<u8>> = HashSet::new();
+        
+        #[cfg(not(feature = "cache"))]
         let mut updated_addresses: HashSet<Vec<u8>> = HashSet::new();
         
         for (txindex, transaction) in txdata.iter().enumerate() {
@@ -661,6 +670,7 @@ impl Protorune {
                     let address = address_str.into_bytes();
                     
                     // Add address to the set of updated addresses
+                    #[cfg(feature = "cache")]
                     if address.len() > 0 {
                         updated_addresses.insert(address.to_vec());
                     }
@@ -693,6 +703,7 @@ impl Protorune {
                 let address = tables::OUTPOINT_SPENDABLE_BY.select(&outpoint_bytes).get();
                 if address.len() > 0 {
                     // Add address to the set of updated addresses (for spent inputs)
+                    #[cfg(feature = "cache")]
                     updated_addresses.insert(address.as_ref().to_vec());
                     
                     tables::OUTPOINT_SPENDABLE_BY_ADDRESS

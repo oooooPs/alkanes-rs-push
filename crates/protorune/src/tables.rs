@@ -149,5 +149,6 @@ pub static OUTPOINT_TO_OUTPUT: Lazy<IndexPointer> =
     Lazy::new(|| IndexPointer::from_keyword("/output/byoutpoint/"));
 
 // Table to store cached WalletResponse for each address
+#[cfg(feature = "cache")]
 pub static CACHED_WALLET_RESPONSE: Lazy<IndexPointer> =
     Lazy::new(|| IndexPointer::from_keyword("/cached/wallet/byaddress/"));
