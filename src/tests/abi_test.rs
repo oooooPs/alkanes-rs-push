@@ -27,7 +27,7 @@ use wasm_bindgen_test::wasm_bindgen_test;
 fn test_contract_abi(
     contract_name: &str,
     contract_bytes: Vec<u8>,
-    expected_methods: Vec<(&str, u128, Vec<&str>)>,
+    expected_methods: Vec<(&str, u128, Vec<(&str, &str)>)>,
 ) -> Result<()> {
     let context = Arc::new(Mutex::new(AlkanesRuntimeContext::default()));
 
@@ -91,12 +91,21 @@ fn test_contract_abi(
             contract_name
         );
 
-        // Verify each parameter type
-        for (i, expected_param) in expected_params.iter().enumerate() {
+        // Verify each parameter type and name
+        for (i, (expected_param_name, expected_param_type)) in expected_params.iter().enumerate() {
             assert_eq!(
-                params[i].as_str().unwrap(),
-                *expected_param,
+                params[i]["type"].as_str().unwrap(),
+                *expected_param_type,
                 "Incorrect parameter type at index {} for method {} in {}",
+                i,
+                expected_name,
+                contract_name
+            );
+
+            assert_eq!(
+                params[i]["name"].as_str().unwrap(),
+                *expected_param_name,
+                "Incorrect parameter name at index {} for method {} in {}",
                 i,
                 expected_name,
                 contract_name
@@ -111,10 +120,14 @@ fn test_contract_abi(
 fn test_owned_token_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter counts
+    // Expected methods with their opcodes and parameter names and types
     let expected_methods = vec![
-        ("initialize", 0, vec!["u128", "u128"]),
-        ("mint", 77, vec!["u128"]),
+        (
+            "initialize",
+            0,
+            vec![("auth_token_units", "u128"), ("token_units", "u128")],
+        ),
+        ("mint", 77, vec![("token_units", "u128")]),
         ("get_name", 99, vec![]),
         ("get_symbol", 100, vec![]),
         ("get_total_supply", 101, vec![]),
@@ -132,9 +145,9 @@ fn test_owned_token_abi() -> Result<()> {
 fn test_auth_token_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter counts
+    // Expected methods with their opcodes and parameter names and types
     let expected_methods = vec![
-        ("initialize", 0, vec!["u128"]),
+        ("initialize", 0, vec![("amount", "u128")]),
         ("authenticate", 1, vec![]),
         ("get_name", 99, vec![]),
         ("get_symbol", 100, vec![]),
@@ -151,11 +164,11 @@ fn test_auth_token_abi() -> Result<()> {
 fn test_proxy_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter counts
+    // Expected methods with their opcodes and parameter names and types
     let expected_methods = vec![
         ("initialize", 0, vec![]),
-        ("call_witness", 1, vec!["u128"]),
-        ("delegatecall_witness", 2, vec!["u128"]),
+        ("call_witness", 1, vec![("witness_index", "u128")]),
+        ("delegatecall_witness", 2, vec![("witness_index", "u128")]),
         ("call_inputs", 3, vec![]),
         ("delegatecall_inputs", 4, vec![]),
     ];
@@ -171,10 +184,18 @@ fn test_proxy_abi() -> Result<()> {
 fn test_upgradeable_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter counts
+    // Expected methods with their opcodes and parameter names and types
     let expected_methods = vec![
-        ("initialize", 0x7fff, vec!["u128", "u128", "u128"]),
-        ("upgrade", 0x7ffe, vec!["u128", "u128"]),
+        (
+            "initialize",
+            0x7fff,
+            vec![
+                ("block", "u128"),
+                ("tx", "u128"),
+                ("auth_token_units", "u128"),
+            ],
+        ),
+        ("upgrade", 0x7ffe, vec![("block", "u128"), ("tx", "u128")]),
         ("delegate", 0x7ffd, vec![]),
     ];
 
@@ -189,7 +210,7 @@ fn test_upgradeable_abi() -> Result<()> {
 fn test_logger_alkane_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter counts
+    // Expected methods with their opcodes and parameter names and types
     let expected_methods = vec![
         ("self_call", 2, vec![]),
         ("check_incoming", 3, vec![]),
@@ -211,7 +232,7 @@ fn test_logger_alkane_abi() -> Result<()> {
 fn test_orbital_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter counts
+    // Expected methods with their opcodes and parameter names and types
     let expected_methods = vec![
         ("initialize", 0, vec![]),
         ("get_name", 99, vec![]),
@@ -231,9 +252,13 @@ fn test_orbital_abi() -> Result<()> {
 fn test_merkle_distributor_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter counts
+    // Expected methods with their opcodes and parameter names and types
     let expected_methods = vec![
-        ("initialize", 0, vec!["u128", "u128"]),
+        (
+            "initialize",
+            0,
+            vec![("length", "u128"), ("root_bytes", "u128")],
+        ),
         ("claim", 1, vec![]),
     ];
 
@@ -248,7 +273,7 @@ fn test_merkle_distributor_abi() -> Result<()> {
 fn test_genesis_alkane_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter counts
+    // Expected methods with their opcodes and parameter names and types
     let expected_methods = vec![
         ("initialize", 0, vec![]),
         ("mint", 77, vec![]),
@@ -268,7 +293,7 @@ fn test_genesis_alkane_abi() -> Result<()> {
 fn test_genesis_protorune_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter counts
+    // Expected methods with their opcodes and parameter names and types
     let expected_methods = vec![
         ("initialize", 0, vec![]),
         ("mint", 77, vec![]),
