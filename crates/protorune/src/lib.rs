@@ -988,10 +988,9 @@ impl Protorune {
         Self::index_outpoints(&block, height)?;
         
         // Get the set of updated addresses
-        let updated_addresses = Self::index_spendables_ll(&block.txdata)?;
+        let updated_addresses = Self::index_spendables(&block.txdata)?;
         
         Self::index_unspendables::<T>(&block, height)?;
-        flush();
         
         // Return the set of updated addresses
         Ok(updated_addresses)
