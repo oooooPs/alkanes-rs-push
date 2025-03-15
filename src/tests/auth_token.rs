@@ -329,6 +329,8 @@ fn test_owned_token_set_name_and_symbol() -> Result<()> {
     // Convert trace data to string for easier searching
     let trace_str = String::from_utf8_lossy(&trace_data);
 
+    println!("trace {:?}", trace_str);
+
     let expected_name = "SuperLongCustomTokenNameThatSpannsMultipleU128Vaalues";
     let expected_symbol = "SLCT";
 

@@ -117,26 +117,40 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
             _ => panic!("Named fields are not supported"),
         };
 
-        let param_extractions = match &variant.fields {
+        // Create a list of field extractions
+        let field_extractions = match &variant.fields {
             Fields::Unnamed(fields) => {
-                let extractions = fields.unnamed.iter().map(|field| {
+                // First, create a variable to track the current input index
+                let mut extractions = Vec::new();
+                
+                // Add the index variable declaration
+                extractions.push(quote! {
+                    let mut input_index = 0;
+                });
+                
+                // Add extractions for each field
+                let mut param_vars = Vec::new();
+                
+                for (i, field) in fields.unnamed.iter().enumerate() {
+                    let param_var = format_ident!("param{}", i);
+                    param_vars.push(param_var.clone());
+                    
                     if is_string_type(&field.ty) {
                         // For String types, read null-terminated string from inputs
-                        quote! {
-                            {
+                        extractions.push(quote! {
+                            let #param_var = {
                                 // Check if we have at least one input for the string
-                                if inputs.is_empty() {
+                                if input_index >= inputs.len() {
                                     return Err(anyhow::anyhow!("Not enough parameters provided for string"));
                                 }
                                 
                                 // Extract the string bytes from the inputs until we find a null terminator
                                 let mut string_bytes = Vec::new();
                                 let mut found_null = false;
-                                let mut consumed_inputs = 0;
                                 
-                                while !inputs.is_empty() && !found_null {
-                                    let value = inputs.remove(0);
-                                    consumed_inputs += 1;
+                                while input_index < inputs.len() && !found_null {
+                                    let value = inputs[input_index];
+                                    input_index += 1;
                                     
                                     let bytes = value.to_le_bytes();
                                     
@@ -155,20 +169,35 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                                 
                                 // Convert bytes to string
                                 String::from_utf8(string_bytes).map_err(|e| anyhow::anyhow!("Invalid UTF-8 string: {}", e))?
-                            }
-                        }
+                            };
+                        });
                     } else {
                         // For non-String types, just extract the value
-                        quote! {
-                            if inputs.is_empty() {
-                                return Err(anyhow::anyhow!("Missing parameter"));
-                            }
-                            inputs.remove(0)
-                        }
+                        extractions.push(quote! {
+                            let #param_var = {
+                                if input_index >= inputs.len() {
+                                    return Err(anyhow::anyhow!("Missing parameter"));
+                                }
+                                let value = inputs[input_index];
+                                input_index += 1;
+                                value
+                            };
+                        });
                     }
-                });
+                }
+                
+                (extractions, param_vars)
+            }
+            Fields::Unit => (Vec::new(), Vec::new()),
+            _ => panic!("Named fields are not supported"),
+        };
 
-                quote! { (#(#extractions),*) }
+        let (extractions, param_vars) = field_extractions;
+
+        // Create the parameter list for the variant constructor
+        let param_list = match &variant.fields {
+            Fields::Unnamed(_) => {
+                quote! { (#(#param_vars),*) }
             }
             Fields::Unit => quote! {},
             _ => panic!("Named fields are not supported"),
@@ -180,10 +209,9 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                     return Err(anyhow::anyhow!("Not enough parameters provided"));
                 }
                 
-                // Create a mutable copy of the inputs vector
-                let mut inputs = inputs.clone();
+                #(#extractions)*
                 
-                Ok(Self::#variant_name #param_extractions)
+                Ok(Self::#variant_name #param_list)
             }
         }
     });
@@ -207,7 +235,7 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
             _ => panic!("Named fields are not supported"),
         };
 
-        let param_pass_deref = match &variant.fields {
+        let param_pass = match &variant.fields {
             Fields::Unnamed(fields) => {
                 if fields.unnamed.is_empty() {
                     quote! {}
@@ -227,7 +255,7 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
             Self::#variant_name #param_names => {
                 // Call the method directly on the responder
                 // This assumes the method exists on the responder
-                responder.#method_name(#param_pass_deref)
+                responder.#method_name(#param_pass)
             }
         }
     });
