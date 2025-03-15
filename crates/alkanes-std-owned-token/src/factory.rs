@@ -42,10 +42,12 @@ pub const CONTEXT: ContextHandle = ContextHandle(());
 
 pub trait MintableToken {
     fn name(&self) -> String {
-        String::from("OWNED")
+        String::from_utf8(self.name_pointer().get().as_ref().clone())
+            .expect("name not saved as utf-8, did this deployment revert?")
     }
     fn symbol(&self) -> String {
-        String::from("OWNED")
+        String::from_utf8(self.symbol_pointer().get().as_ref().clone())
+            .expect("symbol not saved as utf-8, did this deployment revert?")
     }
     fn set_name_and_symbol(&self, name: u128, symbol: u128) {
         self.set_string_field_from_u128(self.name_pointer(), name);

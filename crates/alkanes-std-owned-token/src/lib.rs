@@ -59,6 +59,11 @@ impl OwnedToken {
         let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes.clone());
 
         self.observe_initialization()?;
+        <Self as MintableToken>::set_name_and_symbol_str(
+            self,
+            String::from("OWNED"),
+            String::from("OWNED"),
+        );
 
         response
             .alkanes

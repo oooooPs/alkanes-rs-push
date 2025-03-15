@@ -119,30 +119,37 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
 
         let param_extractions = match &variant.fields {
             Fields::Unnamed(fields) => {
-                let extractions = fields.unnamed.iter().enumerate().map(|(i, field)| {
+                let extractions = fields.unnamed.iter().map(|field| {
                     if is_string_type(&field.ty) {
-                        // For String types, read the length and then read that many u128s to form the string
+                        // For String types, read null-terminated string from inputs
                         quote! {
                             {
-                                let len_index = #i;
-                                let len = inputs.get(len_index).cloned().ok_or_else(|| anyhow::anyhow!("Missing string length parameter"))?;
-                                let len_usize = len as usize;
-                                
-                                // Check if we have enough inputs for the string
-                                if inputs.len() < len_index + 1 + len_usize {
+                                // Check if we have at least one input for the string
+                                if inputs.is_empty() {
                                     return Err(anyhow::anyhow!("Not enough parameters provided for string"));
                                 }
                                 
-                                // Extract the string bytes from the inputs
+                                // Extract the string bytes from the inputs until we find a null terminator
                                 let mut string_bytes = Vec::new();
-                                for j in 0..len_usize {
-                                    let value = inputs[len_index + 1 + j];
-                                    // Convert u128 to bytes and append to string_bytes
+                                let mut found_null = false;
+                                let mut consumed_inputs = 0;
+                                
+                                while !inputs.is_empty() && !found_null {
+                                    let value = inputs.remove(0);
+                                    consumed_inputs += 1;
+                                    
                                     let bytes = value.to_le_bytes();
+                                    
                                     for byte in bytes {
-                                        if byte != 0 {
-                                            string_bytes.push(byte);
+                                        if byte == 0 {
+                                            found_null = true;
+                                            break;
                                         }
+                                        string_bytes.push(byte);
+                                    }
+                                    
+                                    if found_null {
+                                        break;
                                     }
                                 }
                                 
@@ -153,7 +160,10 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                     } else {
                         // For non-String types, just extract the value
                         quote! {
-                            inputs.get(#i).cloned().ok_or_else(|| anyhow::anyhow!("Missing parameter"))?
+                            if inputs.is_empty() {
+                                return Err(anyhow::anyhow!("Missing parameter"));
+                            }
+                            inputs.remove(0)
                         }
                     }
                 });
@@ -169,6 +179,10 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                 if inputs.len() < #field_count {
                     return Err(anyhow::anyhow!("Not enough parameters provided"));
                 }
+                
+                // Create a mutable copy of the inputs vector
+                let mut inputs = inputs.clone();
+                
                 Ok(Self::#variant_name #param_extractions)
             }
         }
