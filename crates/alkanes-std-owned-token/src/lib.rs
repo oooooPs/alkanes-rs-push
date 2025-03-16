@@ -23,13 +23,18 @@ impl AuthenticatedResponder for OwnedToken {}
 enum OwnedTokenMessage {
     #[opcode(0)]
     #[method("initialize")]
-    #[param_names("auth_token_units", "token_units")]
-    Initialize(u128, u128),
+    Initialize {
+        auth_token_units: u128,
+        token_units: u128,
+    },
 
     #[opcode(77)]
     #[method("mint")]
-    #[param_names("token_units")]
-    Mint(u128),
+    Mint { token_units: u128 },
+
+    #[opcode(88)]
+    #[method("set_name_and_symbol")]
+    SetNameAndSymbol { name: String, symbol: String },
 
     #[opcode(99)]
     #[method("get_name")]
@@ -54,6 +59,11 @@ impl OwnedToken {
         let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes.clone());
 
         self.observe_initialization()?;
+        <Self as MintableToken>::set_name_and_symbol_str(
+            self,
+            String::from("OWNED"),
+            String::from("OWNED"),
+        );
 
         response
             .alkanes
@@ -104,6 +114,18 @@ impl OwnedToken {
         let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes.clone());
 
         response.data = self.total_supply().to_le_bytes().to_vec();
+
+        Ok(response)
+    }
+
+    fn set_name_and_symbol(&self, name: String, symbol: String) -> Result<CallResponse> {
+        let context = self.context()?;
+        let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes.clone());
+
+        self.only_owner()?;
+
+        // Call the set_name_and_symbol_str method from the MintableToken trait
+        <Self as MintableToken>::set_name_and_symbol_str(self, name, symbol);
 
         Ok(response)
     }

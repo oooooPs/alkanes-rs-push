@@ -1,8 +1,8 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    parse_macro_input, Attribute, Data, DeriveInput, Fields, Ident, Lit, LitInt, LitStr, Meta,
-    NestedMeta,
+    parse_macro_input, Attribute, Data, DeriveInput, Fields, FieldsNamed, Ident, Lit, LitInt, LitStr, Meta,
+    NestedMeta, Type, TypePath,
 };
 
 /// Extracts the opcode attribute from a variant's attributes
@@ -35,48 +35,32 @@ fn extract_method_attr(attrs: &[Attribute]) -> String {
     panic!("Missing or invalid #[method(\"name\")] attribute");
 }
 
-/// Extracts the param_names attribute from a variant's attributes
-fn extract_param_names_attr(
-    attrs: &[Attribute],
-    expected_count: usize,
-    variant_name: &str,
-) -> Option<Vec<String>> {
-    for attr in attrs {
-        if attr.path.is_ident("param_names") {
-            if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
-                let param_names = meta_list
-                    .nested
-                    .iter()
-                    .filter_map(|nested_meta| {
-                        if let NestedMeta::Lit(Lit::Str(lit_str)) = nested_meta {
-                            Some(lit_str.value())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<_>>();
-
-                if !param_names.is_empty() {
-                    // Validate that the number of parameter names matches the expected count
-                    if param_names.len() != expected_count {
-                        panic!(
-                            "Number of parameter names ({}) in #[param_names] for variant {} does not match the number of fields ({})",
-                            param_names.len(),
-                            variant_name,
-                            expected_count
-                        );
-                    }
-
-                    return Some(param_names);
-                }
-            }
+/// Check if a type is a String
+fn is_string_type(ty: &Type) -> bool {
+    if let Type::Path(TypePath { path, .. }) = ty {
+        if let Some(segment) = path.segments.last() {
+            return segment.ident == "String";
         }
     }
-    None
+    false
+}
+
+/// Get a string representation of a Rust type
+fn get_type_string(ty: &Type) -> String {
+    match ty {
+        Type::Path(type_path) => {
+            if let Some(segment) = type_path.path.segments.last() {
+                segment.ident.to_string()
+            } else {
+                "unknown".to_string()
+            }
+        }
+        _ => "unknown".to_string(),
+    }
 }
 
 /// Derive macro for MessageDispatch trait
-#[proc_macro_derive(MessageDispatch, attributes(opcode, method, param_names))]
+#[proc_macro_derive(MessageDispatch, attributes(opcode, method))]
 pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
@@ -91,33 +75,109 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
         let variant_name = &variant.ident;
         let opcode = extract_opcode_attr(&variant.attrs);
 
-        let field_count = match &variant.fields {
-            Fields::Unnamed(fields) => fields.unnamed.len(),
-            Fields::Unit => 0,
-            _ => panic!("Named fields are not supported"),
-        };
-
-        let param_extractions = match &variant.fields {
-            Fields::Unnamed(fields) => {
-                let extractions = fields.unnamed.iter().enumerate().map(|(i, _field)| {
-                    quote! {
-                        inputs.get(#i).cloned().ok_or_else(|| anyhow::anyhow!("Missing parameter"))?
-                    }
+        match &variant.fields {
+            Fields::Named(fields_named) => {
+                // Handle named fields (struct variants)
+                let field_count = fields_named.named.len();
+                
+                // Create a list of field extractions
+                let mut extractions = Vec::new();
+                
+                // Add the index variable declaration
+                extractions.push(quote! {
+                    let mut input_index = 0;
                 });
-
-                quote! { (#(#extractions),*) }
-            }
-            Fields::Unit => quote! {},
-            _ => panic!("Named fields are not supported"),
-        };
-
-        quote! {
-            #opcode => {
-                if inputs.len() < #field_count {
-                    return Err(anyhow::anyhow!("Not enough parameters provided"));
+                
+                // Add extractions for each field
+                let mut field_assignments = Vec::new();
+                
+                for field in fields_named.named.iter() {
+                    let field_name = field.ident.as_ref().unwrap();
+                    
+                    if is_string_type(&field.ty) {
+                        // For String types, read null-terminated string from inputs
+                        extractions.push(quote! {
+                            let #field_name = {
+                                // Check if we have at least one input for the string
+                                if input_index >= inputs.len() {
+                                    return Err(anyhow::anyhow!("Not enough parameters provided for string"));
+                                }
+                                
+                                // Extract the string bytes from the inputs until we find a null terminator
+                                let mut string_bytes = Vec::new();
+                                let mut found_null = false;
+                                
+                                while input_index < inputs.len() && !found_null {
+                                    let value = inputs[input_index];
+                                    input_index += 1;
+                                    
+                                    let bytes = value.to_le_bytes();
+                                    
+                                    for byte in bytes {
+                                        if byte == 0 {
+                                            found_null = true;
+                                            break;
+                                        }
+                                        string_bytes.push(byte);
+                                    }
+                                    
+                                    if found_null {
+                                        break;
+                                    }
+                                }
+                                
+                                // Convert bytes to string
+                                String::from_utf8(string_bytes).map_err(|e| anyhow::anyhow!("Invalid UTF-8 string: {}", e))?
+                            };
+                        });
+                    } else {
+                        // For non-String types, just extract the value
+                        extractions.push(quote! {
+                            let #field_name = {
+                                if input_index >= inputs.len() {
+                                    return Err(anyhow::anyhow!("Missing parameter"));
+                                }
+                                let value = inputs[input_index];
+                                input_index += 1;
+                                value
+                            };
+                        });
+                    }
+                    
+                    field_assignments.push(quote! { #field_name });
                 }
-                Ok(Self::#variant_name #param_extractions)
-            }
+                
+                // Create the struct initialization
+                let struct_init = quote! {
+                    Self::#variant_name {
+                        #(#field_assignments),*
+                    }
+                };
+                
+                quote! {
+                    #opcode => {
+                        if inputs.len() < #field_count {
+                            return Err(anyhow::anyhow!("Not enough parameters provided"));
+                        }
+                        
+                        #(#extractions)*
+                        
+                        Ok(#struct_init)
+                    }
+                }
+            },
+            Fields::Unnamed(_) => {
+                // Error for tuple variants
+                panic!("Tuple variants are not supported for MessageDispatch. Use named fields (struct variants) instead for variant {}", variant_name);
+            },
+            Fields::Unit => {
+                // Handle unit variants (no fields)
+                quote! {
+                    #opcode => {
+                        Ok(Self::#variant_name)
+                    }
+                }
+            },
         }
     });
 
@@ -127,41 +187,45 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
         let method_str = extract_method_attr(&variant.attrs);
         let method_name = format_ident!("{}", method_str);
 
-        let param_names = match &variant.fields {
-            Fields::Unnamed(fields) => {
-                let params = fields
-                    .unnamed
-                    .iter()
-                    .enumerate()
-                    .map(|(i, _)| format_ident!("param{}", i));
-                quote! { (#(#params),*) }
-            }
-            Fields::Unit => quote! {},
-            _ => panic!("Named fields are not supported"),
-        };
-
-        let param_pass_deref = match &variant.fields {
-            Fields::Unnamed(fields) => {
-                if fields.unnamed.is_empty() {
-                    quote! {}
+        match &variant.fields {
+            Fields::Named(fields_named) => {
+                // Handle named fields (struct variants)
+                let field_names: Vec<_> = fields_named.named.iter()
+                    .map(|field| field.ident.as_ref().unwrap())
+                    .collect();
+                
+                let pattern = if !field_names.is_empty() {
+                    quote! { { #(#field_names),* } }
                 } else {
-                    let params = fields.unnamed.iter().enumerate().map(|(i, _)| {
-                        let param = format_ident!("param{}", i);
-                        quote! { *#param }
-                    });
-                    quote! { #(#params),* }
+                    quote! { {} }
+                };
+                
+                let param_pass = if !field_names.is_empty() {
+                    quote! { #(#field_names.clone()),* }
+                } else {
+                    quote! {}
+                };
+                
+                quote! {
+                    Self::#variant_name #pattern => {
+                        // Call the method directly on the responder
+                        responder.#method_name(#param_pass)
+                    }
                 }
-            }
-            Fields::Unit => quote! {},
-            _ => panic!("Named fields are not supported"),
-        };
-
-        quote! {
-            Self::#variant_name #param_names => {
-                // Call the method directly on the responder
-                // This assumes the method exists on the responder
-                responder.#method_name(#param_pass_deref)
-            }
+            },
+            Fields::Unnamed(_) => {
+                // Error for tuple variants
+                panic!("Tuple variants are not supported for MessageDispatch. Use named fields (struct variants) instead for variant {}", variant_name);
+            },
+            Fields::Unit => {
+                // Handle unit variants (no fields)
+                quote! {
+                    Self::#variant_name => {
+                        // Call the method directly on the responder
+                        responder.#method_name()
+                    }
+                }
+            },
         }
     });
 
@@ -179,16 +243,25 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
         let method_name = extract_method_attr(&variant.attrs);
         let opcode = extract_opcode_attr(&variant.attrs);
 
-        // Determine parameter count based on the variant fields
-        let field_count = match &variant.fields {
-            Fields::Unnamed(fields) => fields.unnamed.len(),
-            Fields::Unit => 0,
-            _ => panic!("Named fields are not supported"),
+        // Determine parameter count, types, and names based on the variant fields
+        let (field_count, field_types, param_names) = match &variant.fields {
+            Fields::Named(fields_named) => {
+                let types = fields_named.named.iter()
+                    .map(|field| get_type_string(&field.ty))
+                    .collect::<Vec<_>>();
+                
+                let names = fields_named.named.iter()
+                    .map(|field| field.ident.as_ref().unwrap().to_string())
+                    .collect::<Vec<_>>();
+                
+                (fields_named.named.len(), types, names)
+            },
+            Fields::Unnamed(_) => {
+                // Error for tuple variants
+                panic!("Tuple variants are not supported for MessageDispatch. Use named fields (struct variants) instead for variant {}", variant_name);
+            },
+            Fields::Unit => (0, Vec::new(), Vec::new()),
         };
-
-        // Get parameter names if provided, with validation
-        let param_names_opt =
-            extract_param_names_attr(&variant.attrs, field_count, &variant_name.to_string());
 
         // Generate parameter JSON
         let mut params_json = String::new();
@@ -199,19 +272,12 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                     params_json.push_str(", ");
                 }
 
-                let param_name = if let Some(ref names) = param_names_opt {
-                    if i < names.len() {
-                        names[i].clone()
-                    } else {
-                        format!("param{}", i)
-                    }
-                } else {
-                    format!("param{}", i)
-                };
+                let param_name = &param_names[i];
+                let param_type = &field_types[i];
 
                 params_json.push_str(&format!(
-                    "{{ \"type\": \"u128\", \"name\": \"{}\" }}",
-                    param_name
+                    "{{ \"type\": \"{}\", \"name\": \"{}\" }}",
+                    param_type, param_name
                 ));
             }
             params_json.push_str("]");

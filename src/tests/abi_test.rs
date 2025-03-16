@@ -128,6 +128,11 @@ fn test_owned_token_abi() -> Result<()> {
             vec![("auth_token_units", "u128"), ("token_units", "u128")],
         ),
         ("mint", 77, vec![("token_units", "u128")]),
+        (
+            "set_name_and_symbol",
+            88,
+            vec![("name", "String"), ("symbol", "String")],
+        ),
         ("get_name", 99, vec![]),
         ("get_symbol", 100, vec![]),
         ("get_total_supply", 101, vec![]),
