@@ -23,18 +23,18 @@ impl AuthenticatedResponder for OwnedToken {}
 enum OwnedTokenMessage {
     #[opcode(0)]
     #[method("initialize")]
-    #[param_names("auth_token_units", "token_units")]
-    Initialize(u128, u128),
+    Initialize {
+        auth_token_units: u128,
+        token_units: u128,
+    },
 
     #[opcode(77)]
     #[method("mint")]
-    #[param_names("token_units")]
-    Mint(u128),
+    Mint { token_units: u128 },
 
     #[opcode(88)]
     #[method("set_name_and_symbol")]
-    #[param_names("name", "symbol")]
-    SetNameAndSymbol(String, String),
+    SetNameAndSymbol { name: String, symbol: String },
 
     #[opcode(99)]
     #[method("get_name")]
