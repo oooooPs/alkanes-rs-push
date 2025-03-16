@@ -21,23 +21,18 @@ pub struct Proxy(());
 #[derive(MessageDispatch)]
 enum ProxyMessage {
     #[opcode(0)]
-    #[method("initialize")]
     Initialize,
 
     #[opcode(1)]
-    #[method("call_witness")]
     CallWitness { witness_index: u128 },
 
     #[opcode(2)]
-    #[method("delegatecall_witness")]
     DelegatecallWitness { witness_index: u128 },
 
     #[opcode(3)]
-    #[method("call_inputs")]
     CallInputs,
 
     #[opcode(4)]
-    #[method("delegatecall_inputs")]
     DelegatecallInputs,
 }
 

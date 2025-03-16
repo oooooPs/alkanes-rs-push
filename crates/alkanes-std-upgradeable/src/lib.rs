@@ -19,7 +19,6 @@ pub struct Upgradeable(());
 #[derive(MessageDispatch)]
 enum UpgradeableMessage {
     #[opcode(0x7fff)]
-    #[method("initialize")]
     Initialize {
         block: u128,
         tx: u128,
@@ -27,11 +26,9 @@ enum UpgradeableMessage {
     },
 
     #[opcode(0x7ffe)]
-    #[method("upgrade")]
     Upgrade { block: u128, tx: u128 },
 
     #[opcode(0x7ffd)]
-    #[method("delegate")]
     Delegate,
 }
 

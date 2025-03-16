@@ -22,34 +22,27 @@ impl AuthenticatedResponder for OwnedToken {}
 #[derive(MessageDispatch)]
 enum OwnedTokenMessage {
     #[opcode(0)]
-    #[method("initialize")]
     Initialize {
         auth_token_units: u128,
         token_units: u128,
     },
 
     #[opcode(77)]
-    #[method("mint")]
     Mint { token_units: u128 },
 
     #[opcode(88)]
-    #[method("set_name_and_symbol")]
     SetNameAndSymbol { name: String, symbol: String },
 
     #[opcode(99)]
-    #[method("get_name")]
     GetName,
 
     #[opcode(100)]
-    #[method("get_symbol")]
     GetSymbol,
 
     #[opcode(101)]
-    #[method("get_total_supply")]
     GetTotalSupply,
 
     #[opcode(1000)]
-    #[method("get_data")]
     GetData,
 }
 

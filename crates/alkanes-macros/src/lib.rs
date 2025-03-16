@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    parse_macro_input, Attribute, Data, DeriveInput, Fields, FieldsNamed, Ident, Lit, LitInt, LitStr, Meta,
+    parse_macro_input, Attribute, Data, DeriveInput, Fields, FieldsNamed, Ident, Lit, LitInt, Meta,
     NestedMeta, Type, TypePath,
 };
 
@@ -21,18 +21,16 @@ fn extract_opcode_attr(attrs: &[Attribute]) -> u128 {
     panic!("Missing or invalid #[opcode(n)] attribute");
 }
 
-/// Extracts the method attribute from a variant's attributes
-fn extract_method_attr(attrs: &[Attribute]) -> String {
-    for attr in attrs {
-        if attr.path.is_ident("method") {
-            if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
-                if let Some(NestedMeta::Lit(Lit::Str(lit_str))) = meta_list.nested.first() {
-                    return lit_str.value();
-                }
-            }
-        }
+/// Convert a variant name to a method name (lowercase first letter)
+fn variant_to_method_name(variant_name: &Ident) -> String {
+    let name = variant_name.to_string();
+    if name.is_empty() {
+        return name;
     }
-    panic!("Missing or invalid #[method(\"name\")] attribute");
+    
+    let mut chars = name.chars();
+    let first_char = chars.next().unwrap().to_lowercase().to_string();
+    first_char + chars.as_str()
 }
 
 /// Check if a type is a String
@@ -60,7 +58,7 @@ fn get_type_string(ty: &Type) -> String {
 }
 
 /// Derive macro for MessageDispatch trait
-#[proc_macro_derive(MessageDispatch, attributes(opcode, method))]
+#[proc_macro_derive(MessageDispatch, attributes(opcode))]
 pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
@@ -184,8 +182,8 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
     // Generate dispatch match arms
     let dispatch_arms = variants.iter().map(|variant| {
         let variant_name = &variant.ident;
-        let method_str = extract_method_attr(&variant.attrs);
-        let method_name = format_ident!("{}", method_str);
+        let method_name_str = variant_to_method_name(variant_name);
+        let method_name = format_ident!("{}", method_name_str);
 
         match &variant.fields {
             Fields::Named(fields_named) => {
@@ -240,7 +238,7 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
 
     for variant in variants.iter() {
         let variant_name = &variant.ident;
-        let method_name = extract_method_attr(&variant.attrs);
+        let method_name = variant_to_method_name(variant_name);
         let opcode = extract_opcode_attr(&variant.attrs);
 
         // Determine parameter count, types, and names based on the variant fields

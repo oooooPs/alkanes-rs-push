@@ -31,11 +31,9 @@ pub struct MerkleDistributor(());
 #[derive(MessageDispatch)]
 enum MerkleDistributorMessage {
     #[opcode(0)]
-    #[method("initialize")]
     Initialize { length: u128, root_bytes: u128 },
 
     #[opcode(1)]
-    #[method("claim")]
     Claim,
 }
 
