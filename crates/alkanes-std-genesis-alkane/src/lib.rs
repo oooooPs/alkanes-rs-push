@@ -31,12 +31,15 @@ enum GenesisAlkaneMessage {
     Mint,
 
     #[opcode(99)]
+    #[returns(String)]
     GetName,
 
     #[opcode(100)]
+    #[returns(String)]
     GetSymbol,
 
     #[opcode(101)]
+    #[returns(u128)]
     GetTotalSupply,
 }
 

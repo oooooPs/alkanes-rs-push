@@ -28,6 +28,7 @@ enum LoggerAlkaneMessage {
     MintTokens,
 
     #[opcode(5)]
+    #[returns(Vec<u8>)]
     ReturnData1,
 
     #[opcode(50)]
@@ -37,6 +38,7 @@ enum LoggerAlkaneMessage {
     HashLoop,
 
     #[opcode(99)]
+    #[returns(Vec<u8>)]
     ReturnDefaultData,
 }
 

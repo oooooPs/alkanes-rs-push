@@ -34,15 +34,19 @@ enum OwnedTokenMessage {
     SetNameAndSymbol { name: String, symbol: String },
 
     #[opcode(99)]
+    #[returns(String)]
     GetName,
 
     #[opcode(100)]
+    #[returns(String)]
     GetSymbol,
 
     #[opcode(101)]
+    #[returns(u128)]
     GetTotalSupply,
 
     #[opcode(1000)]
+    #[returns(Vec<u8>)]
     GetData,
 }
 
