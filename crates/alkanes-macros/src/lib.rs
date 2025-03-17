@@ -21,6 +21,26 @@ fn extract_opcode_attr(attrs: &[Attribute]) -> u128 {
     panic!("Missing or invalid #[opcode(n)] attribute");
 }
 
+/// Extracts the returns attribute from a variant's attributes
+fn extract_returns_attr(attrs: &[Attribute]) -> Option<String> {
+    for attr in attrs {
+        if attr.path.is_ident("returns") {
+            // Just get the raw tokens as a string
+            let tokens = attr.tokens.clone().to_string();
+            
+            // Remove the parentheses and any whitespace
+            let type_str = tokens.trim_start_matches('(')
+                                .trim_end_matches(')')
+                                .trim();
+            
+            if !type_str.is_empty() {
+                return Some(type_str.to_string());
+            }
+        }
+    }
+    None
+}
+
 /// Convert a variant name to a method name (snake_case)
 fn variant_to_method_name(variant_name: &Ident) -> String {
     let name = variant_name.to_string();
@@ -82,7 +102,7 @@ fn get_type_string(ty: &Type) -> String {
 }
 
 /// Derive macro for MessageDispatch trait
-#[proc_macro_derive(MessageDispatch, attributes(opcode))]
+#[proc_macro_derive(MessageDispatch, attributes(opcode, returns))]
 pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
@@ -227,7 +247,7 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                 } else {
                     quote! {}
                 };
-                
+
                 quote! {
                     Self::#variant_name #pattern => {
                         // Call the method directly on the responder
@@ -264,6 +284,8 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
         let variant_name = &variant.ident;
         let method_name = variant_to_method_name(variant_name);
         let opcode = extract_opcode_attr(&variant.attrs);
+        let returns_type = extract_returns_attr(&variant.attrs)
+            .unwrap_or_else(|| "void".to_string());
 
         // Determine parameter count, types, and names based on the variant fields
         let (field_count, field_types, param_names) = match &variant.fields {
@@ -309,8 +331,8 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
 
         // Create the complete method JSON
         let method_json = format!(
-            "{{ \"name\": \"{}\", \"opcode\": {}, \"params\": {} }}",
-            method_name, opcode, params_json
+            "{{ \"name\": \"{}\", \"opcode\": {}, \"params\": {}, \"returns\": \"{}\" }}",
+            method_name, opcode, params_json, returns_type
         );
 
         if !first {

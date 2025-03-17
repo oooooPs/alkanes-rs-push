@@ -34,9 +34,11 @@ enum AuthTokenMessage {
     Authenticate,
 
     #[opcode(99)]
+    #[returns(String)]
     GetName,
 
     #[opcode(100)]
+    #[returns(String)]
     GetSymbol,
 }
 
