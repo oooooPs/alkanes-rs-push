@@ -21,16 +21,40 @@ fn extract_opcode_attr(attrs: &[Attribute]) -> u128 {
     panic!("Missing or invalid #[opcode(n)] attribute");
 }
 
-/// Convert a variant name to a method name (lowercase first letter)
+/// Convert a variant name to a method name (snake_case)
 fn variant_to_method_name(variant_name: &Ident) -> String {
     let name = variant_name.to_string();
     if name.is_empty() {
         return name;
     }
     
-    let mut chars = name.chars();
-    let first_char = chars.next().unwrap().to_lowercase().to_string();
-    first_char + chars.as_str()
+    // Convert from CamelCase to snake_case
+    let mut result = String::new();
+    let mut chars = name.chars().peekable();
+    
+    // Add the first character (lowercase)
+    if let Some(first_char) = chars.next() {
+        result.push_str(&first_char.to_lowercase().to_string());
+    }
+    
+    // Process the rest of the characters
+    while let Some(c) = chars.next() {
+        if c.is_uppercase() {
+            // Add underscore before uppercase letters
+            result.push('_');
+            result.push_str(&c.to_lowercase().to_string());
+        } else if c.is_numeric() {
+            // Check if the previous character is not a number and not an underscore
+            if !result.ends_with('_') && !result.chars().last().unwrap_or(' ').is_numeric() {
+                result.push('_');
+            }
+            result.push(c);
+        } else {
+            result.push(c);
+        }
+    }
+    
+    result
 }
 
 /// Check if a type is a String
