@@ -18,23 +18,18 @@ pub struct Orbital(());
 #[derive(MessageDispatch)]
 enum OrbitalMessage {
     #[opcode(0)]
-    #[method("initialize")]
     Initialize,
 
     #[opcode(99)]
-    #[method("get_name")]
     GetName,
 
     #[opcode(100)]
-    #[method("get_symbol")]
     GetSymbol,
 
     #[opcode(101)]
-    #[method("get_total_supply")]
     GetTotalSupply,
 
     #[opcode(1000)]
-    #[method("get_data")]
     GetData,
 }
 

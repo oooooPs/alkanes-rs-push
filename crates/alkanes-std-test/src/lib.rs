@@ -19,31 +19,24 @@ pub struct LoggerAlkane(());
 #[derive(MessageDispatch)]
 enum LoggerAlkaneMessage {
     #[opcode(2)]
-    #[method("self_call")]
     SelfCall,
 
     #[opcode(3)]
-    #[method("check_incoming")]
     CheckIncoming,
 
     #[opcode(4)]
-    #[method("mint_tokens")]
     MintTokens,
 
     #[opcode(5)]
-    #[method("return_data_1")]
     ReturnData1,
 
     #[opcode(50)]
-    #[method("get_transaction")]
     GetTransaction,
 
     #[opcode(78)]
-    #[method("hash_loop")]
     HashLoop,
 
     #[opcode(99)]
-    #[method("return_default_data")]
     ReturnDefaultData,
 }
 
