@@ -273,11 +273,6 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                 // Handle unit variants (no fields)
                 quote! {
                     #opcode => {
-                        // For methods with no parameters, ensure inputs is empty
-                        if !inputs.is_empty() {
-                            return Err(anyhow::anyhow!("Too many parameters provided: expected 0 but got {}", inputs.len()));
-                        }
-                        
                         Ok(Self::#variant_name)
                     }
                 }
