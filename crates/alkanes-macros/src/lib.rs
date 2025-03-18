@@ -255,8 +255,8 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                 
                 quote! {
                     #opcode => {
-                        if inputs.len() != #field_count {
-                            return Err(anyhow::anyhow!("Incorrect number of parameters provided: expected {} but got {}", #field_count, inputs.len()));
+                        if inputs.len() < #field_count {
+                            return Err(anyhow::anyhow!("Not enough parameters provided: expected {} but got {}", #field_count, inputs.len()));
                         }
                         
                         #(#extractions)*
