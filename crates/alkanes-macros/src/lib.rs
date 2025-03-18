@@ -97,6 +97,16 @@ fn is_alkane_id_type(ty: &Type) -> bool {
     false
 }
 
+/// Check if a type is a u128
+fn is_u128_type(ty: &Type) -> bool {
+    if let Type::Path(TypePath { path, .. }) = ty {
+        if let Some(segment) = path.segments.last() {
+            return segment.ident == "u128";
+        }
+    }
+    false
+}
+
 /// Generate code to extract a String parameter from inputs
 fn generate_string_extraction(field_name: &Ident) -> proc_macro2::TokenStream {
     quote! {
@@ -155,8 +165,8 @@ fn generate_alkane_id_extraction(field_name: &Ident) -> proc_macro2::TokenStream
     }
 }
 
-/// Generate code to extract a regular parameter from inputs
-fn generate_regular_extraction(field_name: &Ident) -> proc_macro2::TokenStream {
+/// Generate code to extract a u128 parameter from inputs
+fn generate_u128_extraction(field_name: &Ident) -> proc_macro2::TokenStream {
     quote! {
         let #field_name = {
             if input_index >= inputs.len() {
@@ -224,9 +234,13 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                     } else if is_alkane_id_type(&field.ty) {
                         // For AlkaneId types, use the AlkaneId extraction helper
                         extractions.push(generate_alkane_id_extraction(field_name));
+                    } else if is_u128_type(&field.ty) {
+                        // For u128 types, use the u128 extraction helper
+                        extractions.push(generate_u128_extraction(field_name));
                     } else {
-                        // For other types, use the regular extraction helper
-                        extractions.push(generate_regular_extraction(field_name));
+                        // For other types, panic
+                        panic!("Unsupported type for field {} in variant {}. Only String, AlkaneId, and u128 are supported.", 
+                               field_name, variant_name);
                     }
                     
                     field_assignments.push(quote! { #field_name });
