@@ -87,6 +87,98 @@ fn is_string_type(ty: &Type) -> bool {
     false
 }
 
+/// Check if a type is an AlkaneId
+fn is_alkane_id_type(ty: &Type) -> bool {
+    if let Type::Path(TypePath { path, .. }) = ty {
+        if let Some(segment) = path.segments.last() {
+            return segment.ident == "AlkaneId";
+        }
+    }
+    false
+}
+
+/// Check if a type is a u128
+fn is_u128_type(ty: &Type) -> bool {
+    if let Type::Path(TypePath { path, .. }) = ty {
+        if let Some(segment) = path.segments.last() {
+            return segment.ident == "u128";
+        }
+    }
+    false
+}
+
+/// Generate code to extract a String parameter from inputs
+fn generate_string_extraction(field_name: &Ident) -> proc_macro2::TokenStream {
+    quote! {
+        let #field_name = {
+            // Check if we have at least one input for the string
+            if input_index >= inputs.len() {
+                return Err(anyhow::anyhow!("Not enough parameters provided for string"));
+            }
+            
+            // Extract the string bytes from the inputs until we find a null terminator
+            let mut string_bytes = Vec::new();
+            let mut found_null = false;
+            
+            while input_index < inputs.len() && !found_null {
+                let value = inputs[input_index];
+                input_index += 1;
+                
+                let bytes = value.to_le_bytes();
+                
+                for byte in bytes {
+                    if byte == 0 {
+                        found_null = true;
+                        break;
+                    }
+                    string_bytes.push(byte);
+                }
+                
+                if found_null {
+                    break;
+                }
+            }
+            
+            // Convert bytes to string
+            String::from_utf8(string_bytes).map_err(|e| anyhow::anyhow!("Invalid UTF-8 string: {}", e))?
+        };
+    }
+}
+
+/// Generate code to extract an AlkaneId parameter from inputs
+fn generate_alkane_id_extraction(field_name: &Ident) -> proc_macro2::TokenStream {
+    quote! {
+        let #field_name = {
+            // AlkaneId consists of two u128 values (block and tx)
+            if input_index + 1 >= inputs.len() {
+                return Err(anyhow::anyhow!("Not enough parameters provided for AlkaneId"));
+            }
+            
+            let block = inputs[input_index];
+            input_index += 1;
+            
+            let tx = inputs[input_index];
+            input_index += 1;
+            
+            alkanes_support::id::AlkaneId::new(block, tx)
+        };
+    }
+}
+
+/// Generate code to extract a u128 parameter from inputs
+fn generate_u128_extraction(field_name: &Ident) -> proc_macro2::TokenStream {
+    quote! {
+        let #field_name = {
+            if input_index >= inputs.len() {
+                return Err(anyhow::anyhow!("Missing parameter"));
+            }
+            let value = inputs[input_index];
+            input_index += 1;
+            value
+        };
+    }
+}
+
 /// Get a string representation of a Rust type
 fn get_type_string(ty: &Type) -> String {
     match ty {
@@ -137,53 +229,18 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                     let field_name = field.ident.as_ref().unwrap();
                     
                     if is_string_type(&field.ty) {
-                        // For String types, read null-terminated string from inputs
-                        extractions.push(quote! {
-                            let #field_name = {
-                                // Check if we have at least one input for the string
-                                if input_index >= inputs.len() {
-                                    return Err(anyhow::anyhow!("Not enough parameters provided for string"));
-                                }
-                                
-                                // Extract the string bytes from the inputs until we find a null terminator
-                                let mut string_bytes = Vec::new();
-                                let mut found_null = false;
-                                
-                                while input_index < inputs.len() && !found_null {
-                                    let value = inputs[input_index];
-                                    input_index += 1;
-                                    
-                                    let bytes = value.to_le_bytes();
-                                    
-                                    for byte in bytes {
-                                        if byte == 0 {
-                                            found_null = true;
-                                            break;
-                                        }
-                                        string_bytes.push(byte);
-                                    }
-                                    
-                                    if found_null {
-                                        break;
-                                    }
-                                }
-                                
-                                // Convert bytes to string
-                                String::from_utf8(string_bytes).map_err(|e| anyhow::anyhow!("Invalid UTF-8 string: {}", e))?
-                            };
-                        });
+                        // For String types, use the string extraction helper
+                        extractions.push(generate_string_extraction(field_name));
+                    } else if is_alkane_id_type(&field.ty) {
+                        // For AlkaneId types, use the AlkaneId extraction helper
+                        extractions.push(generate_alkane_id_extraction(field_name));
+                    } else if is_u128_type(&field.ty) {
+                        // For u128 types, use the u128 extraction helper
+                        extractions.push(generate_u128_extraction(field_name));
                     } else {
-                        // For non-String types, just extract the value
-                        extractions.push(quote! {
-                            let #field_name = {
-                                if input_index >= inputs.len() {
-                                    return Err(anyhow::anyhow!("Missing parameter"));
-                                }
-                                let value = inputs[input_index];
-                                input_index += 1;
-                                value
-                            };
-                        });
+                        // For other types, panic
+                        panic!("Unsupported type for field {} in variant {}. Only String, AlkaneId, and u128 are supported.", 
+                               field_name, variant_name);
                     }
                     
                     field_assignments.push(quote! { #field_name });
@@ -199,7 +256,7 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                 quote! {
                     #opcode => {
                         if inputs.len() < #field_count {
-                            return Err(anyhow::anyhow!("Not enough parameters provided"));
+                            return Err(anyhow::anyhow!("Not enough parameters provided: expected {} but got {}", #field_count, inputs.len()));
                         }
                         
                         #(#extractions)*
