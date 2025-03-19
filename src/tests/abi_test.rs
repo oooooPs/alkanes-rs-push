@@ -255,6 +255,24 @@ fn test_logger_alkane_abi() -> Result<()> {
         ("get_transaction", 50, vec![], "void"),
         ("hash_loop", 78, vec![], "void"),
         ("return_default_data", 99, vec![], "Vec<u8>"),
+        (
+            "process_numbers",
+            11,
+            vec![("numbers", "Vec<u128>")],
+            "void",
+        ),
+        (
+            "process_strings",
+            12,
+            vec![("strings", "Vec<String>")],
+            "void",
+        ),
+        (
+            "process_nested_vec",
+            13,
+            vec![("nested", "Vec<Vec<u128>>")],
+            "void",
+        ),
     ];
 
     test_contract_abi(

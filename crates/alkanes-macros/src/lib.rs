@@ -107,6 +107,32 @@ fn is_u128_type(ty: &Type) -> bool {
     false
 }
 
+/// Check if a type is a Vec
+fn is_vec_type(ty: &Type) -> bool {
+    if let Type::Path(TypePath { path, .. }) = ty {
+        if let Some(segment) = path.segments.last() {
+            return segment.ident == "Vec";
+        }
+    }
+    false
+}
+
+/// Get the inner type of a Vec
+fn get_vec_inner_type(ty: &Type) -> Option<&Type> {
+    if let Type::Path(TypePath { path, .. }) = ty {
+        if let Some(segment) = path.segments.last() {
+            if segment.ident == "Vec" {
+                if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
+                    if let Some(syn::GenericArgument::Type(inner_type)) = args.args.first() {
+                        return Some(inner_type);
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Generate code to extract a String parameter from inputs
 fn generate_string_extraction(field_name: &Ident) -> proc_macro2::TokenStream {
     quote! {
@@ -179,11 +205,70 @@ fn generate_u128_extraction(field_name: &Ident) -> proc_macro2::TokenStream {
     }
 }
 
+/// Generate code to extract a single element based on its type
+fn generate_element_extraction(ty: &Type, element_name: &Ident) -> proc_macro2::TokenStream {
+    if is_string_type(ty) {
+        generate_string_extraction(element_name)
+    } else if is_alkane_id_type(ty) {
+        generate_alkane_id_extraction(element_name)
+    } else if is_u128_type(ty) {
+        generate_u128_extraction(element_name)
+    } else if is_vec_type(ty) {
+        // For Vec types, get the inner type and generate Vec extraction
+        if let Some(inner_type) = get_vec_inner_type(ty) {
+            generate_vec_extraction(element_name, inner_type)
+        } else {
+            panic!("Failed to get inner type for Vec");
+        }
+    } else {
+        // For other types, panic
+        panic!("Unsupported type. Only String, AlkaneId, u128, and Vec are supported.");
+    }
+}
+
+/// Generate code to extract a Vec parameter from inputs
+fn generate_vec_extraction(field_name: &Ident, inner_type: &Type) -> proc_macro2::TokenStream {
+    // Create a temporary element name for the extraction
+    let element_name = format_ident!("element");
+    
+    // Generate the extraction code for a single element of the inner type
+    let element_extraction = generate_element_extraction(inner_type, &element_name);
+
+    quote! {
+        let #field_name = {
+            // First read the length
+            if input_index >= inputs.len() {
+                return Err(anyhow::anyhow!("Missing length parameter for Vec"));
+            }
+            let length = inputs[input_index] as usize;
+            input_index += 1;
+            
+            // Create a vector to hold the elements
+            let mut vec = Vec::with_capacity(length);
+            
+            // Read each element
+            for _ in 0..length {
+                #element_extraction
+                vec.push(#element_name);
+            }
+            
+            vec
+        };
+    }
+}
+
 /// Get a string representation of a Rust type
 fn get_type_string(ty: &Type) -> String {
     match ty {
         Type::Path(type_path) => {
             if let Some(segment) = type_path.path.segments.last() {
+                // Check if it's a Vec type
+                if segment.ident == "Vec" {
+                    // Get the inner type of the Vec
+                    if let Some(inner_type) = get_vec_inner_type(ty) {
+                        return format!("Vec<{}>", get_type_string(inner_type));
+                    }
+                }
                 segment.ident.to_string()
             } else {
                 "unknown".to_string()
@@ -228,20 +313,8 @@ pub fn derive_message_dispatch(input: TokenStream) -> TokenStream {
                 for field in fields_named.named.iter() {
                     let field_name = field.ident.as_ref().unwrap();
                     
-                    if is_string_type(&field.ty) {
-                        // For String types, use the string extraction helper
-                        extractions.push(generate_string_extraction(field_name));
-                    } else if is_alkane_id_type(&field.ty) {
-                        // For AlkaneId types, use the AlkaneId extraction helper
-                        extractions.push(generate_alkane_id_extraction(field_name));
-                    } else if is_u128_type(&field.ty) {
-                        // For u128 types, use the u128 extraction helper
-                        extractions.push(generate_u128_extraction(field_name));
-                    } else {
-                        // For other types, panic
-                        panic!("Unsupported type for field {} in variant {}. Only String, AlkaneId, and u128 are supported.", 
-                               field_name, variant_name);
-                    }
+                    // Use the element extraction helper for all field types
+                    extractions.push(generate_element_extraction(&field.ty, field_name));
                     
                     field_assignments.push(quote! { #field_name });
                 }
