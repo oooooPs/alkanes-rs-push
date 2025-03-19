@@ -233,16 +233,6 @@ fn test_owned_token_set_name_and_symbol() -> Result<()> {
         inputs: vec![100],
     };
 
-    // Initialize the OwnedToken with auth token and token units
-    let init_cellpack = Cellpack {
-        target: AlkaneId { block: 1, tx: 0 },
-        inputs: vec![
-            0,    /* opcode (to init new auth token) */
-            1,    /* auth_token units */
-            1000, /* owned_token token_units */
-        ],
-    };
-
     // Create a cellpack to set the name and symbol
     // For the set_name_and_symbol method (opcode 88)
     // The format for string parameters is now null-terminated strings
@@ -257,10 +247,13 @@ fn test_owned_token_set_name_and_symbol() -> Result<()> {
     // For "SLCT" symbol (4 characters)
     let symbol_data = u128::from_le_bytes(*b"SLCT\0\0\0\0\0\0\0\0\0\0\0\0");
 
-    let set_name_symbol_cellpack = Cellpack {
-        target: AlkaneId { block: 2, tx: 1 }, // This will be the OwnedToken ID
+    // Initialize the OwnedToken with auth token and token units
+    let init_cellpack = Cellpack {
+        target: AlkaneId { block: 1, tx: 0 },
         inputs: vec![
-            88,          // opcode for set_name_and_symbol
+            1,           /* opcode (to init new token) */
+            1,           /* auth_token units */
+            1000,        /* owned_token token_units */
             name_data1,  // first part of the name
             name_data2,  // second part of the name
             name_data3,  // third part of the name
@@ -294,11 +287,7 @@ fn test_owned_token_set_name_and_symbol() -> Result<()> {
     test_block.txdata.push(
         alkane_helpers::create_multiple_cellpack_with_witness_and_in(
             Witness::new(),
-            vec![
-                set_name_symbol_cellpack,
-                get_name_cellpack,
-                get_symbol_cellpack,
-            ],
+            vec![get_name_cellpack, get_symbol_cellpack],
             OutPoint {
                 txid: test_block.txdata[test_block.txdata.len() - 1].compute_txid(),
                 vout: 0,

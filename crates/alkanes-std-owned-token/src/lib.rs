@@ -27,11 +27,16 @@ enum OwnedTokenMessage {
         token_units: u128,
     },
 
+    #[opcode(1)]
+    InitializeWithNameSymbol {
+        auth_token_units: u128,
+        token_units: u128,
+        name: String,
+        symbol: String,
+    },
+
     #[opcode(77)]
     Mint { token_units: u128 },
-
-    #[opcode(88)]
-    SetNameAndSymbol { name: String, symbol: String },
 
     #[opcode(99)]
     #[returns(String)]
@@ -52,15 +57,26 @@ enum OwnedTokenMessage {
 
 impl OwnedToken {
     fn initialize(&self, auth_token_units: u128, token_units: u128) -> Result<CallResponse> {
+        self.initialize_with_name_symbol(
+            auth_token_units,
+            token_units,
+            String::from("OWNED"),
+            String::from("OWNED"),
+        )
+    }
+
+    fn initialize_with_name_symbol(
+        &self,
+        auth_token_units: u128,
+        token_units: u128,
+        name: String,
+        symbol: String,
+    ) -> Result<CallResponse> {
         let context = self.context()?;
         let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes.clone());
 
         self.observe_initialization()?;
-        <Self as MintableToken>::set_name_and_symbol_str(
-            self,
-            String::from("OWNED"),
-            String::from("OWNED"),
-        );
+        <Self as MintableToken>::set_name_and_symbol_str(self, name, symbol);
 
         response
             .alkanes
