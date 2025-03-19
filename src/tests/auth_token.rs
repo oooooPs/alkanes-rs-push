@@ -329,8 +329,21 @@ fn test_owned_token_set_name_and_symbol() -> Result<()> {
         "Trace data should contain the name '{}', but it doesn't",
         expected_name
     );
+
+    // Get the trace data from the transaction
+    let outpoint_symbol = OutPoint {
+        txid: test_block.txdata[test_block.txdata.len() - 1].compute_txid(),
+        vout: 4,
+    };
+
+    let trace_data_symbol = view::trace(&outpoint_symbol)?;
+
+    // Convert trace data to string for easier searching
+    let trace_str_symbol = String::from_utf8_lossy(&trace_data_symbol);
+
+    println!("trace_str_symbol {:?}", trace_str_symbol);
     assert!(
-        trace_str.contains(expected_symbol),
+        trace_str_symbol.contains(expected_symbol),
         "Trace data should contain the symbol '{}', but it doesn't",
         expected_symbol
     );
