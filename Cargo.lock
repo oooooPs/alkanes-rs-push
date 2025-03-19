@@ -34,7 +34,6 @@ name = "alkanes"
 version = "0.1.0"
 dependencies = [
  "alkanes",
- "alkanes-runtime",
  "alkanes-support",
  "anyhow",
  "bitcoin 0.32.5",
