@@ -40,6 +40,23 @@ enum LoggerAlkaneMessage {
     #[opcode(99)]
     #[returns(Vec<u8>)]
     ReturnDefaultData,
+
+    #[opcode(11)]
+    ProcessNumbers { numbers: Vec<u128> },
+
+    #[opcode(12)]
+    ProcessStrings { strings: Vec<String> },
+
+    #[opcode(13)]
+    #[returns(Vec<u128>)]
+    GetNumbers,
+
+    #[opcode(14)]
+    #[returns(Vec<String>)]
+    GetStrings,
+
+    #[opcode(15)]
+    ProcessNestedVec { nested: Vec<Vec<u128>> },
 }
 
 impl LoggerAlkane {
@@ -125,6 +142,83 @@ impl LoggerAlkane {
         let mut response = CallResponse::forward(&context.incoming_alkanes);
 
         response.data = vec![0x01, 0x02, 0x03, 0x04];
+
+        Ok(response)
+    }
+
+    fn process_numbers(&self, numbers: Vec<u128>) -> Result<CallResponse> {
+        let context = self.context()?;
+        let mut response = CallResponse::forward(&context.incoming_alkanes);
+
+        // Sum the numbers and store in response data
+        let sum: u128 = numbers.iter().sum();
+        response.data = sum.to_le_bytes().to_vec();
+
+        Ok(response)
+    }
+
+    fn process_strings(&self, strings: Vec<String>) -> Result<CallResponse> {
+        let context = self.context()?;
+        let mut response = CallResponse::forward(&context.incoming_alkanes);
+
+        // Concatenate the strings and store in response data
+        let concat = strings.join(",");
+        response.data = concat.into_bytes();
+
+        Ok(response)
+    }
+
+    fn get_numbers(&self) -> Result<CallResponse> {
+        let context = self.context()?;
+        let mut response = CallResponse::forward(&context.incoming_alkanes);
+
+        // Return a sample vector of numbers
+        let numbers = vec![1u128, 2u128, 3u128];
+        let mut data = Vec::new();
+
+        // First write the length
+        data.extend_from_slice(&(numbers.len() as u128).to_le_bytes());
+
+        // Then write each number
+        for num in numbers {
+            data.extend_from_slice(&num.to_le_bytes());
+        }
+
+        response.data = data;
+
+        Ok(response)
+    }
+
+    fn get_strings(&self) -> Result<CallResponse> {
+        let context = self.context()?;
+        let mut response = CallResponse::forward(&context.incoming_alkanes);
+
+        // Return a sample vector of strings
+        let strings = vec!["hello".to_string(), "world".to_string()];
+        let mut data = Vec::new();
+
+        // First write the length
+        data.extend_from_slice(&(strings.len() as u128).to_le_bytes());
+
+        // Then write each string with null terminator
+        for s in strings {
+            let mut bytes = s.into_bytes();
+            bytes.push(0); // Null terminator
+            data.extend_from_slice(&bytes);
+        }
+
+        response.data = data;
+
+        Ok(response)
+    }
+
+    fn process_nested_vec(&self, nested: Vec<Vec<u128>>) -> Result<CallResponse> {
+        let context = self.context()?;
+        let mut response = CallResponse::forward(&context.incoming_alkanes);
+
+        // Count total elements in the nested vector
+        let total_elements: usize = nested.iter().map(|v| v.len()).sum();
+        response.data = (total_elements as u128).to_le_bytes().to_vec();
 
         Ok(response)
     }
