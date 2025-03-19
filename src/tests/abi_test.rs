@@ -267,11 +267,9 @@ fn test_logger_alkane_abi() -> Result<()> {
             vec![("strings", "Vec<String>")],
             "void",
         ),
-        ("get_numbers", 13, vec![], "Vec<u128>"),
-        ("get_strings", 14, vec![], "Vec<String>"),
         (
             "process_nested_vec",
-            15,
+            13,
             vec![("nested", "Vec<Vec<u128>>")],
             "void",
         ),

@@ -48,14 +48,6 @@ enum LoggerAlkaneMessage {
     ProcessStrings { strings: Vec<String> },
 
     #[opcode(13)]
-    #[returns(Vec<u128>)]
-    GetNumbers,
-
-    #[opcode(14)]
-    #[returns(Vec<String>)]
-    GetStrings,
-
-    #[opcode(15)]
     ProcessNestedVec { nested: Vec<Vec<u128>> },
 }
 
