@@ -106,7 +106,7 @@ fn test_vec_inputs() -> Result<()> {
     println!("process_numbers trace: {:?}", trace_data_process_numbers);
 
     // Verify the process_numbers result contains the expected values
-    assert!(
+    assert_eq!(
         trace_data_process_numbers[trace_data_process_numbers.len() - 16],
         100,
     );
