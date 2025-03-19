@@ -59,10 +59,9 @@ fn test_vec_inputs() -> Result<()> {
             13, // opcode for process_nested_vec
             2,  // length of the outer vector
             3,  // length of first inner vector
-            1,  // elements of first inner vector
-            2, 3, 2, // length of second inner vector
-            4, // elements of second inner vector
-            5,
+            1, 2, 3, // elements of first inner vector
+            2, // length of second inner vector
+            4, 5, // elements of second inner vector
         ],
     };
 
@@ -99,11 +98,7 @@ fn test_vec_inputs() -> Result<()> {
 
     // Get the trace data from the transaction for process_numbers
     let outpoint_process_numbers = OutPoint {
-        txid: test_block
-            .txdata
-            .last()
-            .ok_or(anyhow!("no last el"))?
-            .compute_txid(),
+        txid: test_block.txdata[1].compute_txid(),
         vout: 3,
     };
 
@@ -112,11 +107,8 @@ fn test_vec_inputs() -> Result<()> {
 
     // Verify the process_numbers result contains the expected values
     assert!(
-        trace_data_process_numbers
-            .last()
-            .ok_or(anyhow!("no last el"))?
-            == 100,
-        "process_numbers should return 100"
+        trace_data_process_numbers[trace_data_process_numbers.len() - 16],
+        100,
     );
 
     // Get the trace data from the transaction for get_strings
@@ -126,16 +118,21 @@ fn test_vec_inputs() -> Result<()> {
             .last()
             .ok_or(anyhow!("no last el"))?
             .compute_txid(),
-        vout: 4,
+        vout: 3,
     };
 
     let trace_data_get_strings = view::trace(&outpoint_get_strings)?;
     let trace_str = String::from_utf8_lossy(&trace_data_get_strings);
     println!("get_strings trace: {:?}", trace_str);
+    let expected_name = "hello,world";
 
     // Verify the get_strings result contains the expected values
     // The result should be a vector with ["hello", "world"]
-    assert!(trace_str.len() > 0, "get_strings should return data");
+    assert!(
+        trace_str.contains(expected_name),
+        "Trace data should contain the name '{}', but it doesn't",
+        expected_name
+    );
 
     // Get the trace data from the transaction for process_nested_vec
     let outpoint_process_nested_vec = OutPoint {
@@ -144,7 +141,7 @@ fn test_vec_inputs() -> Result<()> {
             .last()
             .ok_or(anyhow!("no last el"))?
             .compute_txid(),
-        vout: 5,
+        vout: 4,
     };
 
     let trace_data_process_nested_vec = view::trace(&outpoint_process_nested_vec)?;
@@ -154,11 +151,10 @@ fn test_vec_inputs() -> Result<()> {
     );
 
     // The result should be the total number of elements: 3 + 2 = 5
-    // assert_eq!(
-    //     trace_data_process_nested_vec.len(),
-    //     16,
-    //     "process_nested_vec should return a u128 (16 bytes)"
-    // );
+    assert_eq!(
+        trace_data_process_nested_vec[trace_data_process_nested_vec.len() - 16],
+        5,
+    );
 
     Ok(())
 }

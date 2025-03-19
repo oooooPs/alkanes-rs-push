@@ -160,50 +160,6 @@ impl LoggerAlkane {
         Ok(response)
     }
 
-    fn get_numbers(&self) -> Result<CallResponse> {
-        let context = self.context()?;
-        let mut response = CallResponse::forward(&context.incoming_alkanes);
-
-        // Return a sample vector of numbers
-        let numbers = vec![1u128, 2u128, 3u128];
-        let mut data = Vec::new();
-
-        // First write the length
-        data.extend_from_slice(&(numbers.len() as u128).to_le_bytes());
-
-        // Then write each number
-        for num in numbers {
-            data.extend_from_slice(&num.to_le_bytes());
-        }
-
-        response.data = data;
-
-        Ok(response)
-    }
-
-    fn get_strings(&self) -> Result<CallResponse> {
-        let context = self.context()?;
-        let mut response = CallResponse::forward(&context.incoming_alkanes);
-
-        // Return a sample vector of strings
-        let strings = vec!["hello".to_string(), "world".to_string()];
-        let mut data = Vec::new();
-
-        // First write the length
-        data.extend_from_slice(&(strings.len() as u128).to_le_bytes());
-
-        // Then write each string with null terminator
-        for s in strings {
-            let mut bytes = s.into_bytes();
-            bytes.push(0); // Null terminator
-            data.extend_from_slice(&bytes);
-        }
-
-        response.data = data;
-
-        Ok(response)
-    }
-
     fn process_nested_vec(&self, nested: Vec<Vec<u128>>) -> Result<CallResponse> {
         let context = self.context()?;
         let mut response = CallResponse::forward(&context.incoming_alkanes);
