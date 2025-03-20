@@ -131,18 +131,6 @@ impl OwnedToken {
         Ok(response)
     }
 
-    fn set_name_and_symbol(&self, name: String, symbol: String) -> Result<CallResponse> {
-        let context = self.context()?;
-        let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes.clone());
-
-        self.only_owner()?;
-
-        // Call the set_name_and_symbol_str method from the MintableToken trait
-        <Self as MintableToken>::set_name_and_symbol_str(self, name, symbol);
-
-        Ok(response)
-    }
-
     fn get_data(&self) -> Result<CallResponse> {
         let context = self.context()?;
         let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes.clone());
