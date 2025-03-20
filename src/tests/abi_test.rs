@@ -135,6 +135,7 @@ fn test_meta_call() -> Result<()> {
     clear();
     let block_height = 840_000;
 
+    // Create test blocks with cellpacks
     let test_cellpack = Cellpack {
         target: AlkaneId { block: 1, tx: 0 },
         inputs: vec![0, 1, 1000],
@@ -150,27 +151,38 @@ fn test_meta_call() -> Result<()> {
         },
         inputs: vec![100],
     };
+
+    // Initialize test environment with contracts
     let test_block = init_with_multiple_cellpacks_with_tx(
-        [
+        vec![
             alkanes_std_auth_token_build::get_bytes(),
             alkanes_std_owned_token_build::get_bytes(),
-            [].into(),
-        ].into(),
-        [auth_cellpack, test_cellpack, mint_test_cellpack].into()
+            vec![]
+        ],
+        vec![auth_cellpack, test_cellpack, mint_test_cellpack]
     );
 
     index_block(&test_block, block_height)?;
 
-    let abi_bytes = meta_safe(
-        &(MessageContextParcel {
-            block: test_block,
-            height: 840000,
-            calldata: vec![2, 1],
-            ..Default::default()
-        })
-    ).unwrap();
-    let abi_string = String::from_utf8(abi_bytes.clone()).unwrap();
-    let _abi_json: Value = serde_json::from_slice(&abi_bytes).unwrap();
+    // Create a properly formatted message context parcel
+    let parcel = MessageContextParcel {
+        block: test_block,
+        height: block_height,
+        calldata: vec![2, 1], // Targeting the second contract (owned_token
+        ..Default::default()
+    };
+
+    // Call meta_safe with the properly formatted parcel
+    let abi_bytes = meta_safe(&parcel)?;
+
+    // Verify the response
+    let abi_string = String::from_utf8(abi_bytes.clone())?;
+    let abi_json: Value = serde_json::from_slice(&abi_bytes)?;
+
+    // Add some basic assertions
+    assert!(abi_json.is_object(), "ABI should be a valid JSON object");
+    assert!(abi_json.get("methods").is_some(), "ABI should contain methods");
+
     println!("ABI: {}", abi_string);
     Ok(())
 }
@@ -191,6 +203,7 @@ fn test_owned_token_abi() -> Result<()> {
     test_contract_abi("OwnedToken", alkanes_std_owned_token_build::get_bytes(), expected_methods)
 }
 
+#[test]
 fn test_auth_token_abi() -> Result<()> {
     clear();
 
@@ -205,6 +218,7 @@ fn test_auth_token_abi() -> Result<()> {
     test_contract_abi("AuthToken", alkanes_std_auth_token_build::get_bytes(), expected_methods)
 }
 
+#[test]
 fn test_proxy_abi() -> Result<()> {
     clear();
 
@@ -220,6 +234,7 @@ fn test_proxy_abi() -> Result<()> {
     test_contract_abi("Proxy", alkanes_std_proxy_build::get_bytes(), expected_methods)
 }
 
+#[test]
 fn test_upgradeable_abi() -> Result<()> {
     clear();
 
@@ -237,6 +252,7 @@ fn test_upgradeable_abi() -> Result<()> {
     test_contract_abi("Upgradeable", alkanes_std_upgradeable_build::get_bytes(), expected_methods)
 }
 
+#[test]
 fn test_logger_alkane_abi() -> Result<()> {
     clear();
 
@@ -254,6 +270,7 @@ fn test_logger_alkane_abi() -> Result<()> {
     test_contract_abi("LoggerAlkane", alkanes_std_test_build::get_bytes(), expected_methods)
 }
 
+#[test]
 fn test_orbital_abi() -> Result<()> {
     clear();
 
@@ -269,6 +286,7 @@ fn test_orbital_abi() -> Result<()> {
     test_contract_abi("Orbital", alkanes_std_orbital_build::get_bytes(), expected_methods)
 }
 
+#[test]
 fn test_merkle_distributor_abi() -> Result<()> {
     clear();
 
@@ -285,6 +303,7 @@ fn test_merkle_distributor_abi() -> Result<()> {
     )
 }
 
+#[test]
 fn test_genesis_alkane_abi() -> Result<()> {
     clear();
 
@@ -304,6 +323,7 @@ fn test_genesis_alkane_abi() -> Result<()> {
     )
 }
 
+#[test]
 fn test_genesis_protorune_abi() -> Result<()> {
     clear();
 
@@ -321,4 +341,19 @@ fn test_genesis_protorune_abi() -> Result<()> {
         alkanes_std_genesis_protorune_build::get_bytes(),
         expected_methods
     )
+}
+
+#[test]
+fn test_all_abis() -> Result<()> {
+    test_meta_call()?;
+    test_owned_token_abi()?;
+    test_auth_token_abi()?;
+    test_proxy_abi()?;
+    test_upgradeable_abi()?;
+    test_logger_alkane_abi()?;
+    test_orbital_abi()?;
+    test_merkle_distributor_abi()?;
+    test_genesis_alkane_abi()?;
+    test_genesis_protorune_abi()?;
+    Ok(())
 }
