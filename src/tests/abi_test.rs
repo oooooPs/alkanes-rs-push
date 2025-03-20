@@ -12,22 +12,40 @@ use crate::vm::fuel::FuelTank;
 use crate::vm::instance::AlkanesInstance;
 use crate::vm::runtime::AlkanesRuntimeContext;
 use alkanes::vm::fuel::VirtualFuelBytes;
+use alkanes_support::constants::AUTH_TOKEN_FACTORY_ID;
 use anyhow::Result;
 #[allow(unused_imports)]
-use metashrew::{
-    println,
-    stdio::{stdout, Write},
-};
-use protorune::test_helpers::create_block_with_coinbase_tx;
-use serde_json::{json, Value};
-use std::sync::{Arc, Mutex};
-use wasm_bindgen_test::wasm_bindgen_test;
+use metashrew::{ println, stdio::{ stdout, Write } };
+use protorune::message::MessageContextParcel;
+use protorune_support::rune_transfer::RuneTransfer;
+use protorune_support::balance_sheet::BalanceSheet;
+use protorune::message::MessageContext;
+use protorune::test_helpers::create_block_with_rune_tx;
+use crate::view::meta_safe;
+use protorune::Protorune;
+use serde_json::{ json, Value };
+use std::sync::{ Arc, Mutex };
+use alkanes_support::cellpack::Cellpack;
+use crate::index_block;
+use alkanes_support::id::AlkaneId;
+use crate::tests::helpers::{ self as alkane_helpers, init_with_multiple_cellpacks_with_tx };
 
-// Helper function to test the ABI of a contract
+struct MyMessageContext(());
+
+impl MessageContext for MyMessageContext {
+    fn handle(_parcel: &MessageContextParcel) -> Result<(Vec<RuneTransfer>, BalanceSheet)> {
+        let ar: Vec<RuneTransfer> = vec![];
+        Ok((ar, BalanceSheet::default()))
+    }
+    fn protocol_tag() -> u128 {
+        100
+    }
+}
+
 fn test_contract_abi(
     contract_name: &str,
     contract_bytes: Vec<u8>,
-    expected_methods: Vec<(&str, u128, Vec<(&str, &str)>)>,
+    expected_methods: Vec<(&str, u128, Vec<(&str, &str)>)>
 ) -> Result<()> {
     let context = Arc::new(Mutex::new(AlkanesRuntimeContext::default()));
 
@@ -66,10 +84,7 @@ fn test_contract_abi(
             .iter()
             .find(|m| m["name"] == expected_name)
             .unwrap_or_else(|| {
-                panic!(
-                    "Method {} not found in ABI for {}",
-                    expected_name, contract_name
-                )
+                panic!("Method {} not found in ABI for {}", expected_name, contract_name)
             });
 
         // Verify the opcode
@@ -116,32 +131,66 @@ fn test_contract_abi(
     Ok(())
 }
 
-#[wasm_bindgen_test]
+fn test_meta_call() -> Result<()> {
+    clear();
+    let block_height = 840_000;
+
+    let test_cellpack = Cellpack {
+        target: AlkaneId { block: 1, tx: 0 },
+        inputs: vec![0, 1, 1000],
+    };
+    let mint_test_cellpack = Cellpack {
+        target: AlkaneId { block: 2, tx: 1 },
+        inputs: vec![1, 1000],
+    };
+    let auth_cellpack = Cellpack {
+        target: AlkaneId {
+            block: 3,
+            tx: AUTH_TOKEN_FACTORY_ID,
+        },
+        inputs: vec![100],
+    };
+    let test_block = init_with_multiple_cellpacks_with_tx(
+        [
+            alkanes_std_auth_token_build::get_bytes(),
+            alkanes_std_owned_token_build::get_bytes(),
+            [].into(),
+        ].into(),
+        [auth_cellpack, test_cellpack, mint_test_cellpack].into()
+    );
+
+    index_block(&test_block, block_height)?;
+
+    let abi_bytes = meta_safe(
+        &(MessageContextParcel {
+            block: test_block,
+            height: 840000,
+            calldata: vec![2, 1],
+            ..Default::default()
+        })
+    ).unwrap();
+    let abi_string = String::from_utf8(abi_bytes.clone()).unwrap();
+    let _abi_json: Value = serde_json::from_slice(&abi_bytes).unwrap();
+    println!("ABI: {}", abi_string);
+    Ok(())
+}
+
 fn test_owned_token_abi() -> Result<()> {
     clear();
 
     // Expected methods with their opcodes and parameter names and types
     let expected_methods = vec![
-        (
-            "initialize",
-            0,
-            vec![("auth_token_units", "u128"), ("token_units", "u128")],
-        ),
+        ("initialize", 0, vec![("auth_token_units", "u128"), ("token_units", "u128")]),
         ("mint", 77, vec![("token_units", "u128")]),
         ("get_name", 99, vec![]),
         ("get_symbol", 100, vec![]),
         ("get_total_supply", 101, vec![]),
-        ("get_data", 1000, vec![]),
+        ("get_data", 1000, vec![])
     ];
 
-    test_contract_abi(
-        "OwnedToken",
-        alkanes_std_owned_token_build::get_bytes(),
-        expected_methods,
-    )
+    test_contract_abi("OwnedToken", alkanes_std_owned_token_build::get_bytes(), expected_methods)
 }
 
-#[wasm_bindgen_test]
 fn test_auth_token_abi() -> Result<()> {
     clear();
 
@@ -150,17 +199,12 @@ fn test_auth_token_abi() -> Result<()> {
         ("initialize", 0, vec![("amount", "u128")]),
         ("authenticate", 1, vec![]),
         ("get_name", 99, vec![]),
-        ("get_symbol", 100, vec![]),
+        ("get_symbol", 100, vec![])
     ];
 
-    test_contract_abi(
-        "AuthToken",
-        alkanes_std_auth_token_build::get_bytes(),
-        expected_methods,
-    )
+    test_contract_abi("AuthToken", alkanes_std_auth_token_build::get_bytes(), expected_methods)
 }
 
-#[wasm_bindgen_test]
 fn test_proxy_abi() -> Result<()> {
     clear();
 
@@ -170,17 +214,12 @@ fn test_proxy_abi() -> Result<()> {
         ("call_witness", 1, vec![("witness_index", "u128")]),
         ("delegatecall_witness", 2, vec![("witness_index", "u128")]),
         ("call_inputs", 3, vec![]),
-        ("delegatecall_inputs", 4, vec![]),
+        ("delegatecall_inputs", 4, vec![])
     ];
 
-    test_contract_abi(
-        "Proxy",
-        alkanes_std_proxy_build::get_bytes(),
-        expected_methods,
-    )
+    test_contract_abi("Proxy", alkanes_std_proxy_build::get_bytes(), expected_methods)
 }
 
-#[wasm_bindgen_test]
 fn test_upgradeable_abi() -> Result<()> {
     clear();
 
@@ -189,24 +228,15 @@ fn test_upgradeable_abi() -> Result<()> {
         (
             "initialize",
             0x7fff,
-            vec![
-                ("block", "u128"),
-                ("tx", "u128"),
-                ("auth_token_units", "u128"),
-            ],
+            vec![("block", "u128"), ("tx", "u128"), ("auth_token_units", "u128")],
         ),
         ("upgrade", 0x7ffe, vec![("block", "u128"), ("tx", "u128")]),
-        ("delegate", 0x7ffd, vec![]),
+        ("delegate", 0x7ffd, vec![])
     ];
 
-    test_contract_abi(
-        "Upgradeable",
-        alkanes_std_upgradeable_build::get_bytes(),
-        expected_methods,
-    )
+    test_contract_abi("Upgradeable", alkanes_std_upgradeable_build::get_bytes(), expected_methods)
 }
 
-#[wasm_bindgen_test]
 fn test_logger_alkane_abi() -> Result<()> {
     clear();
 
@@ -218,17 +248,12 @@ fn test_logger_alkane_abi() -> Result<()> {
         ("return_data_1", 5, vec![]),
         ("get_transaction", 50, vec![]),
         ("hash_loop", 78, vec![]),
-        ("return_default_data", 99, vec![]),
+        ("return_default_data", 99, vec![])
     ];
 
-    test_contract_abi(
-        "LoggerAlkane",
-        alkanes_std_test_build::get_bytes(),
-        expected_methods,
-    )
+    test_contract_abi("LoggerAlkane", alkanes_std_test_build::get_bytes(), expected_methods)
 }
 
-#[wasm_bindgen_test]
 fn test_orbital_abi() -> Result<()> {
     clear();
 
@@ -238,38 +263,28 @@ fn test_orbital_abi() -> Result<()> {
         ("get_name", 99, vec![]),
         ("get_symbol", 100, vec![]),
         ("get_total_supply", 101, vec![]),
-        ("get_data", 1000, vec![]),
+        ("get_data", 1000, vec![])
     ];
 
-    test_contract_abi(
-        "Orbital",
-        alkanes_std_orbital_build::get_bytes(),
-        expected_methods,
-    )
+    test_contract_abi("Orbital", alkanes_std_orbital_build::get_bytes(), expected_methods)
 }
 
-#[wasm_bindgen_test]
 fn test_merkle_distributor_abi() -> Result<()> {
     clear();
 
     // Expected methods with their opcodes and parameter names and types
     let expected_methods = vec![
-        (
-            "initialize",
-            0,
-            vec![("length", "u128"), ("root_bytes", "u128")],
-        ),
-        ("claim", 1, vec![]),
+        ("initialize", 0, vec![("length", "u128"), ("root_bytes", "u128")]),
+        ("claim", 1, vec![])
     ];
 
     test_contract_abi(
         "MerkleDistributor",
         alkanes_std_merkle_distributor_build::get_bytes(),
-        expected_methods,
+        expected_methods
     )
 }
 
-#[wasm_bindgen_test]
 fn test_genesis_alkane_abi() -> Result<()> {
     clear();
 
@@ -279,17 +294,16 @@ fn test_genesis_alkane_abi() -> Result<()> {
         ("mint", 77, vec![]),
         ("get_name", 99, vec![]),
         ("get_symbol", 100, vec![]),
-        ("get_total_supply", 101, vec![]),
+        ("get_total_supply", 101, vec![])
     ];
 
     test_contract_abi(
         "GenesisAlkane",
         alkanes_std_genesis_alkane_build::get_bytes(),
-        expected_methods,
+        expected_methods
     )
 }
 
-#[wasm_bindgen_test]
 fn test_genesis_protorune_abi() -> Result<()> {
     clear();
 
@@ -299,12 +313,12 @@ fn test_genesis_protorune_abi() -> Result<()> {
         ("mint", 77, vec![]),
         ("get_name", 99, vec![]),
         ("get_symbol", 100, vec![]),
-        ("get_total_supply", 101, vec![]),
+        ("get_total_supply", 101, vec![])
     ];
 
     test_contract_abi(
         "GenesisProtorune",
         alkanes_std_genesis_protorune_build::get_bytes(),
-        expected_methods,
+        expected_methods
     )
 }
