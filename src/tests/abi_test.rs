@@ -21,6 +21,7 @@ use protorune_support::rune_transfer::RuneTransfer;
 use protorune_support::balance_sheet::BalanceSheet;
 use protorune::message::MessageContext;
 use protorune::test_helpers::create_block_with_rune_tx;
+use wasm_bindgen_test::wasm_bindgen_test;
 use crate::view::meta_safe;
 use protorune::Protorune;
 use serde_json::{ json, Value };
@@ -130,7 +131,7 @@ fn test_contract_abi(
 
     Ok(())
 }
-
+#[wasm_bindgen_test]
 fn test_meta_call() -> Result<()> {
     clear();
     let block_height = 840_000;
@@ -167,7 +168,7 @@ fn test_meta_call() -> Result<()> {
     // Create a properly formatted message context parcel
     let parcel = MessageContextParcel {
         block: test_block,
-        height: block_height,
+        height: block_height as u64,
         calldata: vec![2, 1], // Targeting the second contract (owned_token
         ..Default::default()
     };
@@ -187,6 +188,7 @@ fn test_meta_call() -> Result<()> {
     Ok(())
 }
 
+#[wasm_bindgen_test]
 fn test_owned_token_abi() -> Result<()> {
     clear();
 
@@ -203,7 +205,7 @@ fn test_owned_token_abi() -> Result<()> {
     test_contract_abi("OwnedToken", alkanes_std_owned_token_build::get_bytes(), expected_methods)
 }
 
-#[test]
+#[wasm_bindgen_test]
 fn test_auth_token_abi() -> Result<()> {
     clear();
 
@@ -218,7 +220,7 @@ fn test_auth_token_abi() -> Result<()> {
     test_contract_abi("AuthToken", alkanes_std_auth_token_build::get_bytes(), expected_methods)
 }
 
-#[test]
+#[wasm_bindgen_test]
 fn test_proxy_abi() -> Result<()> {
     clear();
 
@@ -234,7 +236,7 @@ fn test_proxy_abi() -> Result<()> {
     test_contract_abi("Proxy", alkanes_std_proxy_build::get_bytes(), expected_methods)
 }
 
-#[test]
+#[wasm_bindgen_test]
 fn test_upgradeable_abi() -> Result<()> {
     clear();
 
@@ -252,7 +254,7 @@ fn test_upgradeable_abi() -> Result<()> {
     test_contract_abi("Upgradeable", alkanes_std_upgradeable_build::get_bytes(), expected_methods)
 }
 
-#[test]
+#[wasm_bindgen_test]
 fn test_logger_alkane_abi() -> Result<()> {
     clear();
 
@@ -270,7 +272,7 @@ fn test_logger_alkane_abi() -> Result<()> {
     test_contract_abi("LoggerAlkane", alkanes_std_test_build::get_bytes(), expected_methods)
 }
 
-#[test]
+#[wasm_bindgen_test]
 fn test_orbital_abi() -> Result<()> {
     clear();
 
@@ -286,7 +288,7 @@ fn test_orbital_abi() -> Result<()> {
     test_contract_abi("Orbital", alkanes_std_orbital_build::get_bytes(), expected_methods)
 }
 
-#[test]
+#[wasm_bindgen_test]
 fn test_merkle_distributor_abi() -> Result<()> {
     clear();
 
@@ -323,7 +325,7 @@ fn test_genesis_alkane_abi() -> Result<()> {
     )
 }
 
-#[test]
+#[wasm_bindgen_test]
 fn test_genesis_protorune_abi() -> Result<()> {
     clear();
 
@@ -341,19 +343,4 @@ fn test_genesis_protorune_abi() -> Result<()> {
         alkanes_std_genesis_protorune_build::get_bytes(),
         expected_methods
     )
-}
-
-#[test]
-fn test_all_abis() -> Result<()> {
-    test_meta_call()?;
-    test_owned_token_abi()?;
-    test_auth_token_abi()?;
-    test_proxy_abi()?;
-    test_upgradeable_abi()?;
-    test_logger_alkane_abi()?;
-    test_orbital_abi()?;
-    test_merkle_distributor_abi()?;
-    test_genesis_alkane_abi()?;
-    test_genesis_protorune_abi()?;
-    Ok(())
 }
