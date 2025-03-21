@@ -46,7 +46,7 @@ impl MessageContext for MyMessageContext {
 fn test_contract_abi(
     contract_name: &str,
     contract_bytes: Vec<u8>,
-    expected_methods: Vec<(&str, u128, Vec<(&str, &str)>)>
+    expected_methods: Vec<(&str, u128, Vec<(&str, &str)>, &str)>
 ) -> Result<()> {
     let context = Arc::new(Mutex::new(AlkanesRuntimeContext::default()));
 
@@ -79,7 +79,12 @@ fn test_contract_abi(
     );
 
     // Verify each method
-    for (expected_name, expected_opcode, expected_params) in expected_methods {
+    for (
+        expected_name,
+        expected_opcode,
+        expected_params,
+        expected_return_type,
+    ) in expected_methods {
         // Find the method in the ABI
         let method = methods
             .iter()
@@ -123,6 +128,25 @@ fn test_contract_abi(
                 *expected_param_name,
                 "Incorrect parameter name at index {} for method {} in {}",
                 i,
+                expected_name,
+                contract_name
+            );
+        }
+
+        // Verify the return type
+        if method.get("returns").is_some() {
+            assert_eq!(
+                method["returns"].as_str().unwrap(),
+                expected_return_type,
+                "Incorrect return type for method {} in {}",
+                expected_name,
+                contract_name
+            );
+        } else {
+            assert_eq!(
+                expected_return_type,
+                "void",
+                "Expected void return type for method {} in {}, but no return type was specified",
                 expected_name,
                 contract_name
             );
@@ -192,14 +216,25 @@ fn test_meta_call() -> Result<()> {
 fn test_owned_token_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter names and types
+    // Expected methods with their opcodes, parameter names and types, and return types
     let expected_methods = vec![
-        ("initialize", 0, vec![("auth_token_units", "u128"), ("token_units", "u128")]),
-        ("mint", 77, vec![("token_units", "u128")]),
-        ("get_name", 99, vec![]),
-        ("get_symbol", 100, vec![]),
-        ("get_total_supply", 101, vec![]),
-        ("get_data", 1000, vec![])
+        ("initialize", 0, vec![("auth_token_units", "u128"), ("token_units", "u128")], "void"),
+        (
+            "initialize_with_name_symbol",
+            1,
+            vec![
+                ("auth_token_units", "u128"),
+                ("token_units", "u128"),
+                ("name", "String"),
+                ("symbol", "String")
+            ],
+            "void",
+        ),
+        ("mint", 77, vec![("token_units", "u128")], "void"),
+        ("get_name", 99, vec![], "String"),
+        ("get_symbol", 100, vec![], "String"),
+        ("get_total_supply", 101, vec![], "u128"),
+        ("get_data", 1000, vec![], "Vec<u8>")
     ];
 
     test_contract_abi("OwnedToken", alkanes_std_owned_token_build::get_bytes(), expected_methods)
@@ -209,12 +244,12 @@ fn test_owned_token_abi() -> Result<()> {
 fn test_auth_token_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter names and types
+    // Expected methods with their opcodes, parameter names and types, and return types
     let expected_methods = vec![
-        ("initialize", 0, vec![("amount", "u128")]),
-        ("authenticate", 1, vec![]),
-        ("get_name", 99, vec![]),
-        ("get_symbol", 100, vec![])
+        ("initialize", 0, vec![("amount", "u128")], "void"),
+        ("authenticate", 1, vec![], "void"),
+        ("get_name", 99, vec![], "String"),
+        ("get_symbol", 100, vec![], "String")
     ];
 
     test_contract_abi("AuthToken", alkanes_std_auth_token_build::get_bytes(), expected_methods)
@@ -224,13 +259,13 @@ fn test_auth_token_abi() -> Result<()> {
 fn test_proxy_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter names and types
+    // Expected methods with their opcodes, parameter names and types, and return types
     let expected_methods = vec![
-        ("initialize", 0, vec![]),
-        ("call_witness", 1, vec![("witness_index", "u128")]),
-        ("delegatecall_witness", 2, vec![("witness_index", "u128")]),
-        ("call_inputs", 3, vec![]),
-        ("delegatecall_inputs", 4, vec![])
+        ("initialize", 0, vec![], "void"),
+        ("call_witness", 1, vec![("witness_index", "u128")], "void"),
+        ("delegatecall_witness", 2, vec![("witness_index", "u128")], "void"),
+        ("call_inputs", 3, vec![], "void"),
+        ("delegatecall_inputs", 4, vec![], "void")
     ];
 
     test_contract_abi("Proxy", alkanes_std_proxy_build::get_bytes(), expected_methods)
@@ -240,15 +275,16 @@ fn test_proxy_abi() -> Result<()> {
 fn test_upgradeable_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter names and types
+    // Expected methods with their opcodes, parameter names and types, and return types
     let expected_methods = vec![
         (
             "initialize",
             0x7fff,
             vec![("block", "u128"), ("tx", "u128"), ("auth_token_units", "u128")],
+            "void",
         ),
-        ("upgrade", 0x7ffe, vec![("block", "u128"), ("tx", "u128")]),
-        ("delegate", 0x7ffd, vec![])
+        ("upgrade", 0x7ffe, vec![("block", "u128"), ("tx", "u128")], "void"),
+        ("delegate", 0x7ffd, vec![], "void")
     ];
 
     test_contract_abi("Upgradeable", alkanes_std_upgradeable_build::get_bytes(), expected_methods)
@@ -258,15 +294,18 @@ fn test_upgradeable_abi() -> Result<()> {
 fn test_logger_alkane_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter names and types
+    // Expected methods with their opcodes, parameter names and types, and return types
     let expected_methods = vec![
-        ("self_call", 2, vec![]),
-        ("check_incoming", 3, vec![]),
-        ("mint_tokens", 4, vec![]),
-        ("return_data_1", 5, vec![]),
-        ("get_transaction", 50, vec![]),
-        ("hash_loop", 78, vec![]),
-        ("return_default_data", 99, vec![])
+        ("self_call", 2, vec![], "void"),
+        ("check_incoming", 3, vec![], "void"),
+        ("mint_tokens", 4, vec![], "void"),
+        ("return_data_1", 5, vec![], "Vec<u8>"),
+        ("get_transaction", 50, vec![], "void"),
+        ("hash_loop", 78, vec![], "void"),
+        ("return_default_data", 99, vec![], "Vec<u8>"),
+        ("process_numbers", 11, vec![("numbers", "Vec<u128>")], "void"),
+        ("process_strings", 12, vec![("strings", "Vec<String>")], "void"),
+        ("process_nested_vec", 13, vec![("nested", "Vec<Vec<u128>>")], "void")
     ];
 
     test_contract_abi("LoggerAlkane", alkanes_std_test_build::get_bytes(), expected_methods)
@@ -276,13 +315,13 @@ fn test_logger_alkane_abi() -> Result<()> {
 fn test_orbital_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter names and types
+    // Expected methods with their opcodes, parameter names and types, and return types
     let expected_methods = vec![
-        ("initialize", 0, vec![]),
-        ("get_name", 99, vec![]),
-        ("get_symbol", 100, vec![]),
-        ("get_total_supply", 101, vec![]),
-        ("get_data", 1000, vec![])
+        ("initialize", 0, vec![], "void"),
+        ("get_name", 99, vec![], "String"),
+        ("get_symbol", 100, vec![], "String"),
+        ("get_total_supply", 101, vec![], "u128"),
+        ("get_data", 1000, vec![], "Vec<u8>")
     ];
 
     test_contract_abi("Orbital", alkanes_std_orbital_build::get_bytes(), expected_methods)
@@ -292,10 +331,10 @@ fn test_orbital_abi() -> Result<()> {
 fn test_merkle_distributor_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter names and types
+    // Expected methods with their opcodes, parameter names and types, and return types
     let expected_methods = vec![
-        ("initialize", 0, vec![("length", "u128"), ("root_bytes", "u128")]),
-        ("claim", 1, vec![])
+        ("initialize", 0, vec![("length", "u128"), ("root_bytes", "u128")], "void"),
+        ("claim", 1, vec![], "void")
     ];
 
     test_contract_abi(
@@ -309,13 +348,13 @@ fn test_merkle_distributor_abi() -> Result<()> {
 fn test_genesis_alkane_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter names and types
+    // Expected methods with their opcodes, parameter names and types, and return types
     let expected_methods = vec![
-        ("initialize", 0, vec![]),
-        ("mint", 77, vec![]),
-        ("get_name", 99, vec![]),
-        ("get_symbol", 100, vec![]),
-        ("get_total_supply", 101, vec![])
+        ("initialize", 0, vec![], "void"),
+        ("mint", 77, vec![], "void"),
+        ("get_name", 99, vec![], "String"),
+        ("get_symbol", 100, vec![], "String"),
+        ("get_total_supply", 101, vec![], "u128")
     ];
 
     test_contract_abi(
@@ -329,13 +368,13 @@ fn test_genesis_alkane_abi() -> Result<()> {
 fn test_genesis_protorune_abi() -> Result<()> {
     clear();
 
-    // Expected methods with their opcodes and parameter names and types
+    // Expected methods with their opcodes, parameter names and types, and return types
     let expected_methods = vec![
-        ("initialize", 0, vec![]),
-        ("mint", 77, vec![]),
-        ("get_name", 99, vec![]),
-        ("get_symbol", 100, vec![]),
-        ("get_total_supply", 101, vec![])
+        ("initialize", 0, vec![], "void"),
+        ("mint", 77, vec![], "void"),
+        ("get_name", 99, vec![], "String"),
+        ("get_symbol", 100, vec![], "String"),
+        ("get_total_supply", 101, vec![], "u128")
     ];
 
     test_contract_abi(

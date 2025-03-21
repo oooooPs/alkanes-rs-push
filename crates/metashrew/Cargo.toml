@@ -32,3 +32,4 @@ protoc-bin-vendored = "3.0.0"
 [features]
 test-utils = []
 panic-hook = []
+wasm-logs = []

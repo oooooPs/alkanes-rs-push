@@ -28,20 +28,17 @@ impl Token for AuthToken {
 #[derive(MessageDispatch)]
 enum AuthTokenMessage {
     #[opcode(0)]
-    #[method("initialize")]
-    #[param_names("amount")]
-    Initialize(u128),
+    Initialize { amount: u128 },
 
     #[opcode(1)]
-    #[method("authenticate")]
     Authenticate,
 
     #[opcode(99)]
-    #[method("get_name")]
+    #[returns(String)]
     GetName,
 
     #[opcode(100)]
-    #[method("get_symbol")]
+    #[returns(String)]
     GetSymbol,
 }
 

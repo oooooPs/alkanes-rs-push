@@ -19,17 +19,16 @@ pub struct Upgradeable(());
 #[derive(MessageDispatch)]
 enum UpgradeableMessage {
     #[opcode(0x7fff)]
-    #[method("initialize")]
-    #[param_names("block", "tx", "auth_token_units")]
-    Initialize(u128, u128, u128),
+    Initialize {
+        block: u128,
+        tx: u128,
+        auth_token_units: u128,
+    },
 
     #[opcode(0x7ffe)]
-    #[method("upgrade")]
-    #[param_names("block", "tx")]
-    Upgrade(u128, u128),
+    Upgrade { block: u128, tx: u128 },
 
     #[opcode(0x7ffd)]
-    #[method("delegate")]
     Delegate,
 }
 

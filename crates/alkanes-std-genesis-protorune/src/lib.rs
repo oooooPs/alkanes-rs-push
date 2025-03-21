@@ -19,23 +19,21 @@ pub struct GenesisProtorune(());
 #[derive(MessageDispatch)]
 enum GenesisProtoruneMessage {
     #[opcode(0)]
-    #[method("initialize")]
     Initialize,
 
     #[opcode(77)]
-    #[method("mint")]
     Mint,
 
     #[opcode(99)]
-    #[method("get_name")]
+    #[returns(String)]
     GetName,
 
     #[opcode(100)]
-    #[method("get_symbol")]
+    #[returns(String)]
     GetSymbol,
 
     #[opcode(101)]
-    #[method("get_total_supply")]
+    #[returns(u128)]
     GetTotalSupply,
 }
 
