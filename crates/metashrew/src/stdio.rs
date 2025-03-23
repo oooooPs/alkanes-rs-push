@@ -21,7 +21,6 @@ pub fn stdout() -> Stdout {
 #[macro_export]
 macro_rules! println {
   ( $( $x:tt )* ) => {
-    #[cfg(feature = "wasm-logs")]
     {
       writeln!(stdout(), $($x)*).unwrap();
     }
@@ -31,7 +30,6 @@ macro_rules! println {
 #[macro_export]
 macro_rules! print {
   ( $( $x:tt )* ) => {
-    #[cfg(feature = "wasm-logs")]
     {
       write!(stdout(), $($x)*).unwrap();
     }

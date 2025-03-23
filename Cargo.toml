@@ -44,7 +44,6 @@ refunder = []
 merkle_distributor = []
 free_mint = []
 upgradeable = []
-wasm-logs = []
 
 
 [dependencies]

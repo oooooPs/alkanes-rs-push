@@ -99,12 +99,6 @@ cargo test --features test-utils -p protorune
 
 This will provide a stub environment to test a METASHREW indexer program, and it will test the alkanes standard library smart contracts in simulated blocks.
 
-If you want wasm logs to show up on console, use the `wasm-logs` feature. 
-Example:
-```
-cargo test --features wasm-logs,test-utils -p protorune
-```
-
 Features are provided within the Cargo.toml at the root of the monorepo to declare alkanes which should be built with `cargo build` or `cargo test`.
 
 ### Unit testing
