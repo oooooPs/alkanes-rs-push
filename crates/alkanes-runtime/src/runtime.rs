@@ -109,6 +109,16 @@ pub trait Extcall {
                     __returndatacopy(to_passback_ptr(&mut returndata));
                 }
                 let response = CallResponse::parse(&mut Cursor::new((&returndata[4..]).to_vec()))?;
+                if (response.data.len() >= 4 && &response.data[0..4] == &[0x08, 0xc3, 0x79, 0xa0]) {
+                    // Extract the original error message from the response data (after the 4-byte header)
+                    if response.data.len() > 4 {
+                        let error_message =
+                            String::from_utf8_lossy(&response.data[4..]).to_string();
+                        return Err(anyhow!("Extcall failed: {}", error_message));
+                    } else {
+                        return Err(anyhow!("Extcall failed (no details available)"));
+                    }
+                }
                 Ok(response)
             }
         }
