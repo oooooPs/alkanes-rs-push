@@ -100,27 +100,26 @@ pub trait Extcall {
             to_passback_ptr(&mut storage_map_buffer),
             fuel,
         );
-        match _call_result {
-            -1 => Err(anyhow!("call errored out")),
-            _ => {
-                let call_result = _call_result as usize;
-                let mut returndata = to_arraybuffer_layout(&vec![0; call_result]);
-                unsafe {
-                    __returndatacopy(to_passback_ptr(&mut returndata));
-                }
-                let response = CallResponse::parse(&mut Cursor::new((&returndata[4..]).to_vec()))?;
-                if (response.data.len() >= 4 && &response.data[0..4] == &[0x08, 0xc3, 0x79, 0xa0]) {
-                    // Extract the original error message from the response data (after the 4-byte header)
-                    if response.data.len() > 4 {
-                        let error_message =
-                            String::from_utf8_lossy(&response.data[4..]).to_string();
-                        return Err(anyhow!("Extcall failed: {}", error_message));
-                    } else {
-                        return Err(anyhow!("Extcall failed (no details available)"));
-                    }
-                }
-                Ok(response)
+        if _call_result < 0 {
+            let call_result = _call_result.abs() as usize;
+            let mut returndata = to_arraybuffer_layout(&vec![0; call_result]);
+            unsafe {
+                __returndatacopy(to_passback_ptr(&mut returndata));
             }
+            let response = CallResponse::parse(&mut Cursor::new((&returndata[4..]).to_vec()))?;
+            if response.data.len() <= 4 || &response.data[0..4] != &[0x08, 0xc3, 0x79, 0xa0] {
+                return Err(anyhow!("Extcall failed (no details available)"));
+            }
+            let error_message = String::from_utf8_lossy(&response.data[4..]).to_string();
+            return Err(anyhow!("Extcall failed: {}", error_message));
+        } else {
+            let call_result = _call_result as usize;
+            let mut returndata = to_arraybuffer_layout(&vec![0; call_result]);
+            unsafe {
+                __returndatacopy(to_passback_ptr(&mut returndata));
+            }
+            let response = CallResponse::parse(&mut Cursor::new((&returndata[4..]).to_vec()))?;
+            Ok(response)
         }
     }
 }

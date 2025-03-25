@@ -546,7 +546,7 @@ impl AlkanesHostFunctionsImpl {
                     .clock(TraceEvent::RevertContext(revert_context));
                 context_guard.message.atomic.rollback();
                 context_guard.returndata = serialized.clone();
-                serialized.len() as i32
+                (serialized.len() as i32).checked_neg().unwrap_or(-1)
             }
         };
 
