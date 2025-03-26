@@ -338,6 +338,10 @@ impl BalanceSheet {
         self.load_balance(rune)
     }
 
+    pub fn get_cached(&self, rune: &ProtoruneRuneId) -> u128 {
+        *self.balances.get(rune).unwrap_or(&0u128)
+    }
+
     pub fn set(&mut self, rune: &ProtoruneRuneId, value: u128) {
         self.balances.insert(rune.clone(), value);
     }
