@@ -291,27 +291,6 @@ impl BalanceSheet {
         }
     }
 
-    /// When processing the return value for MessageContext.handle()
-    /// we want to be able to mint arbituary amounts of mintable tokens.
-    ///
-    /// This function allows us to debit more than the existing amount
-    /// of a mintable token without returning an Err so that MessageContext
-    /// can mint more than what the initial balance sheet has.
-    pub fn debit(&mut self, sheet: &BalanceSheet) -> Result<()> {
-        for (rune, balance) in &sheet.balances {
-            if *balance <= self.get(&rune) {
-                self.decrease(rune, *balance);
-            } else {
-                return Err(anyhow!("balance underflow"));
-            }
-        }
-        Ok(())
-    }
-
-    pub fn rune_debit(&mut self, sheet: &BalanceSheet) -> Result<()> {
-        self.debit(sheet)
-    }
-
     /*
     pub fn inspect(&self) -> String {
         let mut base = String::from("balances: [\n");
@@ -323,8 +302,33 @@ impl BalanceSheet {
     }
     */
 
-    pub fn get(&self, rune: &ProtoruneRuneId) -> u128 {
-        *self.balances.get(rune).unwrap_or(&0u128) // Return 0 if rune not found
+    pub fn load_balance(&mut self, rune: &ProtoruneRuneId) -> u128 {
+        // If already in cache, return it
+        if let Some(balance) = self.balances.get(rune) {
+            return *balance;
+        }
+
+        // Try to load from storage using the stored pointer
+        let mut total_stored_balance = 0;
+        let rune_clone = rune.clone(); // Clone the rune to avoid borrowing issues
+
+        // First, collect all stored balances
+        for ptr in &self.load_ptrs {
+            let runes_to_balances_ptr = ptr
+                .clone()
+                .keyword("/id_to_balance")
+                .select(&rune_clone.into());
+            if runes_to_balances_ptr.get().len() != 0 {
+                let stored_balance = runes_to_balances_ptr.get_value::<u128>();
+                total_stored_balance += stored_balance;
+            }
+        }
+        self.set(&rune_clone, total_stored_balance);
+        return total_stored_balance;
+    }
+
+    pub fn get(&mut self, rune: &ProtoruneRuneId) -> u128 {
+        self.load_balance(rune)
     }
 
     pub fn set(&mut self, rune: &ProtoruneRuneId, value: u128) {
