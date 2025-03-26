@@ -3,7 +3,7 @@ use metashrew_support::index_pointer::KeyValuePointer;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct IndexPointer(Arc<Vec<u8>>);
 
 #[allow(dead_code)]
@@ -43,7 +43,7 @@ impl Default for IndexCheckpointStack {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AtomicPointer {
     pointer: IndexPointer,
     store: IndexCheckpointStack,

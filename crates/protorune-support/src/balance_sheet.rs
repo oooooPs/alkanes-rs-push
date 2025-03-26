@@ -3,6 +3,8 @@ use crate::proto::protorune::{BalanceSheetItem, Rune};
 use crate::rune_transfer::RuneTransfer;
 use anyhow::{anyhow, Result};
 use hex;
+use metashrew::index_pointer::IndexPointer;
+use metashrew_support::index_pointer::KeyValuePointer;
 use metashrew_support::utils::consume_sized_int;
 use ordinals::RuneId;
 use protobuf::{MessageField, SpecialFields};
@@ -69,6 +71,7 @@ impl From<crate::proto::protorune::BalanceSheet> for BalanceSheet {
                     (id, v.balance.into_option().unwrap().into())
                 }),
             ),
+            load_ptrs: Vec::new(),
         }
     }
 }
@@ -179,9 +182,19 @@ impl From<Arc<Vec<u8>>> for ProtoruneRuneId {
     }
 }
 
-#[derive(Default, Clone, Debug, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BalanceSheet {
     pub balances: HashMap<ProtoruneRuneId, u128>, // Using HashMap to map runes to their balances
+    pub load_ptrs: Vec<IndexPointer>,
+}
+
+impl Default for BalanceSheet {
+    fn default() -> Self {
+        BalanceSheet {
+            balances: HashMap::new(),
+            load_ptrs: Vec::new(),
+        }
+    }
 }
 
 pub fn u128_from_bytes(v: Vec<u8>) -> u128 {
@@ -247,6 +260,7 @@ impl BalanceSheet {
     pub fn new() -> Self {
         BalanceSheet {
             balances: HashMap::new(),
+            load_ptrs: Vec::new(),
         }
     }
 
@@ -322,6 +336,7 @@ impl BalanceSheet {
 
     pub fn merge(a: &BalanceSheet, b: &BalanceSheet) -> BalanceSheet {
         let mut merged = BalanceSheet::new();
+        // Merge balances
         for (rune, balance) in &a.balances {
             merged.set(rune, *balance);
         }
@@ -329,6 +344,11 @@ impl BalanceSheet {
             let current_balance = merged.get(rune);
             merged.set(rune, current_balance + *balance);
         }
+
+        // Merge load_ptrs
+        merged.load_ptrs.extend(a.load_ptrs.iter().cloned());
+        merged.load_ptrs.extend(b.load_ptrs.iter().cloned());
+
         merged
     }
 
@@ -341,9 +361,11 @@ impl BalanceSheet {
     }
 }
 
+// We still need this implementation to customize the equality comparison
 impl PartialEq for BalanceSheet {
     fn eq(&self, other: &Self) -> bool {
         self.balances == other.balances
+        // Note: We're not comparing load_ptrs since it's just for loading data
     }
 }
 
@@ -353,6 +375,7 @@ impl From<Vec<RuneTransfer>> for BalanceSheet {
             balances: HashMap::<ProtoruneRuneId, u128>::from_iter(
                 v.into_iter().map(|v| (v.id, v.value)),
             ),
+            load_ptrs: Vec::new(),
         }
     }
 }
