@@ -3,7 +3,7 @@ use crate::proto::protorune::{BalanceSheetItem, Rune};
 use crate::rune_transfer::RuneTransfer;
 use anyhow::{anyhow, Result};
 use hex;
-use metashrew::index_pointer::IndexPointer;
+use metashrew::index_pointer::AtomicPointer;
 use metashrew_support::index_pointer::KeyValuePointer;
 use metashrew_support::utils::consume_sized_int;
 use ordinals::RuneId;
@@ -186,7 +186,7 @@ impl From<Arc<Vec<u8>>> for ProtoruneRuneId {
 pub struct BalanceSheet {
     pub balances: HashMap<ProtoruneRuneId, u128>, // Using HashMap to map runes to their balances
     #[serde(skip)]
-    pub load_ptrs: Vec<IndexPointer>,
+    pub load_ptrs: Vec<AtomicPointer>,
 }
 
 // We still need this implementation to customize the equality comparison
@@ -273,6 +273,13 @@ impl BalanceSheet {
         BalanceSheet {
             balances: HashMap::new(),
             load_ptrs: Vec::new(),
+        }
+    }
+
+    pub fn new_ptr_backed(ptr: AtomicPointer) -> Self {
+        BalanceSheet {
+            balances: HashMap::new(),
+            load_ptrs: vec![ptr],
         }
     }
 
