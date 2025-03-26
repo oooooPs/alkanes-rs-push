@@ -19,9 +19,13 @@ pub trait PersistentRecord {
 
         for (rune, balance) in self.balances() {
             if *balance != 0u128 && !is_cenotaph {
-                runes_ptr.append((*rune).into());
+                let rune_bytes: Vec<u8> = (*rune).into();
+                runes_ptr.append(rune_bytes.clone().into());
 
                 balances_ptr.append_value::<u128>(*balance);
+                ptr.keyword("/rune_to_balance")
+                    .select(&rune_bytes)
+                    .set_value::<u128>(*balance);
             }
         }
     }
