@@ -182,11 +182,23 @@ impl From<Arc<Vec<u8>>> for ProtoruneRuneId {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BalanceSheet {
     pub balances: HashMap<ProtoruneRuneId, u128>, // Using HashMap to map runes to their balances
+    #[serde(skip)]
     pub load_ptrs: Vec<IndexPointer>,
 }
+
+// We still need this implementation to customize the equality comparison
+impl PartialEq for BalanceSheet {
+    fn eq(&self, other: &Self) -> bool {
+        self.balances == other.balances
+        // Note: We're not comparing load_ptrs since it's just for loading data
+    }
+}
+
+// Implementing Eq for BalanceSheet
+impl Eq for BalanceSheet {}
 
 impl Default for BalanceSheet {
     fn default() -> Self {
@@ -358,14 +370,6 @@ impl BalanceSheet {
             concatenated = BalanceSheet::merge(&concatenated, &sheet);
         }
         concatenated
-    }
-}
-
-// We still need this implementation to customize the equality comparison
-impl PartialEq for BalanceSheet {
-    fn eq(&self, other: &Self) -> bool {
-        self.balances == other.balances
-        // Note: We're not comparing load_ptrs since it's just for loading data
     }
 }
 
