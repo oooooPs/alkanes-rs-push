@@ -298,6 +298,27 @@ impl BalanceSheet {
         }
     }
 
+    /// When processing the return value for MessageContext.handle()
+    /// we want to be able to mint arbituary amounts of mintable tokens.
+    ///
+    /// This function allows us to debit more than the existing amount
+    /// of a mintable token without returning an Err so that MessageContext
+    /// can mint more than what the initial balance sheet has.
+    pub fn debit(&mut self, sheet: &BalanceSheet) -> Result<()> {
+        for (rune, balance) in &sheet.balances {
+            if *balance <= self.get(&rune) {
+                self.decrease(rune, *balance);
+            } else {
+                return Err(anyhow!("balance underflow"));
+            }
+        }
+        Ok(())
+    }
+
+    pub fn rune_debit(&mut self, sheet: &BalanceSheet) -> Result<()> {
+        self.debit(sheet)
+    }
+
     /*
     pub fn inspect(&self) -> String {
         let mut base = String::from("balances: [\n");
