@@ -10,7 +10,6 @@ resolver = "2"
 [features]
 test-utils = []
 panic-hook = []
-wasm-logs = []
 
 [lib]
 crate-type = ["cdylib", "rlib"]

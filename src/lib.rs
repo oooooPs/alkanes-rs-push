@@ -12,6 +12,7 @@ use metashrew_support::utils::{ consensus_decode, consume_sized_int, consume_to_
 use protobuf::{ Message, MessageField };
 use std::io::Cursor;
 use view::parcels_from_protobuf;
+pub mod etl;
 pub mod block;
 pub mod indexer;
 pub mod message;
@@ -386,6 +387,7 @@ pub fn _start() {
     ).unwrap();
 
     index_block(&block, height).unwrap();
+    etl::index_extensions(height, &block);
     flush();
 }
 
