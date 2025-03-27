@@ -192,8 +192,21 @@ pub struct BalanceSheet {
 // We still need this implementation to customize the equality comparison
 impl PartialEq for BalanceSheet {
     fn eq(&self, other: &Self) -> bool {
-        self.balances == other.balances
-        // Note: We're not comparing load_ptrs since it's just for loading data
+        // Get all unique rune IDs from both balance sheets
+        let mut all_runes = self
+            .balances
+            .keys()
+            .collect::<std::collections::HashSet<_>>();
+        all_runes.extend(other.balances.keys());
+
+        // Compare balances for each rune using get() which checks both cached and stored values
+        for rune in all_runes {
+            if self.get(rune) != other.get(rune) {
+                return false;
+            }
+        }
+
+        true
     }
 }
 
