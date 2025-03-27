@@ -31,18 +31,6 @@ use crate::index_block;
 use alkanes_support::id::AlkaneId;
 use crate::tests::helpers::{ self as alkane_helpers, init_with_multiple_cellpacks_with_tx };
 
-struct MyMessageContext(());
-
-impl MessageContext for MyMessageContext {
-    fn handle(_parcel: &MessageContextParcel) -> Result<(Vec<RuneTransfer>, BalanceSheet)> {
-        let ar: Vec<RuneTransfer> = vec![];
-        Ok((ar, BalanceSheet::default()))
-    }
-    fn protocol_tag() -> u128 {
-        100
-    }
-}
-
 fn test_contract_abi(
     contract_name: &str,
     contract_bytes: Vec<u8>,
@@ -193,7 +181,7 @@ fn test_meta_call() -> Result<()> {
     let parcel = MessageContextParcel {
         block: test_block,
         height: block_height as u64,
-        calldata: vec![2, 1], // Targeting the second contract (owned_token
+        calldata: vec![1, 1],
         ..Default::default()
     };
 
@@ -344,7 +332,7 @@ fn test_merkle_distributor_abi() -> Result<()> {
     )
 }
 
-#[test]
+#[wasm_bindgen_test]
 fn test_genesis_alkane_abi() -> Result<()> {
     clear();
 
