@@ -370,12 +370,10 @@ impl BalanceSheet {
 
         // Merge balances
         for (rune, balance) in &a.balances {
-            let current_balance = merged.get(rune);
-            merged.set(rune, current_balance + *balance);
+            merged.increase(rune, *balance);
         }
         for (rune, balance) in &b.balances {
-            let current_balance = merged.get(rune);
-            merged.set(rune, current_balance + *balance);
+            merged.increase(rune, *balance);
         }
 
         merged
