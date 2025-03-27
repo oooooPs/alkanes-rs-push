@@ -155,7 +155,7 @@ fn test_meta_call() -> Result<()> {
     };
     let mint_test_cellpack = Cellpack {
         target: AlkaneId { block: 2, tx: 1 },
-        inputs: vec![1, 1000],
+        inputs: vec![77, 1000],
     };
     let auth_cellpack = Cellpack {
         target: AlkaneId {
@@ -181,13 +181,12 @@ fn test_meta_call() -> Result<()> {
     let parcel = MessageContextParcel {
         block: test_block,
         height: block_height as u64,
-        calldata: vec![1, 1],
+        calldata: vec![2, 1],
         ..Default::default()
     };
 
     // Call meta_safe with the properly formatted parcel
     let abi_bytes = meta_safe(&parcel)?;
-
     // Verify the response
     let abi_string = String::from_utf8(abi_bytes.clone())?;
     let abi_json: Value = serde_json::from_slice(&abi_bytes)?;
