@@ -363,18 +363,20 @@ impl BalanceSheet {
 
     pub fn merge(a: &BalanceSheet, b: &BalanceSheet) -> BalanceSheet {
         let mut merged = BalanceSheet::new();
+
+        // Merge load_ptrs
+        merged.load_ptrs.extend(a.load_ptrs.iter().cloned());
+        merged.load_ptrs.extend(b.load_ptrs.iter().cloned());
+
         // Merge balances
         for (rune, balance) in &a.balances {
-            merged.set(rune, *balance);
+            let current_balance = merged.get(rune);
+            merged.set(rune, current_balance + *balance);
         }
         for (rune, balance) in &b.balances {
             let current_balance = merged.get(rune);
             merged.set(rune, current_balance + *balance);
         }
-
-        // Merge load_ptrs
-        merged.load_ptrs.extend(a.load_ptrs.iter().cloned());
-        merged.load_ptrs.extend(b.load_ptrs.iter().cloned());
 
         merged
     }
