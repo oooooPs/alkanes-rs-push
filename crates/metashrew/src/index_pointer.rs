@@ -23,7 +23,7 @@ impl KeyValuePointer for IndexPointer {
     }
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct IndexCheckpoint(pub HashMap<Arc<Vec<u8>>, Arc<Vec<u8>>>);
 
 impl IndexCheckpoint {
