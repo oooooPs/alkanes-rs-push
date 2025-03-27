@@ -47,7 +47,7 @@ Boilerplate for various alkanes are included and prefixed with `alkanes-std-` an
 ALKANES is built with the command:
 
 ```sh
-cargo build --release --features all,mainnet
+cargo build --release --features mainnet
 ```
 
 Replace `mainnet` with your network of choice. Constants are defined for luckycoin, regtest, mainnet, dogecoin, bellscoin, and fractal. For other networks or test networks, use the regtest feature.
@@ -63,7 +63,7 @@ Refer to the METASHREW documentation for descriptions of the indexer stack used 
 A sample command may look like:
 
 ```sh
-~/metashrew/target/release/metashrew-keydb --redis redis+unix:///home/ubuntu/keydb/keydb.sock --rpc-url http://localhost:8332 --auth bitcoinrpc:bitcoinrpc --indexer ~/alkanes/target/release/alkanes.wasm
+~/metashrew/target/release/rockshrew-mono --daemon-rpc-url http://localhost:8332 --auth bitcoinrpc:bitcoinrpc --db-path ~/.metashrew --indexer ~/alkanes-rs/target/wasm32-unknown-unknown/release/alkanes.wasm --start-block 880000 --host 0.0.0.0 --port 8080 --cors '*'
 ```
 
 ### Testing
