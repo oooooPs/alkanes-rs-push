@@ -330,7 +330,7 @@ impl BalanceSheet {
     }
     */
 
-    pub fn load_balance(&mut self, rune: &ProtoruneRuneId) -> u128 {
+    pub fn load_balance(&self, rune: &ProtoruneRuneId) -> u128 {
         // If already in cache, return it
         if let Some(balance) = self.balances.get(rune) {
             return *balance;
@@ -351,12 +351,17 @@ impl BalanceSheet {
                 total_stored_balance += stored_balance;
             }
         }
-        self.set(&rune_clone, total_stored_balance);
         return total_stored_balance;
     }
 
-    pub fn get(&mut self, rune: &ProtoruneRuneId) -> u128 {
+    pub fn get(&self, rune: &ProtoruneRuneId) -> u128 {
         self.load_balance(rune)
+    }
+
+    pub fn get_and_update(&mut self, rune: &ProtoruneRuneId) -> u128 {
+        let balance = self.load_balance(rune);
+        self.set(rune, balance);
+        balance
     }
 
     pub fn get_cached(&self, rune: &ProtoruneRuneId) -> u128 {

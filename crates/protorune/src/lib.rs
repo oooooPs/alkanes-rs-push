@@ -291,7 +291,7 @@ impl Protorune {
         if edict.id.block == 0 && edict.id.tx != 0 {
             Err(anyhow!("invalid edict"))
         } else {
-            let max = balances.get(&edict.id.into());
+            let max = balances.get_and_update(&edict.id.into());
 
             let transfer_targets =
                 handle_transfer_runes_to_vout(edict.output, edict.amount, max, tx);
