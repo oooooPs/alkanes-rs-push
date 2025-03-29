@@ -5,12 +5,10 @@ use alkanes_runtime::{
     println,
     stdio::{stdout, Write},
 };
+use alkanes_std_factory_support::MintableToken;
 use alkanes_support::{context::Context, parcel::AlkaneTransfer, response::CallResponse};
 use anyhow::{anyhow, Result};
 use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
-pub mod factory;
-
-use crate::factory::MintableToken;
 
 #[derive(Default)]
 pub struct OwnedToken(());
