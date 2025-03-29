@@ -2,6 +2,7 @@ use crate::id::AlkaneId;
 use anyhow::Result;
 use metashrew_support::utils::consume_sized_int;
 use metashrew_support::{byte_view::ByteView, index_pointer::KeyValuePointer};
+use protorune_support::balance_sheet::CachedBalanceSheet;
 use protorune_support::{balance_sheet::BalanceSheet, rune_transfer::RuneTransfer};
 
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -40,6 +41,12 @@ impl Into<Vec<RuneTransfer>> for AlkaneTransferParcel {
 
 impl<P: KeyValuePointer + Clone> Into<BalanceSheet<P>> for AlkaneTransferParcel {
     fn into(self) -> BalanceSheet<P> {
+        <AlkaneTransferParcel as Into<Vec<RuneTransfer>>>::into(self).into()
+    }
+}
+
+impl Into<CachedBalanceSheet> for AlkaneTransferParcel {
+    fn into(self) -> CachedBalanceSheet {
         <AlkaneTransferParcel as Into<Vec<RuneTransfer>>>::into(self).into()
     }
 }

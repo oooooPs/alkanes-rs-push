@@ -478,23 +478,6 @@ impl<P: KeyValuePointer + Clone> BalanceSheetOperations for BalanceSheet<P> {
     }
 }
 
-// pub fn from_pairs<T: BalanceSheetOperations>(
-//     runes: Vec<ProtoruneRuneId>,
-//     balances: Vec<u128>,
-// ) -> T {
-//     let mut sheet = T::new();
-//     sheet.init_from_pairs(runes, balances);
-//     return sheet;
-// }
-
-// pub fn concat<T: BalanceSheetOperations>(ary: Vec<T>) -> T {
-//     let mut concatenated = T::new();
-//     for sheet in ary {
-//         concatenated = T::merge(&concatenated, &sheet);
-//     }
-//     concatenated
-// }
-
 impl<P: KeyValuePointer + Clone> From<Vec<RuneTransfer>> for BalanceSheet<P> {
     fn from(v: Vec<RuneTransfer>) -> BalanceSheet<P> {
         BalanceSheet {
@@ -504,6 +487,16 @@ impl<P: KeyValuePointer + Clone> From<Vec<RuneTransfer>> for BalanceSheet<P> {
                 ),
             },
             load_ptrs: Vec::new(),
+        }
+    }
+}
+
+impl From<Vec<RuneTransfer>> for CachedBalanceSheet {
+    fn from(v: Vec<RuneTransfer>) -> CachedBalanceSheet {
+        CachedBalanceSheet {
+            balances: HashMap::<ProtoruneRuneId, u128>::from_iter(
+                v.into_iter().map(|v| (v.id, v.value)),
+            ),
         }
     }
 }
