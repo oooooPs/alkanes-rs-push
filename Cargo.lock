@@ -108,6 +108,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "alkanes-std-factory-support"
+version = "0.1.0"
+dependencies = [
+ "alkanes-support",
+ "anyhow",
+ "bitcoin 0.32.5",
+ "metashrew-support",
+ "ordinals 0.0.10",
+]
+
+[[package]]
 name = "alkanes-std-genesis-alkane"
 version = "0.1.0"
 dependencies = [
@@ -168,6 +179,7 @@ name = "alkanes-std-owned-token"
 version = "0.1.0"
 dependencies = [
  "alkanes-runtime",
+ "alkanes-std-factory-support",
  "alkanes-support",
  "anyhow",
  "bitcoin 0.32.5",
