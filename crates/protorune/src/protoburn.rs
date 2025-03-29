@@ -17,7 +17,7 @@ use std::{
 
 use ordinals::Edict;
 
-use protorune_support::balance_sheet::{BalanceSheet, ProtoruneRuneId};
+use protorune_support::balance_sheet::{BalanceSheet, BalanceSheetOperations, ProtoruneRuneId};
 
 #[derive(Clone, Debug)]
 pub struct Protoburn {
@@ -35,8 +35,8 @@ impl Protoburn {
         outpoint: OutPoint,
     ) -> Result<()> {
         let table = RuneTable::for_protocol(self.tag.ok_or(anyhow!("no tag found"))?);
-        for (rune, _balance) in balance_sheet.clone().balances.into_iter() {
-            let runeid: Arc<Vec<u8>> = rune.into();
+        for (rune, _balance) in balance_sheet.balances().into_iter() {
+            let runeid: Arc<Vec<u8>> = (*rune).into();
             let name = RUNES.RUNE_ID_TO_ETCHING.select(&runeid).get();
             atomic
                 .derive(&table.RUNE_ID_TO_ETCHING.select(&runeid))
@@ -152,7 +152,7 @@ impl Protoburns<Protoburn> for Vec<Protoburn> {
         // the default output of the runestone (all leftover runes, or the mint runes go to this output)
         // equals the runestone OP_RETURN. This is a valid protoburn
         if runestone_output_index == default_output {
-            for rune in runestone_balance_sheet.clone().balances.keys() {
+            for rune in runestone_balance_sheet.clone().balances().keys() {
                 let cycle = burn_cycles.peek(rune)?;
                 let to_apply = runestone_balance_sheet.get(rune);
                 if to_apply == 0 {

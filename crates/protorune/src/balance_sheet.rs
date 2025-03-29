@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use metashrew::index_pointer::{AtomicPointer, IndexPointer};
 use metashrew_support::index_pointer::KeyValuePointer;
-use protorune_support::balance_sheet::{BalanceSheet, ProtoruneRuneId};
+use protorune_support::balance_sheet::{BalanceSheet, BalanceSheetOperations, ProtoruneRuneId};
 use protorune_support::rune_transfer::{increase_balances_using_sheet, RuneTransfer};
 use std::collections::HashMap;
 
@@ -12,7 +12,7 @@ use std::fmt::Write;
 // use std::fmt::Write;
 //
 
-pub trait PersistentRecord {
+pub trait PersistentRecord: BalanceSheetOperations {
     fn save<T: KeyValuePointer>(&self, ptr: &T, is_cenotaph: bool) {
         let runes_ptr = ptr.keyword("/runes");
         let balances_ptr = ptr.keyword("/balances");
@@ -31,7 +31,6 @@ pub trait PersistentRecord {
             }
         }
     }
-    fn balances(&self) -> &HashMap<ProtoruneRuneId, u128>;
     fn save_index<T: KeyValuePointer>(
         &self,
         rune: &ProtoruneRuneId,
@@ -96,7 +95,7 @@ impl<P: KeyValuePointer + Clone> MintableDebit<P> for BalanceSheet<P> {
         sheet: &BalanceSheet<P>,
         atomic: &mut AtomicPointer,
     ) -> Result<()> {
-        for (rune, balance) in &sheet.balances {
+        for (rune, balance) in sheet.balances() {
             let mut amount = *balance;
             let current = self.get(&rune);
             if amount > current {
@@ -186,8 +185,4 @@ pub fn clear_balances<T: KeyValuePointer>(ptr: &T) {
     }
 }
 
-impl<P: KeyValuePointer + Clone> PersistentRecord for BalanceSheet<P> {
-    fn balances(&self) -> &HashMap<ProtoruneRuneId, u128> {
-        &self.balances
-    }
-}
+impl<P: KeyValuePointer + Clone> PersistentRecord for BalanceSheet<P> {}

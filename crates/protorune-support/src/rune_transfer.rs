@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use metashrew_support::index_pointer::KeyValuePointer;
 
-use crate::balance_sheet::{BalanceSheet, ProtoruneRuneId};
+use crate::balance_sheet::{BalanceSheet, BalanceSheetOperations, ProtoruneRuneId};
 
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RuneTransfer {
@@ -12,7 +12,7 @@ pub struct RuneTransfer {
 
 impl RuneTransfer {
     pub fn from_balance_sheet<P: KeyValuePointer + Clone>(s: BalanceSheet<P>) -> Vec<Self> {
-        s.balances
+        s.balances()
             .iter()
             .filter_map(|(id, v)| {
                 if *v > 0 {

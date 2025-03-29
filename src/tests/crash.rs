@@ -123,7 +123,7 @@ fn test_owned_token_mint_crash() -> Result<()> {
     println!(
         "STEP 10: Mint state - txid: {}, balances: {:?}",
         mint_tx.compute_txid(),
-        mint_sheet.balances
+        mint_sheet.balances()
     );
 
     println!("Test completed successfully - no crash occurred");

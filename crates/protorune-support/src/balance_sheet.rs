@@ -8,7 +8,7 @@ use metashrew_support::utils::consume_sized_int;
 use ordinals::RuneId;
 use protobuf::{MessageField, SpecialFields};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Cursor;
 use std::sync::Arc;
 use std::u128;
@@ -61,15 +61,17 @@ impl From<ProtoruneRuneId> for crate::proto::protorune::ProtoruneRuneId {
 impl<P: KeyValuePointer + Clone> From<crate::proto::protorune::BalanceSheet> for BalanceSheet<P> {
     fn from(balance_sheet: crate::proto::protorune::BalanceSheet) -> BalanceSheet<P> {
         BalanceSheet {
-            balances: HashMap::<ProtoruneRuneId, u128>::from_iter(
-                balance_sheet.entries.into_iter().map(|v| {
-                    let id = ProtoruneRuneId::new(
-                        v.rune.runeId.height.clone().into_option().unwrap().into(),
-                        v.rune.runeId.txindex.clone().into_option().unwrap().into(),
-                    );
-                    (id, v.balance.into_option().unwrap().into())
-                }),
-            ),
+            cached: CachedBalanceSheet {
+                balances: HashMap::<ProtoruneRuneId, u128>::from_iter(
+                    balance_sheet.entries.into_iter().map(|v| {
+                        let id = ProtoruneRuneId::new(
+                            v.rune.runeId.height.clone().into_option().unwrap().into(),
+                            v.rune.runeId.txindex.clone().into_option().unwrap().into(),
+                        );
+                        (id, v.balance.into_option().unwrap().into())
+                    }),
+                ),
+            },
             load_ptrs: Vec::new(),
         }
     }
@@ -79,7 +81,7 @@ impl<P: KeyValuePointer + Clone> From<BalanceSheet<P>> for crate::proto::protoru
     fn from(balance_sheet: BalanceSheet<P>) -> crate::proto::protorune::BalanceSheet {
         crate::proto::protorune::BalanceSheet {
             entries: balance_sheet
-                .balances
+                .balances()
                 .clone()
                 .iter()
                 .map(|(k, v)| BalanceSheetItem {
@@ -181,9 +183,138 @@ impl From<Arc<Vec<u8>>> for ProtoruneRuneId {
     }
 }
 
+pub trait BalanceSheetOperations: Sized {
+    fn new() -> Self;
+    fn from_pairs(runes: Vec<ProtoruneRuneId>, balances: Vec<u128>) -> Self {
+        let mut sheet = Self::new();
+        sheet.init_from_pairs(runes, balances);
+        return sheet;
+    }
+    fn concat(ary: Vec<Self>) -> Self {
+        let mut concatenated = Self::new();
+        for sheet in ary {
+            concatenated = Self::merge(&concatenated, &sheet);
+        }
+        concatenated
+    }
+    fn get(&self, rune: &ProtoruneRuneId) -> u128;
+
+    /// Set the balance for a rune
+    fn set(&mut self, rune: &ProtoruneRuneId, value: u128);
+
+    fn init_from_pairs(&mut self, runes: Vec<ProtoruneRuneId>, balances: Vec<u128>) {
+        for i in 0..runes.len() {
+            self.set(&runes[i], balances[i]);
+        }
+    }
+
+    /// Increase the balance for a rune by the cached amount
+    fn increase(&mut self, rune: &ProtoruneRuneId, value: u128) {
+        let current_balance = self.get(rune);
+        self.set(rune, current_balance + value);
+    }
+
+    /// Decrease the balance for a rune by the cached amount
+    fn decrease(&mut self, rune: &ProtoruneRuneId, value: u128) -> bool {
+        let current_balance = self.get(rune);
+        if current_balance < value {
+            false
+        } else {
+            self.set(rune, current_balance - value);
+            true
+        }
+    }
+
+    // pipes a balancesheet onto itself
+    fn pipe(&self, sheet: &mut Self) -> () {
+        for (rune, balance) in self.balances() {
+            sheet.increase(rune, *balance);
+        }
+    }
+
+    /// When processing the return value for MessageContext.handle()
+    /// we want to be able to mint arbituary amounts of mintable tokens.
+    ///
+    /// This function allows us to debit more than the existing amount
+    /// of a mintable token without returning an Err so that MessageContext
+    /// can mint more than what the initial balance sheet has.
+    fn debit(&mut self, sheet: &Self) -> Result<()> {
+        for (rune, balance) in sheet.balances() {
+            if *balance <= self.get(&rune) {
+                self.decrease(rune, *balance);
+            } else {
+                return Err(anyhow!("balance underflow"));
+            }
+        }
+        Ok(())
+    }
+
+    fn rune_debit(&mut self, sheet: &Self) -> Result<()> {
+        self.debit(sheet)
+    }
+
+    fn merge(a: &Self, b: &Self) -> Self;
+
+    fn merge_sheets(&mut self, a: &Self, b: &Self) {
+        // Merge balances
+        for (rune, balance) in a.balances() {
+            self.increase(rune, *balance);
+        }
+        for (rune, balance) in b.balances() {
+            self.increase(rune, *balance);
+        }
+    }
+
+    /// Get all balances
+    fn balances(&self) -> &HashMap<ProtoruneRuneId, u128>;
+}
+
+/// A basic balance sheet that only stores balances in memory
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+pub struct CachedBalanceSheet {
+    pub balances: HashMap<ProtoruneRuneId, u128>, // Using HashMap to map runes to their balances
+}
+
+impl BalanceSheetOperations for CachedBalanceSheet {
+    fn get(&self, rune: &ProtoruneRuneId) -> u128 {
+        *self.balances.get(rune).unwrap_or(&0u128)
+    }
+
+    fn set(&mut self, rune: &ProtoruneRuneId, value: u128) {
+        self.balances.insert(rune.clone(), value);
+    }
+
+    fn new() -> Self {
+        CachedBalanceSheet {
+            balances: HashMap::new(),
+        }
+    }
+
+    fn merge(a: &CachedBalanceSheet, b: &CachedBalanceSheet) -> CachedBalanceSheet {
+        let mut merged = CachedBalanceSheet::new();
+        merged.merge_sheets(a, b);
+        merged
+    }
+
+    fn balances(&self) -> &HashMap<ProtoruneRuneId, u128> {
+        &self.balances
+    }
+}
+
+// We still need this implementation to customize the equality comparison
+impl PartialEq for CachedBalanceSheet {
+    fn eq(&self, other: &Self) -> bool {
+        self.balances == other.balances
+    }
+}
+
+// Implementing Eq for CachedBalanceSheet
+impl Eq for CachedBalanceSheet {}
+
+/// The full BalanceSheet that extends CachedBalanceSheet with loading functionality
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BalanceSheet<P: KeyValuePointer + Clone> {
-    pub balances: HashMap<ProtoruneRuneId, u128>, // Using HashMap to map runes to their balances
+    pub cached: CachedBalanceSheet,
     #[serde(skip)]
     pub load_ptrs: Vec<P>,
 }
@@ -192,11 +323,8 @@ pub struct BalanceSheet<P: KeyValuePointer + Clone> {
 impl<P: KeyValuePointer + Clone> PartialEq for BalanceSheet<P> {
     fn eq(&self, other: &Self) -> bool {
         // Get all unique rune IDs from both balance sheets
-        let mut all_runes = self
-            .balances
-            .keys()
-            .collect::<std::collections::HashSet<_>>();
-        all_runes.extend(other.balances.keys());
+        let mut all_runes = self.balances().keys().collect::<HashSet<_>>();
+        all_runes.extend(other.balances().keys());
 
         // Compare balances for each rune using get() which checks both cached and stored values
         for rune in all_runes {
@@ -215,15 +343,10 @@ impl<P: KeyValuePointer + Clone> Eq for BalanceSheet<P> {}
 impl<P: KeyValuePointer + Clone> Default for BalanceSheet<P> {
     fn default() -> Self {
         BalanceSheet {
-            balances: HashMap::new(),
+            cached: CachedBalanceSheet::default(),
             load_ptrs: Vec::new(),
         }
     }
-}
-
-pub fn u128_from_bytes(v: Vec<u8>) -> u128 {
-    let bytes_ref: &[u8] = &v;
-    u128::from_le_bytes(bytes_ref.try_into().unwrap())
 }
 
 impl From<crate::proto::protorune::Uint128> for u128 {
@@ -283,70 +406,16 @@ impl<P: KeyValuePointer + Clone> From<crate::proto::protorune::OutpointResponse>
 }
 
 impl<P: KeyValuePointer + Clone> BalanceSheet<P> {
-    pub fn new() -> Self {
-        BalanceSheet {
-            balances: HashMap::new(),
-            load_ptrs: Vec::new(),
-        }
-    }
-
     pub fn new_ptr_backed(ptr: P) -> Self {
         BalanceSheet {
-            balances: HashMap::new(),
+            cached: CachedBalanceSheet::new(),
             load_ptrs: vec![ptr],
         }
     }
 
-    pub fn from_pairs(runes: Vec<ProtoruneRuneId>, balances: Vec<u128>) -> BalanceSheet<P> {
-        let mut sheet = BalanceSheet::new();
-        for i in 0..runes.len() {
-            sheet.set(&runes[i], balances[i]);
-        }
-        return sheet;
-    }
-
-    // pipes a balancesheet onto itself
-    pub fn pipe(&self, sheet: &mut BalanceSheet<P>) -> () {
-        for (rune, balance) in &self.balances {
-            sheet.increase(rune, *balance);
-        }
-    }
-
-    /// When processing the return value for MessageContext.handle()
-    /// we want to be able to mint arbituary amounts of mintable tokens.
-    ///
-    /// This function allows us to debit more than the existing amount
-    /// of a mintable token without returning an Err so that MessageContext
-    /// can mint more than what the initial balance sheet has.
-    pub fn debit(&mut self, sheet: &BalanceSheet<P>) -> Result<()> {
-        for (rune, balance) in &sheet.balances {
-            if *balance <= self.get(&rune) {
-                self.decrease(rune, *balance);
-            } else {
-                return Err(anyhow!("balance underflow"));
-            }
-        }
-        Ok(())
-    }
-
-    pub fn rune_debit(&mut self, sheet: &BalanceSheet<P>) -> Result<()> {
-        self.debit(sheet)
-    }
-
-    /*
-    pub fn inspect(&self) -> String {
-        let mut base = String::from("balances: [\n");
-        for (rune, balance) in &self.balances {
-            base.push_str(&format!("  {}: {}\n", rune, balance));
-        }
-        base.push_str("]");
-        base
-    }
-    */
-
     pub fn load_balance(&self, rune: &ProtoruneRuneId) -> u128 {
         // If already in cache, return it
-        if let Some(balance) = self.balances.get(rune) {
+        if let Some(balance) = self.balances().get(rune) {
             return *balance;
         }
 
@@ -368,10 +437,6 @@ impl<P: KeyValuePointer + Clone> BalanceSheet<P> {
         return total_stored_balance;
     }
 
-    pub fn get(&self, rune: &ProtoruneRuneId) -> u128 {
-        self.load_balance(rune)
-    }
-
     pub fn get_and_update(&mut self, rune: &ProtoruneRuneId) -> u128 {
         let balance = self.load_balance(rune);
         self.set(rune, balance);
@@ -379,29 +444,31 @@ impl<P: KeyValuePointer + Clone> BalanceSheet<P> {
     }
 
     pub fn get_cached(&self, rune: &ProtoruneRuneId) -> u128 {
-        *self.balances.get(rune).unwrap_or(&0u128)
+        self.cached.get(rune)
+    }
+}
+
+impl<P: KeyValuePointer + Clone> BalanceSheetOperations for BalanceSheet<P> {
+    fn balances(&self) -> &HashMap<ProtoruneRuneId, u128> {
+        self.cached.balances()
     }
 
-    pub fn set(&mut self, rune: &ProtoruneRuneId, value: u128) {
-        self.balances.insert(rune.clone(), value);
-    }
-
-    pub fn increase(&mut self, rune: &ProtoruneRuneId, value: u128) {
-        let current_balance = self.get(rune);
-        self.set(rune, current_balance + value);
-    }
-
-    pub fn decrease(&mut self, rune: &ProtoruneRuneId, value: u128) -> bool {
-        let current_balance = self.get(rune);
-        if current_balance < value {
-            false
-        } else {
-            self.set(rune, current_balance - value);
-            true
+    fn new() -> Self {
+        BalanceSheet {
+            cached: CachedBalanceSheet::new(),
+            load_ptrs: Vec::new(),
         }
     }
 
-    pub fn merge(a: &BalanceSheet<P>, b: &BalanceSheet<P>) -> BalanceSheet<P> {
+    fn get(&self, rune: &ProtoruneRuneId) -> u128 {
+        self.load_balance(rune)
+    }
+
+    fn set(&mut self, rune: &ProtoruneRuneId, value: u128) {
+        self.cached.set(rune, value);
+    }
+
+    fn merge(a: &BalanceSheet<P>, b: &BalanceSheet<P>) -> BalanceSheet<P> {
         let mut merged = BalanceSheet::new();
 
         // Merge load_ptrs
@@ -409,31 +476,37 @@ impl<P: KeyValuePointer + Clone> BalanceSheet<P> {
         merged.load_ptrs.extend(b.load_ptrs.iter().cloned());
 
         // Merge balances
-        for (rune, balance) in &a.balances {
-            merged.increase(rune, *balance);
-        }
-        for (rune, balance) in &b.balances {
-            merged.increase(rune, *balance);
-        }
+        merged.cached = CachedBalanceSheet::merge(&a.cached, &b.cached);
 
         merged
     }
-
-    pub fn concat(ary: Vec<BalanceSheet<P>>) -> BalanceSheet<P> {
-        let mut concatenated = BalanceSheet::new();
-        for sheet in ary {
-            concatenated = BalanceSheet::merge(&concatenated, &sheet);
-        }
-        concatenated
-    }
 }
+
+// pub fn from_pairs<T: BalanceSheetOperations>(
+//     runes: Vec<ProtoruneRuneId>,
+//     balances: Vec<u128>,
+// ) -> T {
+//     let mut sheet = T::new();
+//     sheet.init_from_pairs(runes, balances);
+//     return sheet;
+// }
+
+// pub fn concat<T: BalanceSheetOperations>(ary: Vec<T>) -> T {
+//     let mut concatenated = T::new();
+//     for sheet in ary {
+//         concatenated = T::merge(&concatenated, &sheet);
+//     }
+//     concatenated
+// }
 
 impl<P: KeyValuePointer + Clone> From<Vec<RuneTransfer>> for BalanceSheet<P> {
     fn from(v: Vec<RuneTransfer>) -> BalanceSheet<P> {
         BalanceSheet {
-            balances: HashMap::<ProtoruneRuneId, u128>::from_iter(
-                v.into_iter().map(|v| (v.id, v.value)),
-            ),
+            cached: CachedBalanceSheet {
+                balances: HashMap::<ProtoruneRuneId, u128>::from_iter(
+                    v.into_iter().map(|v| (v.id, v.value)),
+                ),
+            },
             load_ptrs: Vec::new(),
         }
     }

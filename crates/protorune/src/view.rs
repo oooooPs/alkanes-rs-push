@@ -2,7 +2,7 @@ use crate::tables::RuneTable;
 use crate::{balance_sheet::load_sheet, tables};
 use anyhow::{anyhow, Result};
 use bitcoin;
-use protorune_support::balance_sheet::ProtoruneRuneId;
+use protorune_support::balance_sheet::{BalanceSheetOperations, ProtoruneRuneId};
 use protorune_support::proto;
 use protorune_support::proto::protorune::{
     Outpoint,
@@ -62,7 +62,7 @@ pub fn protorune_outpoint_to_outpoint_response(
         .ok_or("")
         .map_err(|_| anyhow!("txid not indexed in table"))? as u128;
 
-    if let Some((rune_id, _)) = balance_sheet.clone().balances.iter().next() {
+    if let Some((rune_id, _)) = balance_sheet.balances().iter().next() {
         height = rune_id.block.into();
         txindex = rune_id.tx.into();
     }
@@ -100,7 +100,7 @@ pub fn rune_outpoint_to_outpoint_response(outpoint: &OutPoint) -> Result<Outpoin
         .ok_or("")
         .map_err(|_| anyhow!("txid not indexed in table"))? as u128;
 
-    if let Some((rune_id, _)) = balance_sheet.clone().balances.iter().next() {
+    if let Some((rune_id, _)) = balance_sheet.balances().iter().next() {
         height = rune_id.block.into();
         txindex = rune_id.tx.into();
     }
@@ -137,7 +137,7 @@ pub fn outpoint_to_outpoint_response(outpoint: &OutPoint) -> Result<OutpointResp
         .ok_or("")
         .map_err(|_| anyhow!("txid not indexed in table"))? as u128;
 
-    if let Some((rune_id, _)) = balance_sheet.clone().balances.iter().next() {
+    if let Some((rune_id, _)) = balance_sheet.balances().iter().next() {
         height = rune_id.block;
         txindex = rune_id.tx;
     }
