@@ -5,6 +5,7 @@ use anyhow::{anyhow, Result};
 use bitcoin::OutPoint;
 use metashrew_support::{index_pointer::KeyValuePointer, utils::consensus_encode};
 use protorune::{balance_sheet::load_sheet, message::MessageContext, tables::RuneTable};
+use protorune_support::balance_sheet::BalanceSheetOperations;
 
 use crate::index_block;
 use crate::tests::helpers::{self as alkane_helpers, assert_binary_deployed_to_id};
@@ -126,7 +127,7 @@ fn test_auth_and_owned_token_noop() -> Result<()> {
             .OUTPOINT_TO_RUNES
             .select(&consensus_encode(&outpoint_first)?),
     );
-    assert_eq!(sheet_first.balances.len(), 0);
+    assert_eq!(sheet_first.balances().len(), 0);
     let _ = assert_binary_deployed_to_id(
         owned_token_id.clone(),
         alkanes_std_owned_token_build::get_bytes(),
@@ -202,7 +203,7 @@ fn test_auth_and_owned_token() -> Result<()> {
             .OUTPOINT_TO_RUNES
             .select(&consensus_encode(&outpoint_first)?),
     );
-    assert_eq!(sheet_first.balances.len(), 0);
+    assert_eq!(sheet_first.balances().len(), 0);
     let _ = assert_binary_deployed_to_id(
         owned_token_id.clone(),
         alkanes_std_owned_token_build::get_bytes(),
@@ -444,7 +445,7 @@ fn test_auth_and_owned_token_multiple() -> Result<()> {
             .OUTPOINT_TO_RUNES
             .select(&consensus_encode(&outpoint_first)?),
     );
-    assert_eq!(sheet_first.balances.len(), 0);
+    assert_eq!(sheet_first.balances().len(), 0);
     let _ = assert_binary_deployed_to_id(
         owned_token_id.clone(),
         alkanes_std_owned_token_build::get_bytes(),

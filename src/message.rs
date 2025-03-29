@@ -24,6 +24,7 @@ use protorune::balance_sheet::MintableDebit;
 use protorune::message::{MessageContext, MessageContextParcel};
 #[allow(unused_imports)]
 use protorune::protorune_init::index_unique_protorunes;
+use protorune_support::balance_sheet::BalanceSheetOperations;
 use protorune_support::{
     balance_sheet::BalanceSheet, rune_transfer::RuneTransfer, utils::decode_varint_list,
 };

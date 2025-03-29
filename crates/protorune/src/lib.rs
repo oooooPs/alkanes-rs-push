@@ -22,6 +22,7 @@ use metashrew_support::index_pointer::KeyValuePointer;
 use ordinals::{Artifact, Runestone};
 use ordinals::{Etching, Rune};
 use protobuf::{Message, SpecialFields};
+use protorune_support::balance_sheet::BalanceSheetOperations;
 use protorune_support::constants;
 use protorune_support::network::to_address_str;
 use protorune_support::proto;
@@ -339,7 +340,7 @@ impl Protorune {
         // This piece of logic allows the pointer to evenly distribute if set == number of tx outputs.
         // We discovered that when the pointer == number of tx outputs, the decipher step
         // thinks it is a cenotaph. This logic used right now, but keep it here in case we need it.
-        // for (rune, balance) in &remaining_balances.balances {
+        // for (rune, balance) in remaining_balances.balances() {
         //     // amount is 0 to evenly distribute
         //     let transfer_targets =
         //         handle_transfer_runes_to_vout(unallocated_to as u128, 0, *balance, tx);
@@ -810,7 +811,7 @@ impl Protorune {
                     v.pipe(&mut r);
                     r
                 })
-                .balances
+                .balances()
                 .keys()
                 .clone()
                 .into_iter()

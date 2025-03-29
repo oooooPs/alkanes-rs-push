@@ -5,6 +5,7 @@ use anyhow::{anyhow, Result};
 use bitcoin::OutPoint;
 use metashrew_support::{index_pointer::KeyValuePointer, utils::consensus_encode};
 use protorune::{balance_sheet::load_sheet, message::MessageContext, tables::RuneTable};
+use protorune_support::balance_sheet::BalanceSheetOperations;
 
 use crate::index_block;
 use crate::tests::helpers::{self as alkane_helpers, assert_binary_deployed_to_id};
@@ -123,7 +124,7 @@ fn test_owned_token_mint_crash() -> Result<()> {
     println!(
         "STEP 10: Mint state - txid: {}, balances: {:?}",
         mint_tx.compute_txid(),
-        mint_sheet.balances
+        mint_sheet.balances()
     );
 
     println!("Test completed successfully - no crash occurred");

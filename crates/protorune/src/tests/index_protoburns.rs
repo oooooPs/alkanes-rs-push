@@ -7,7 +7,7 @@ mod tests {
     use anyhow::Result;
     use bitcoin::{OutPoint, Transaction};
     use metashrew::index_pointer::AtomicPointer;
-    use protorune_support::balance_sheet::{BalanceSheet, ProtoruneRuneId};
+    use protorune_support::balance_sheet::{BalanceSheet, BalanceSheetOperations, ProtoruneRuneId};
     use protorune_support::proto::{self, protorune};
     use protorune_support::protostone::{Protostone, ProtostoneEdict};
     use protorune_support::rune_transfer::RuneTransfer;

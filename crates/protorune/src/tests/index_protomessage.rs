@@ -12,7 +12,7 @@ mod tests {
         Witness,
     };
     use metashrew::index_pointer::{AtomicPointer, IndexPointer};
-    use protorune_support::balance_sheet::{BalanceSheet, ProtoruneRuneId};
+    use protorune_support::balance_sheet::{BalanceSheet, BalanceSheetOperations, ProtoruneRuneId};
     use protorune_support::protostone::Protostone;
     use protorune_support::rune_transfer::RuneTransfer;
     use protorune_support::utils::consensus_encode;
