@@ -58,8 +58,8 @@ impl From<ProtoruneRuneId> for crate::proto::protorune::ProtoruneRuneId {
     }
 }
 
-impl From<crate::proto::protorune::BalanceSheet> for BalanceSheet {
-    fn from(balance_sheet: crate::proto::protorune::BalanceSheet) -> BalanceSheet {
+impl<P: KeyValuePointer + Clone> From<crate::proto::protorune::BalanceSheet> for BalanceSheet<P> {
+    fn from(balance_sheet: crate::proto::protorune::BalanceSheet) -> BalanceSheet<P> {
         BalanceSheet {
             balances: HashMap::<ProtoruneRuneId, u128>::from_iter(
                 balance_sheet.entries.into_iter().map(|v| {
@@ -75,8 +75,8 @@ impl From<crate::proto::protorune::BalanceSheet> for BalanceSheet {
     }
 }
 
-impl From<BalanceSheet> for crate::proto::protorune::BalanceSheet {
-    fn from(balance_sheet: BalanceSheet) -> crate::proto::protorune::BalanceSheet {
+impl<P: KeyValuePointer + Clone> From<BalanceSheet<P>> for crate::proto::protorune::BalanceSheet {
+    fn from(balance_sheet: BalanceSheet<P>) -> crate::proto::protorune::BalanceSheet {
         crate::proto::protorune::BalanceSheet {
             entries: balance_sheet
                 .balances
@@ -247,8 +247,10 @@ impl From<u128> for crate::proto::protorune::Uint128 {
     }
 }
 
-impl From<crate::proto::protorune::OutpointResponse> for BalanceSheet {
-    fn from(v: crate::proto::protorune::OutpointResponse) -> BalanceSheet {
+impl<P: KeyValuePointer + Clone> From<crate::proto::protorune::OutpointResponse>
+    for BalanceSheet<P>
+{
+    fn from(v: crate::proto::protorune::OutpointResponse) -> BalanceSheet<P> {
         let pairs = v
             .balances
             .entries
@@ -280,7 +282,7 @@ impl From<crate::proto::protorune::OutpointResponse> for BalanceSheet {
     }
 }
 
-impl BalanceSheet {
+impl<P: KeyValuePointer + Clone> BalanceSheet<P> {
     pub fn new() -> Self {
         BalanceSheet {
             balances: HashMap::new(),
@@ -288,14 +290,14 @@ impl BalanceSheet {
         }
     }
 
-    pub fn new_ptr_backed(ptr: AtomicPointer) -> Self {
+    pub fn new_ptr_backed(ptr: P) -> Self {
         BalanceSheet {
             balances: HashMap::new(),
             load_ptrs: vec![ptr],
         }
     }
 
-    pub fn from_pairs(runes: Vec<ProtoruneRuneId>, balances: Vec<u128>) -> BalanceSheet {
+    pub fn from_pairs(runes: Vec<ProtoruneRuneId>, balances: Vec<u128>) -> BalanceSheet<P> {
         let mut sheet = BalanceSheet::new();
         for i in 0..runes.len() {
             sheet.set(&runes[i], balances[i]);
@@ -304,7 +306,7 @@ impl BalanceSheet {
     }
 
     // pipes a balancesheet onto itself
-    pub fn pipe(&self, sheet: &mut BalanceSheet) -> () {
+    pub fn pipe(&self, sheet: &mut BalanceSheet<P>) -> () {
         for (rune, balance) in &self.balances {
             sheet.increase(rune, *balance);
         }
@@ -316,7 +318,7 @@ impl BalanceSheet {
     /// This function allows us to debit more than the existing amount
     /// of a mintable token without returning an Err so that MessageContext
     /// can mint more than what the initial balance sheet has.
-    pub fn debit(&mut self, sheet: &BalanceSheet) -> Result<()> {
+    pub fn debit(&mut self, sheet: &BalanceSheet<P>) -> Result<()> {
         for (rune, balance) in &sheet.balances {
             if *balance <= self.get(&rune) {
                 self.decrease(rune, *balance);
@@ -327,7 +329,7 @@ impl BalanceSheet {
         Ok(())
     }
 
-    pub fn rune_debit(&mut self, sheet: &BalanceSheet) -> Result<()> {
+    pub fn rune_debit(&mut self, sheet: &BalanceSheet<P>) -> Result<()> {
         self.debit(sheet)
     }
 
@@ -399,7 +401,7 @@ impl BalanceSheet {
         }
     }
 
-    pub fn merge(a: &BalanceSheet, b: &BalanceSheet) -> BalanceSheet {
+    pub fn merge(a: &BalanceSheet<P>, b: &BalanceSheet<P>) -> BalanceSheet<P> {
         let mut merged = BalanceSheet::new();
 
         // Merge load_ptrs
@@ -417,7 +419,7 @@ impl BalanceSheet {
         merged
     }
 
-    pub fn concat(ary: Vec<BalanceSheet>) -> BalanceSheet {
+    pub fn concat(ary: Vec<BalanceSheet<P>>) -> BalanceSheet<P> {
         let mut concatenated = BalanceSheet::new();
         for sheet in ary {
             concatenated = BalanceSheet::merge(&concatenated, &sheet);
@@ -426,8 +428,8 @@ impl BalanceSheet {
     }
 }
 
-impl From<Vec<RuneTransfer>> for BalanceSheet {
-    fn from(v: Vec<RuneTransfer>) -> BalanceSheet {
+impl<P: KeyValuePointer + Clone> From<Vec<RuneTransfer>> for BalanceSheet<P> {
+    fn from(v: Vec<RuneTransfer>) -> BalanceSheet<P> {
         BalanceSheet {
             balances: HashMap::<ProtoruneRuneId, u128>::from_iter(
                 v.into_iter().map(|v| (v.id, v.value)),
