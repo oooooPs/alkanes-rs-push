@@ -35,9 +35,9 @@ pub struct AlkaneMessageContext(());
 
 // TODO: import MessageContextParcel
 
-pub fn handle_message<P: KeyValuePointer + Clone>(
+pub fn handle_message(
     parcel: &MessageContextParcel,
-) -> Result<(Vec<RuneTransfer>, BalanceSheet<P>)> {
+) -> Result<(Vec<RuneTransfer>, BalanceSheet<AtomicPointer>)> {
     let cellpack: Cellpack =
         decode_varint_list(&mut Cursor::new(parcel.calldata.clone()))?.try_into()?;
 
@@ -177,9 +177,9 @@ impl MessageContext for AlkaneMessageContext {
     fn protocol_tag() -> u128 {
         1
     }
-    fn handle<P: KeyValuePointer + Clone>(
+    fn handle(
         _parcel: &MessageContextParcel,
-    ) -> Result<(Vec<RuneTransfer>, BalanceSheet<P>)> {
+    ) -> Result<(Vec<RuneTransfer>, BalanceSheet<AtomicPointer>)> {
         if is_active(_parcel.height) {
             match handle_message(_parcel) {
                 Ok((outgoing, runtime)) => Ok((outgoing, runtime)),

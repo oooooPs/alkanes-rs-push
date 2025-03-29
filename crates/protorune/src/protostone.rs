@@ -151,7 +151,7 @@ impl MessageProcessor for Protostone {
             sheets: Box::new(BalanceSheet::default()),
         };
 
-        match T::handle<AtomicPointer>(&parcel) {
+        match T::handle(&parcel) {
             Ok(values) => {
                 match values.reconcile(
                     atomic,
