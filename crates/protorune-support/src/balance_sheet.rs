@@ -3,7 +3,6 @@ use crate::proto::protorune::{BalanceSheetItem, Rune};
 use crate::rune_transfer::RuneTransfer;
 use anyhow::{anyhow, Result};
 use hex;
-use metashrew::index_pointer::AtomicPointer;
 use metashrew_support::index_pointer::KeyValuePointer;
 use metashrew_support::utils::consume_sized_int;
 use ordinals::RuneId;
@@ -183,14 +182,14 @@ impl From<Arc<Vec<u8>>> for ProtoruneRuneId {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct BalanceSheet {
+pub struct BalanceSheet<P: KeyValuePointer + Clone> {
     pub balances: HashMap<ProtoruneRuneId, u128>, // Using HashMap to map runes to their balances
     #[serde(skip)]
-    pub load_ptrs: Vec<AtomicPointer>,
+    pub load_ptrs: Vec<P>,
 }
 
 // We still need this implementation to customize the equality comparison
-impl PartialEq for BalanceSheet {
+impl<P: KeyValuePointer + Clone> PartialEq for BalanceSheet<P> {
     fn eq(&self, other: &Self) -> bool {
         // Get all unique rune IDs from both balance sheets
         let mut all_runes = self
@@ -211,9 +210,9 @@ impl PartialEq for BalanceSheet {
 }
 
 // Implementing Eq for BalanceSheet
-impl Eq for BalanceSheet {}
+impl<P: KeyValuePointer + Clone> Eq for BalanceSheet<P> {}
 
-impl Default for BalanceSheet {
+impl<P: KeyValuePointer + Clone> Default for BalanceSheet<P> {
     fn default() -> Self {
         BalanceSheet {
             balances: HashMap::new(),
