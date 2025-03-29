@@ -5,6 +5,7 @@ use anyhow::{anyhow, Result};
 use bitcoin::OutPoint;
 use metashrew_support::{index_pointer::KeyValuePointer, utils::consensus_encode};
 use protorune::{balance_sheet::load_sheet, message::MessageContext, tables::RuneTable};
+use protorune_support::balance_sheet::BalanceSheetOperations;
 
 use crate::index_block;
 use crate::tests::helpers::{self as alkane_helpers, assert_binary_deployed_to_id};

@@ -187,7 +187,9 @@ pub trait BalanceSheetOperations: Sized {
     fn new() -> Self;
     fn from_pairs(runes: Vec<ProtoruneRuneId>, balances: Vec<u128>) -> Self {
         let mut sheet = Self::new();
-        sheet.init_from_pairs(runes, balances);
+        for i in 0..runes.len() {
+            sheet.set(&runes[i], balances[i]);
+        }
         return sheet;
     }
     fn concat(ary: Vec<Self>) -> Self {
@@ -201,12 +203,6 @@ pub trait BalanceSheetOperations: Sized {
 
     /// Set the balance for a rune
     fn set(&mut self, rune: &ProtoruneRuneId, value: u128);
-
-    fn init_from_pairs(&mut self, runes: Vec<ProtoruneRuneId>, balances: Vec<u128>) {
-        for i in 0..runes.len() {
-            self.set(&runes[i], balances[i]);
-        }
-    }
 
     /// Increase the balance for a rune by the cached amount
     fn increase(&mut self, rune: &ProtoruneRuneId, value: u128) {
