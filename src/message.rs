@@ -13,7 +13,7 @@ use alkanes_support::{
 };
 use anyhow::{anyhow, Result};
 use bitcoin::OutPoint;
-use metashrew::index_pointer::IndexPointer;
+use metashrew::index_pointer::{AtomicPointer, IndexPointer};
 #[allow(unused_imports)]
 use metashrew::{
     println,
@@ -98,10 +98,11 @@ pub fn handle_message(
                 ),
             );
             let mut combined = parcel.runtime_balances.as_ref().clone();
-            <BalanceSheet as From<Vec<RuneTransfer>>>::from(parcel.runes.clone())
+            <BalanceSheet<AtomicPointer> as From<Vec<RuneTransfer>>>::from(parcel.runes.clone())
                 .pipe(&mut combined);
-            let sheet =
-                <BalanceSheet as From<Vec<RuneTransfer>>>::from(response.alkanes.clone().into());
+            let sheet = <BalanceSheet<AtomicPointer> as From<Vec<RuneTransfer>>>::from(
+                response.alkanes.clone().into(),
+            );
             combined.debit_mintable(&sheet, &mut atomic)?;
             debit_balances(&mut atomic, &myself, &response.alkanes)?;
             let cloned = context.clone().lock().unwrap().trace.clone();
