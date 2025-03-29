@@ -10,8 +10,6 @@ use alkanes_support::{context::Context, parcel::AlkaneTransfer, response::CallRe
 use anyhow::{anyhow, Result};
 use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr};
 
-use crate::factory::MintableToken;
-
 #[derive(Default)]
 pub struct OwnedToken(());
 
