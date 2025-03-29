@@ -472,7 +472,7 @@ impl<P: KeyValuePointer + Clone> BalanceSheetOperations for BalanceSheet<P> {
         merged.load_ptrs.extend(b.load_ptrs.iter().cloned());
 
         // Merge balances
-        merged.cached = CachedBalanceSheet::merge(&a.cached, &b.cached);
+        merged.merge_sheets(a, b);
 
         merged
     }
