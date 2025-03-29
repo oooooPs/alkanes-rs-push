@@ -111,6 +111,7 @@ dependencies = [
 name = "alkanes-std-factory-support"
 version = "0.1.0"
 dependencies = [
+ "alkanes-runtime",
  "alkanes-support",
  "anyhow",
  "bitcoin 0.32.5",
