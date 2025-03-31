@@ -8,8 +8,8 @@ use alkanes::message::AlkaneMessageContext;
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::id::AlkaneId;
 use anyhow::Result;
-use bitcoin::bitcoin_hashes::Hash;
 use bitcoin::blockdata::transaction::OutPoint;
+use bitcoin::hashes::Hash;
 #[allow(unused_imports)]
 use metashrew::{get_cache, index_pointer::IndexPointer, println, stdio::stdout};
 use metashrew_support::index_pointer::KeyValuePointer;
