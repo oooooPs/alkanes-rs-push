@@ -17,8 +17,6 @@ jobs:
         test-config:
           - name: "WASM Tests"
             command: "cargo test --target wasm32-unknown-unknown --features test-utils"
-          - name: "Mainnet WASM Tests"
-            command: "cargo test --target wasm32-unknown-unknown --features test-utils,mainnet"
           - name: "Unit Tests"
             command: "cargo test --target x86_64-unknown-linux-gnu --features test-utils"
           - name: "Protorunes WASM Tests"

@@ -217,7 +217,6 @@ fn test_genesis_alkane_key() -> Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "mainnet")]
 #[wasm_bindgen_test]
 fn test_genesis_mainnet() -> Result<()> {
     use bitcoin::Txid;
