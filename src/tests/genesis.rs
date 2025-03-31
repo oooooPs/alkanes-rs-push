@@ -247,7 +247,7 @@ fn test_genesis_indexer_premine() -> Result<()> {
     let genesis_id = ProtoruneRuneId { block: 2, tx: 0 };
     assert_eq!(
         sheet.get(&genesis_id),
-        50_000_000u128 * (block_height as u128)
+        50_000_000u128 * (genesis::GENESIS_BLOCK as u128)
     );
     let out = protorune_outpoint_to_outpoint_response(&outpoint, 1)?;
     let out_sheet: BalanceSheet<IndexPointer> = out.into();
@@ -281,7 +281,7 @@ fn test_genesis_indexer_premine() -> Result<()> {
     let genesis_id = ProtoruneRuneId { block: 2, tx: 0 };
     assert_eq!(
         new_sheet.get(&genesis_id),
-        50_000_000u128 * (block_height as u128)
+        50_000_000u128 * (genesis::GENESIS_BLOCK as u128)
     );
     Ok(())
 }
