@@ -147,7 +147,7 @@ pub fn is_genesis(height: u64) -> bool {
     is_genesis
 }
 
-pub fn genesis(block: &Block, height: u32) -> Result<()> {
+pub fn genesis(block: &Block, height: u64) -> Result<()> {
     IndexPointer::from_keyword("/alkanes/")
         .select(&(AlkaneId { block: 2, tx: 0 }).into())
         .set(Arc::new(compress(genesis_alkane_bytes())?));

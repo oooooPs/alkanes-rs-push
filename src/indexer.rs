@@ -84,7 +84,7 @@ pub fn index_block(block: &Block, height: u32) -> Result<()> {
     configure_network();
     let really_is_genesis = is_genesis(height.into());
     if really_is_genesis {
-        genesis(&block, height).unwrap();
+        genesis(&block, height.into()).unwrap();
     }
     FuelTank::initialize(&block);
 
