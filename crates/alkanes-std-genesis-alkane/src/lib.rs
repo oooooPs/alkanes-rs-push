@@ -233,6 +233,7 @@ impl GenesisAlkane {
 
         self.observe_initialization()?;
         let premine = self.premine()?;
+        println!("Premine amount: {:?}", premine);
         response.alkanes.0.push(AlkaneTransfer {
             id: context.myself.clone(),
             value: premine,

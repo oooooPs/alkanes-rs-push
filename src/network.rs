@@ -135,6 +135,7 @@ pub fn get_view_mode() -> bool {
 pub fn is_genesis(height: u64) -> bool {
     let mut init_ptr = IndexPointer::from_keyword("/seen-genesis");
     let has_not_seen_genesis = init_ptr.get().len() == 0;
+    println!("has_not_seen_genesis: {}", has_not_seen_genesis);
     let is_genesis = if has_not_seen_genesis {
         get_view_mode() || height >= genesis::GENESIS_BLOCK
     } else {
@@ -147,6 +148,7 @@ pub fn is_genesis(height: u64) -> bool {
 }
 
 pub fn genesis(block: &Block) -> Result<()> {
+    println!("in genesis");
     IndexPointer::from_keyword("/alkanes/")
         .select(&(AlkaneId { block: 2, tx: 0 }).into())
         .set(Arc::new(compress(genesis_alkane_bytes())?));
@@ -183,6 +185,7 @@ pub fn genesis(block: &Block) -> Result<()> {
             Err(e)
         }
     })?;
+    println!("response genesis {:?}", response);
     <AlkaneTransferParcel as Into<BalanceSheet<AtomicPointer>>>::into(response.alkanes.into())
         .save(
             &mut atomic.derive(
