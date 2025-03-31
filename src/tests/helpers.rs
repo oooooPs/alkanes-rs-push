@@ -26,13 +26,13 @@ use std::str::FromStr;
 #[cfg(test)]
 use crate::tests::std::alkanes_std_test_build;
 
-#[cfg(not(all(
-    feature = "mainnet",
-    feature = "testnet",
-    feature = "luckycoin",
-    feature = "dogecoin",
-    feature = "bellscoin"
-)))]
+#[cfg(all(
+    not(feature = "mainnet"),
+    not(feature = "dogecoin"),
+    not(feature = "bellscoin"),
+    not(feature = "fractal"),
+    not(feature = "luckycoin")
+))]
 pub fn configure_network() {
     set_network(NetworkParams {
         bech32_prefix: String::from("bcrt"),
