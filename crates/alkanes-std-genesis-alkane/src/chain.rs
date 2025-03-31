@@ -2,6 +2,12 @@ use alkanes_runtime::runtime::AlkaneResponder;
 use alkanes_support::{response::CallResponse, utils::overflow_error};
 use anyhow::Result;
 
+#[allow(unused_imports)]
+use alkanes_runtime::{
+    println,
+    stdio::{stdout, Write},
+};
+
 pub struct ContextHandle(());
 
 impl AlkaneResponder for ContextHandle {

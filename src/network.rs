@@ -1,5 +1,4 @@
 use crate::message::AlkaneMessageContext;
-#[allow(unused_imports)]
 use crate::precompiled::{
     alkanes_std_genesis_alkane_dogecoin_build, alkanes_std_genesis_alkane_fractal_build,
     alkanes_std_genesis_alkane_luckycoin_build, alkanes_std_genesis_alkane_mainnet_build,
@@ -19,7 +18,8 @@ use metashrew::index_pointer::{AtomicPointer, IndexPointer};
 use metashrew_support::index_pointer::KeyValuePointer;
 use protorune::balance_sheet::PersistentRecord;
 use protorune::message::{MessageContext, MessageContextParcel};
-use protorune::tables::RuneTable;
+#[allow(unused_imports)]
+use protorune::tables::{RuneTable, RUNES};
 use protorune_support::balance_sheet::BalanceSheet;
 use protorune_support::utils::outpoint_encode;
 use std::sync::Arc;
@@ -76,9 +76,10 @@ pub fn genesis_alkane_bytes() -> Vec<u8> {
     not(feature = "luckycoin")
 ))]
 pub mod genesis {
-    pub const GENESIS_BLOCK: u64 = 0;
+    pub const GENESIS_BLOCK: u64 = 840_000;
     pub const GENESIS_OUTPOINT: &str =
         "3977b30a97c9b9d609afb4b7cc138e17b21d1e0c5e360d25debf1441de933bf4";
+    pub const GENESIS_OUTPOINT_BLOCK_HEIGHT: u64 = 0;
 }
 
 #[cfg(feature = "mainnet")]
@@ -86,6 +87,7 @@ pub mod genesis {
     pub const GENESIS_BLOCK: u64 = 880_000;
     pub const GENESIS_OUTPOINT: &str =
         "3977b30a97c9b9d609afb4b7cc138e17b21d1e0c5e360d25debf1441de933bf4";
+    pub const GENESIS_OUTPOINT_BLOCK_HEIGHT: u64 = 872_101;
 }
 
 #[cfg(feature = "fractal")]
@@ -93,6 +95,7 @@ pub mod genesis {
     pub const GENESIS_BLOCK: u64 = 400_000;
     pub const GENESIS_OUTPOINT: &str =
         "cf2b52ffaaf1c094df22f190b888fb0e474fe62990547a34e144ec9f8e135b07";
+    pub const GENESIS_OUTPOINT_BLOCK_HEIGHT: u64 = 228_194;
 }
 
 #[cfg(feature = "dogecoin")]
@@ -100,6 +103,7 @@ pub mod genesis {
     pub const GENESIS_BLOCK: u64 = 6_000_000;
     pub const GENESIS_OUTPOINT: &str =
         "cf2b52ffaaf1c094df22f190b888fb0e474fe62990547a34e144ec9f8e135b07";
+    pub const GENESIS_OUTPOINT_BLOCK_HEIGHT: u64 = 872_101;
 }
 
 #[cfg(feature = "luckycoin")]
@@ -107,6 +111,7 @@ pub mod genesis {
     pub const GENESIS_BLOCK: u64 = 400_000;
     pub const GENESIS_OUTPOINT: &str =
         "cf2b52ffaaf1c094df22f190b888fb0e474fe62990547a34e144ec9f8e135b07";
+    pub const GENESIS_OUTPOINT_BLOCK_HEIGHT: u64 = 872_101;
 }
 
 #[cfg(feature = "bellscoin")]
@@ -114,6 +119,7 @@ pub mod genesis {
     pub const GENESIS_BLOCK: u64 = 500_000;
     pub const GENESIS_OUTPOINT: &str =
         "2c58484a86e117a445c547d8f3acb56b569f7ea036637d909224d52a5b990259";
+    pub const GENESIS_OUTPOINT_BLOCK_HEIGHT: u64 = 288_906;
 }
 
 pub fn is_active(height: u64) -> bool {
@@ -135,6 +141,7 @@ pub fn get_view_mode() -> bool {
 pub fn is_genesis(height: u64) -> bool {
     let mut init_ptr = IndexPointer::from_keyword("/seen-genesis");
     let has_not_seen_genesis = init_ptr.get().len() == 0;
+    println!("has_not_seen_genesis: {}", has_not_seen_genesis);
     let is_genesis = if has_not_seen_genesis {
         get_view_mode() || height >= genesis::GENESIS_BLOCK
     } else {
@@ -183,20 +190,19 @@ pub fn genesis(block: &Block) -> Result<()> {
             Err(e)
         }
     })?;
+    let outpoint_bytes = outpoint_encode(&OutPoint {
+        txid: Txid::from_byte_array(
+            <Vec<u8> as AsRef<[u8]>>::as_ref(&hex::decode(genesis::GENESIS_OUTPOINT)?)
+                .try_into()?,
+        ),
+        vout: 0,
+    })?;
     <AlkaneTransferParcel as Into<BalanceSheet<AtomicPointer>>>::into(response.alkanes.into())
         .save(
             &mut atomic.derive(
                 &RuneTable::for_protocol(AlkaneMessageContext::protocol_tag())
                     .OUTPOINT_TO_RUNES
-                    .select(&outpoint_encode(&OutPoint {
-                        txid: Txid::from_byte_array(
-                            <Vec<u8> as AsRef<[u8]>>::as_ref(&hex::decode(
-                                genesis::GENESIS_OUTPOINT,
-                            )?)
-                            .try_into()?,
-                        ),
-                        vout: 0,
-                    })?),
+                    .select(&outpoint_bytes),
             ),
             false,
         );
@@ -204,6 +210,17 @@ pub fn genesis(block: &Block) -> Result<()> {
         &response.storage,
         &mut atomic.derive(&IndexPointer::from_keyword("/alkanes/").select(&myself.clone().into())),
     );
+
+    atomic
+        .derive(&RUNES.OUTPOINT_TO_HEIGHT.select(&outpoint_bytes))
+        .set_value(genesis::GENESIS_OUTPOINT_BLOCK_HEIGHT);
+    atomic
+        .derive(
+            &RUNES
+                .HEIGHT_TO_TRANSACTION_IDS
+                .select_value::<u64>(genesis::GENESIS_OUTPOINT_BLOCK_HEIGHT),
+        )
+        .append(Arc::new(hex::decode(genesis::GENESIS_OUTPOINT)?));
     atomic.commit();
     Ok(())
 }
