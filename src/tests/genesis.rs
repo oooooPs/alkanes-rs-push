@@ -218,7 +218,7 @@ fn test_genesis_alkane_key() -> Result<()> {
 }
 
 #[wasm_bindgen_test]
-fn test_genesis_mainnet() -> Result<()> {
+fn test_genesis_indexer_premine() -> Result<()> {
     use bitcoin::Txid;
 
     clear();

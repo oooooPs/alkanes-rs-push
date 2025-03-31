@@ -147,8 +147,7 @@ pub fn is_genesis(height: u64) -> bool {
     is_genesis
 }
 
-pub fn genesis(block: &Block) -> Result<()> {
-    println!("in genesis");
+pub fn genesis(block: &Block, height: u32) -> Result<()> {
     IndexPointer::from_keyword("/alkanes/")
         .select(&(AlkaneId { block: 2, tx: 0 }).into())
         .set(Arc::new(compress(genesis_alkane_bytes())?));
@@ -165,7 +164,7 @@ pub fn genesis(block: &Block) -> Result<()> {
             lock_time: bitcoin::absolute::LockTime::ZERO,
         },
         block: block.clone(),
-        height: genesis::GENESIS_BLOCK,
+        height: height,
         pointer: 0,
         refund_pointer: 0,
         calldata: (Cellpack {
