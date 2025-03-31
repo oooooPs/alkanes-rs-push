@@ -15,6 +15,7 @@ use metashrew::{get_cache, index_pointer::IndexPointer, println, stdio::stdout};
 use metashrew_support::index_pointer::KeyValuePointer;
 use protorune::test_helpers::create_block_with_coinbase_tx;
 use protorune::{balance_sheet::load_sheet, message::MessageContext, tables::RuneTable};
+use protorune_support::balance_sheet::{BalanceSheetOperations, ProtoruneRuneId};
 use protorune_support::utils::consensus_encode;
 use std::fmt::Write;
 use wasm_bindgen_test::wasm_bindgen_test;
@@ -242,5 +243,10 @@ fn test_genesis_indexer_premine() -> Result<()> {
     let sheet = load_sheet(&ptr);
 
     println!("Balances at end: {:?}", sheet);
+    let genesis_id = ProtoruneRuneId { block: 2, tx: 0 };
+    assert_eq!(
+        sheet.get(&genesis_id),
+        50_000_000u128 * (block_height as u128)
+    );
     Ok(())
 }
