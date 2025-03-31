@@ -13,13 +13,14 @@ use bitcoin::hashes::Hash;
 #[allow(unused_imports)]
 use metashrew::{get_cache, index_pointer::IndexPointer, println, stdio::stdout};
 use metashrew_support::index_pointer::KeyValuePointer;
-use protorune::test_helpers::create_block_with_coinbase_tx;
+use protorune::test_helpers::{create_block_with_coinbase_tx, create_protostone_encoded_tx};
+use protorune::view::protorune_outpoint_to_outpoint_response;
 use protorune::{balance_sheet::load_sheet, message::MessageContext, tables::RuneTable};
-use protorune_support::balance_sheet::{BalanceSheetOperations, ProtoruneRuneId};
+use protorune_support::balance_sheet::{BalanceSheet, BalanceSheetOperations, ProtoruneRuneId};
+use protorune_support::protostone::Protostone;
 use protorune_support::utils::consensus_encode;
 use std::fmt::Write;
 use wasm_bindgen_test::wasm_bindgen_test;
-
 // Struct to track fuel benchmarks
 struct FuelBenchmark {
     operation: String,
@@ -246,6 +247,40 @@ fn test_genesis_indexer_premine() -> Result<()> {
     let genesis_id = ProtoruneRuneId { block: 2, tx: 0 };
     assert_eq!(
         sheet.get(&genesis_id),
+        50_000_000u128 * (block_height as u128)
+    );
+    let out = protorune_outpoint_to_outpoint_response(&outpoint, 1)?;
+    let out_sheet: BalanceSheet<IndexPointer> = out.into();
+    assert_eq!(sheet, out_sheet);
+
+    // make sure premine is spendable
+    let mut spend_block = create_block_with_coinbase_tx(block_height);
+    let spend_tx = create_protostone_encoded_tx(
+        outpoint.clone(),
+        vec![Protostone {
+            burn: None,
+            edicts: vec![],
+            pointer: Some(0),
+            refund: None,
+            from: None,
+            protocol_tag: 13,
+            message: vec![],
+        }],
+    );
+    spend_block.txdata.push(spend_tx.clone());
+    index_block(&spend_block, 880_001);
+    let new_outpoint = OutPoint {
+        txid: spend_tx.compute_txid(),
+        vout: 0,
+    };
+    let new_ptr = RuneTable::for_protocol(AlkaneMessageContext::protocol_tag())
+        .OUTPOINT_TO_RUNES
+        .select(&consensus_encode(&new_outpoint)?);
+    let new_sheet = load_sheet(&new_ptr);
+
+    let genesis_id = ProtoruneRuneId { block: 2, tx: 0 };
+    assert_eq!(
+        new_sheet.get(&genesis_id),
         50_000_000u128 * (block_height as u128)
     );
     Ok(())
