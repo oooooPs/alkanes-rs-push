@@ -263,12 +263,12 @@ fn test_genesis_indexer_premine() -> Result<()> {
             pointer: Some(0),
             refund: None,
             from: None,
-            protocol_tag: 13,
+            protocol_tag: 1,
             message: vec![],
         }],
     );
     spend_block.txdata.push(spend_tx.clone());
-    index_block(&spend_block, 880_001);
+    index_block(&spend_block, 880_001)?;
     let new_outpoint = OutPoint {
         txid: spend_tx.compute_txid(),
         vout: 0,
