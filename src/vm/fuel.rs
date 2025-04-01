@@ -150,29 +150,34 @@ impl FuelTank {
                 tank.block_fuel - std::cmp::min(tank.block_fuel, tank.block_metered_fuel);
             tank.txsize = txsize;
 
-            // Log fuel allocation details
-            println!("Fuel allocation for transaction {}:", txindex);
-            println!("  - Transaction size: {} bytes", txsize);
-            println!("  - Block size: {} bytes", tank.size);
-            println!("  - Block fuel before: {}", block_fuel_before);
-            println!("  - Block fuel after: {}", tank.block_fuel);
-            println!("  - Allocated fuel: {}", tank.transaction_fuel);
-            println!("  - Minimum fuel: {}", MINIMUM_FUEL);
+            #[cfg(feature = "debug-log")]
+            {
+                println!("Fuel allocation for transaction {}:", txindex);
+                println!("  - Transaction size: {} bytes", txsize);
+                println!("  - Block size: {} bytes", tank.size);
+                println!("  - Block fuel before: {}", block_fuel_before);
+                println!("  - Block fuel after: {}", tank.block_fuel);
+                println!("  - Allocated fuel: {}", tank.transaction_fuel);
+                println!("  - Minimum fuel: {}", MINIMUM_FUEL);
+            }
         }
     }
     pub fn refuel_block() {
         unsafe {
             let tank: &'static mut FuelTank = _FUEL_TANK.as_mut().unwrap();
 
-            // Log refunding details before refunding
-            println!(
-                "Refunding fuel to block after transaction {}:",
-                tank.current_txindex
-            );
-            println!("  - Block fuel before refund: {}", tank.block_fuel);
-            println!("  - Remaining metered fuel: {}", tank.block_metered_fuel);
-            println!("  - Transaction size: {} bytes", tank.txsize);
-            println!("  - Block size before update: {} bytes", tank.size);
+            #[cfg(feature = "debug-log")]
+            {
+                // Log refunding details before refunding
+                println!(
+                    "Refunding fuel to block after transaction {}:",
+                    tank.current_txindex
+                );
+                println!("  - Block fuel before refund: {}", tank.block_fuel);
+                println!("  - Remaining metered fuel: {}", tank.block_metered_fuel);
+                println!("  - Transaction size: {} bytes", tank.txsize);
+                println!("  - Block size before update: {} bytes", tank.size);
+            }
 
             // Only refund the remaining fuel (block_metered_fuel) that wasn't consumed
             // This value is updated by consume_fuel() to reflect the remaining amount
@@ -180,9 +185,12 @@ impl FuelTank {
             tank.block_fuel = tank.block_fuel + tank.block_metered_fuel;
             tank.size = tank.size - tank.txsize;
 
-            // Log after refunding
-            println!("  - Block fuel after refund: {}", tank.block_fuel);
-            println!("  - Block size after update: {} bytes", tank.size);
+            #[cfg(feature = "debug-log")]
+            {
+                // Log refunding details after refunding
+                println!("  - Block fuel after refund: {}", tank.block_fuel);
+                println!("  - Block size after update: {} bytes", tank.size);
+            }
         }
     }
     pub fn consume_fuel(n: u64) -> Result<()> {
