@@ -20,6 +20,8 @@ pub mod edict_then_message;
 #[cfg(test)]
 pub mod forge;
 #[cfg(test)]
+pub mod fuel;
+#[cfg(test)]
 pub mod genesis;
 #[cfg(test)]
 pub mod networks;
