@@ -31,6 +31,18 @@ enum LoggerAlkaneMessage {
     #[returns(Vec<u8>)]
     ReturnData1,
 
+    #[opcode(11)]
+    ProcessNumbers { numbers: Vec<u128> },
+
+    #[opcode(12)]
+    ProcessStrings { strings: Vec<String> },
+
+    #[opcode(13)]
+    ProcessNestedVec { nested: Vec<Vec<u128>> },
+
+    #[opcode(20)]
+    TestInfiniteLoop,
+
     #[opcode(50)]
     GetTransaction,
 
@@ -40,15 +52,6 @@ enum LoggerAlkaneMessage {
     #[opcode(99)]
     #[returns(Vec<u8>)]
     ReturnDefaultData,
-
-    #[opcode(11)]
-    ProcessNumbers { numbers: Vec<u128> },
-
-    #[opcode(12)]
-    ProcessStrings { strings: Vec<String> },
-
-    #[opcode(13)]
-    ProcessNestedVec { nested: Vec<Vec<u128>> },
 }
 
 impl LoggerAlkane {
@@ -125,6 +128,15 @@ impl LoggerAlkane {
                 break;
             }
         }
+
+        Ok(response)
+    }
+
+    fn test_infinite_loop(&self) -> Result<CallResponse> {
+        let context = self.context()?;
+        let mut response = CallResponse::forward(&context.incoming_alkanes);
+
+        loop {}
 
         Ok(response)
     }
