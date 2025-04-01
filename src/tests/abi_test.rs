@@ -345,7 +345,8 @@ fn test_logger_alkane_abi() -> Result<()> {
             13,
             vec![("nested", "Vec<Vec<u128>>")],
             "void",
-        )("test_infinite_loop", 20, vec![], "void"),
+        ),
+        ("test_infinite_loop", 20, vec![], "void"),
     ];
 
     test_contract_abi(
