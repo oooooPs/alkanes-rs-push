@@ -1,15 +1,14 @@
-use crate::{message::AlkaneMessageContext, tests::std::alkanes_std_test_build};
+use crate::tests::std::alkanes_std_test_build;
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::id::AlkaneId;
-use anyhow::{anyhow, Result};
+use alkanes_support::trace::{Trace, TraceEvent};
+use anyhow::Result;
 use bitcoin::OutPoint;
-use metashrew_support::utils::consensus_encode;
 
 use crate::index_block;
-use crate::tests::helpers::{self as alkane_helpers, assert_binary_deployed_to_id};
+use crate::tests::helpers::{self as alkane_helpers};
 use alkane_helpers::clear;
 use alkanes::view;
-use bitcoin::Witness;
 #[allow(unused_imports)]
 use metashrew::{
     println,
@@ -38,19 +37,22 @@ fn test_infinite_loop() -> Result<()> {
 
     index_block(&test_block, block_height)?;
 
-    // Verify the binary was deployed correctly
-    let _ = assert_binary_deployed_to_id(
-        logger_alkane_id.clone(),
-        alkanes_std_test_build::get_bytes(),
-    );
-
     let outpoint = OutPoint {
         txid: test_block.txdata.last().unwrap().compute_txid(),
         vout: 3,
     };
 
-    let trace_data = view::trace(&outpoint)?;
-    println!("trace: {:?}", trace_data);
+    let trace_data: Trace = view::trace(&outpoint)?.try_into()?;
+    let trace_events = trace_data.0.lock().expect("Mutex poisoned");
+    let last_trace_event = trace_events[trace_events.len() - 1].clone();
+    match last_trace_event {
+        TraceEvent::RevertContext(trace_response) => {
+            // Now we have the TraceResponse, access the data field
+            let data = String::from_utf8_lossy(&trace_response.inner.data);
+            assert!(data.contains("ALKANES: revert: all fuel consumed by WebAssembly"));
+        }
+        _ => panic!("Expected RevertContext variant, but got a different variant"),
+    }
 
     Ok(())
 }
