@@ -608,6 +608,7 @@ impl AlkanesHostFunctionsImpl {
             let data = mem.data(&caller);
             read_arraybuffer(data, v)?
         };
+        print!("{}", String::from_utf8(message)?);
         Ok(())
     }
 }
