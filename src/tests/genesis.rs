@@ -235,6 +235,7 @@ fn test_genesis_indexer_premine() -> Result<()> {
             <Vec<u8> as AsRef<[u8]>>::as_ref(
                 &hex::decode(genesis::GENESIS_OUTPOINT)?
                     .iter()
+                    .cloned()
                     .rev()
                     .collect::<Vec<u8>>(),
             )
