@@ -191,9 +191,14 @@ pub fn genesis(block: &Block) -> Result<()> {
         }
     })?;
     let outpoint_bytes = outpoint_encode(&OutPoint {
-        txid: Txid::from_byte_array(
-            <Vec<u8> as AsRef<[u8]>>::as_ref(&hex::decode(genesis::GENESIS_OUTPOINT)?)
-                .try_into()?,
+        txid: &Txid::from_byte_array(
+            <Vec<u8> as AsRef<[u8]>>::as_ref(
+                &hex::decode(genesis::GENESIS_OUTPOINT)?
+                    .iter()
+                    .rev()
+                    .collect::<Vec<u8>>(),
+            )
+            .try_into()?,
         ),
         vout: 0,
     })?;
