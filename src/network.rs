@@ -192,8 +192,14 @@ pub fn genesis(block: &Block) -> Result<()> {
     })?;
     let outpoint_bytes = outpoint_encode(&OutPoint {
         txid: Txid::from_byte_array(
-            <Vec<u8> as AsRef<[u8]>>::as_ref(&hex::decode(genesis::GENESIS_OUTPOINT)?)
-                .try_into()?,
+            <Vec<u8> as AsRef<[u8]>>::as_ref(
+                &hex::decode(genesis::GENESIS_OUTPOINT)?
+                    .iter()
+                    .cloned()
+                    .rev()
+                    .collect::<Vec<u8>>(),
+            )
+            .try_into()?,
         ),
         vout: 0,
     })?;
@@ -220,7 +226,13 @@ pub fn genesis(block: &Block) -> Result<()> {
                 .HEIGHT_TO_TRANSACTION_IDS
                 .select_value::<u64>(genesis::GENESIS_OUTPOINT_BLOCK_HEIGHT),
         )
-        .append(Arc::new(hex::decode(genesis::GENESIS_OUTPOINT)?));
+        .append(Arc::new(
+            hex::decode(genesis::GENESIS_OUTPOINT)?
+                .iter()
+                .cloned()
+                .rev()
+                .collect::<Vec<u8>>(),
+        ));
     atomic.commit();
     Ok(())
 }

@@ -232,8 +232,14 @@ fn test_genesis_indexer_premine() -> Result<()> {
     index_block(&test_block, block_height)?;
     let outpoint = OutPoint {
         txid: Txid::from_byte_array(
-            <Vec<u8> as AsRef<[u8]>>::as_ref(&hex::decode(genesis::GENESIS_OUTPOINT)?)
-                .try_into()?,
+            <Vec<u8> as AsRef<[u8]>>::as_ref(
+                &hex::decode(genesis::GENESIS_OUTPOINT)?
+                    .iter()
+                    .cloned()
+                    .rev()
+                    .collect::<Vec<u8>>(),
+            )
+            .try_into()?,
         ),
         vout: 0,
     };
