@@ -350,7 +350,7 @@ impl AlkanesInstance {
         if current_pages < 512 {
             memory
                 .grow(&mut alkanes_instance.store, 512 - current_pages)
-                .map_err(|e| anyhow::Error::new(e).context("Failed to grow memory"))?;
+                .expect("Failed to grow memory");
         }
 
         Ok(alkanes_instance)
