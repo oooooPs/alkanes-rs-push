@@ -22,7 +22,7 @@ protobuf = "3"
 anyhow = "1.0.89"
 wasm-bindgen-test = "0.3.49"
 hex = "0.4.3"
-metashrew-support = { path = "../metashrew-support", version = "0.1.0" }
+metashrew-support = { path = "../metashrew-support" }
 
 [build-dependencies]
 protobuf-codegen = "3.4.0"

@@ -31,7 +31,7 @@ dependencies = [
 
 [[package]]
 name = "alkanes"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "alkanes",
  "alkanes-support",
@@ -46,7 +46,7 @@ dependencies = [
  "metashrew-support",
  "num",
  "once_cell",
- "ordinals 0.0.10",
+ "ordinals 0.2.0",
  "protobuf 3.7.1",
  "protobuf-codegen 3.7.1",
  "protoc-bin-vendored",
@@ -65,7 +65,7 @@ dependencies = [
 
 [[package]]
 name = "alkanes-build"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "clap",
  "hex",
@@ -73,7 +73,7 @@ dependencies = [
 
 [[package]]
 name = "alkanes-macros"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ciborium",
  "proc-macro2",
@@ -84,7 +84,7 @@ dependencies = [
 
 [[package]]
 name = "alkanes-runtime"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "alkanes-macros",
  "alkanes-support",
@@ -97,7 +97,7 @@ dependencies = [
 
 [[package]]
 name = "alkanes-std-auth-token"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "alkanes-runtime",
  "alkanes-support",
@@ -109,19 +109,19 @@ dependencies = [
 
 [[package]]
 name = "alkanes-std-factory-support"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "alkanes-runtime",
  "alkanes-support",
  "anyhow",
  "bitcoin 0.32.5",
  "metashrew-support",
- "ordinals 0.0.10",
+ "ordinals 0.2.0",
 ]
 
 [[package]]
 name = "alkanes-std-genesis-alkane"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "alkanes-runtime",
  "alkanes-support",
@@ -134,7 +134,7 @@ dependencies = [
 
 [[package]]
 name = "alkanes-std-genesis-protorune"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "alkanes-runtime",
  "alkanes-support",
@@ -147,7 +147,7 @@ dependencies = [
 
 [[package]]
 name = "alkanes-std-merkle-distributor"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "alkanes-runtime",
  "alkanes-support",
@@ -155,7 +155,7 @@ dependencies = [
  "bitcoin 0.32.5",
  "metashrew-support",
  "num",
- "ordinals 0.0.10",
+ "ordinals 0.2.0",
  "protorune-support",
  "rs_merkle",
  "ruint",
@@ -163,7 +163,7 @@ dependencies = [
 
 [[package]]
 name = "alkanes-std-orbital"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "alkanes-runtime",
  "alkanes-support",
@@ -177,7 +177,7 @@ dependencies = [
 
 [[package]]
 name = "alkanes-std-owned-token"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "alkanes-runtime",
  "alkanes-std-factory-support",
@@ -185,13 +185,13 @@ dependencies = [
  "anyhow",
  "bitcoin 0.32.5",
  "metashrew-support",
- "ordinals 0.0.10",
+ "ordinals 0.2.0",
  "protorune-support",
 ]
 
 [[package]]
 name = "alkanes-std-proxy"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "alkanes-runtime",
  "alkanes-support",
@@ -203,7 +203,7 @@ dependencies = [
 
 [[package]]
 name = "alkanes-std-test"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "alkanes-runtime",
  "alkanes-support",
@@ -215,7 +215,7 @@ dependencies = [
 
 [[package]]
 name = "alkanes-std-upgradeable"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "alkanes-runtime",
  "alkanes-support",
@@ -227,7 +227,7 @@ dependencies = [
 
 [[package]]
 name = "alkanes-support"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "bitcoin 0.32.5",
@@ -1633,7 +1633,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "metashrew"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "bitcoin 0.31.2",
@@ -1652,7 +1652,7 @@ dependencies = [
 
 [[package]]
 name = "metashrew-support"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "bech32 0.11.0",
@@ -1839,7 +1839,7 @@ dependencies = [
 
 [[package]]
 name = "ordinals"
-version = "0.0.10"
+version = "0.2.0"
 dependencies = [
  "bitcoin 0.32.5",
  "derive_more 1.0.0",
@@ -2118,7 +2118,7 @@ dependencies = [
 
 [[package]]
 name = "protorune"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "bitcoin 0.32.5",
@@ -2128,7 +2128,7 @@ dependencies = [
  "metashrew",
  "metashrew-support",
  "once_cell",
- "ordinals 0.0.10",
+ "ordinals 0.2.0",
  "protobuf 3.7.1",
  "protorune",
  "protorune-support",
@@ -2142,14 +2142,14 @@ dependencies = [
 
 [[package]]
 name = "protorune-support"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "bech32 0.11.0",
  "bitcoin 0.32.5",
  "hex",
  "metashrew-support",
- "ordinals 0.0.10",
+ "ordinals 0.2.0",
  "protobuf 3.7.1",
  "protobuf-codegen 3.7.1",
  "protoc-bin-vendored",

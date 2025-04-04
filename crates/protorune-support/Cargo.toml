@@ -13,7 +13,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 bitcoin = { version = "0.32.4", features = ["rand"] }
 serde = "1.0.210"
-ordinals = { version = "0.0.10", path = "../ordinals" }
+ordinals = { path = "../ordinals" }
 anyhow = "1.0.90"
 metashrew-support = { path = "../metashrew-support" }
 hex = "0.4.3"
