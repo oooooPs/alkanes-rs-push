@@ -1,6 +1,6 @@
 [package]
 name = "metashrew"
-version = "0.1.0"
+version = "0.2.0"
 description = "rust version of metashrew"
 repository = "https://github.com/sandshrewmetaprotocols/metashrew-rs"
 license = "MIT"
