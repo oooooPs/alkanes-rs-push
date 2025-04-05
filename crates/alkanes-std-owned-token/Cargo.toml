@@ -10,11 +10,11 @@ crate-type = ["cdylib", "rlib"]
 test = []
 
 [dependencies]
-alkanes-support = { path = "../../crates/alkanes-support" }
-alkanes-runtime = { path = "../../crates/alkanes-runtime" }
-metashrew-support = { path = "../../crates/metashrew-support" }
-protorune-support = { path = "../../crates/protorune-support" }
-alkanes-std-factory-support = { path = "../../crates/alkanes-std-factory-support" }
-ordinals = { path = "../../crates/ordinals" }
-anyhow = "1.0.94"
-bitcoin = { version = "0.32.4", features = ["rand"] }
+alkanes-support = { workspace = true }
+alkanes-runtime = { workspace = true }
+metashrew-support = { workspace = true }
+protorune-support = { workspace = true }
+alkanes-std-factory-support = { workspace = true }
+ordinals = { workspace = true }
+anyhow = { workspace = true }
+bitcoin = { workspace = true }

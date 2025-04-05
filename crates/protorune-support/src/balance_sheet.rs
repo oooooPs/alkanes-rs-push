@@ -13,7 +13,7 @@ use std::io::Cursor;
 use std::sync::Arc;
 use std::u128;
 
-// use metashrew::{println, stdio::stdout};
+// use metashrew_core::{println, stdio::stdout};
 // use std::fmt::Write;
 
 #[derive(
