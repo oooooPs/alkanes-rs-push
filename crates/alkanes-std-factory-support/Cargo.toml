@@ -10,9 +10,9 @@ crate-type = ["cdylib", "rlib"]
 test = []
 
 [dependencies]
-alkanes-support = { path = "../../crates/alkanes-support" }
-alkanes-runtime = { path = "../../crates/alkanes-runtime" }
-metashrew-support = { path = "../../crates/metashrew-support" }
-ordinals = { path = "../../crates/ordinals" }
-anyhow = "1.0.94"
-bitcoin = { version = "0.32.4", features = ["rand"] }
+alkanes-support = { workspace = true }
+alkanes-runtime = { workspace = true }
+metashrew-support = { workspace = true }
+ordinals = { workspace = true }
+anyhow = { workspace = true }
+bitcoin = { workspace = true }

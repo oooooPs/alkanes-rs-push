@@ -7,13 +7,13 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-alkanes-runtime = { path = "../alkanes-runtime" }
-alkanes-support = { path = "../alkanes-support" }
-anyhow = "1.0.91"
-bitcoin = { version = "0.32.4", features = ["rand"] }
-metashrew-support = { path = "../metashrew-support" }
-num = "0.4.3"
-protorune-support = { path = "../protorune-support" }
-ordinals = { path = "../ordinals" }
+alkanes-runtime = { workspace = true }
+alkanes-support = { workspace = true }
+anyhow = { workspace = true }
+bitcoin = { workspace = true }
+metashrew-support = { workspace = true }
+num = { workspace = true }
+protorune-support = { workspace = true }
+ordinals = { workspace = true }
 rs_merkle = "1.4.2"
-ruint = "1.12.3"
+ruint = { workspace = true }

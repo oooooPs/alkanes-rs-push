@@ -11,13 +11,13 @@ resolver = "2"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-anyhow = "1.0.90"
-protorune-support = { path = "../protorune-support" }
-metashrew-support = { path = "../metashrew-support" }
-bitcoin = { version = "0.32.4", features = ["rand"] }
+anyhow = { workspace = true }
+protorune-support = { workspace = true }
+metashrew-support = { workspace = true }
+bitcoin = { workspace = true }
 serde = "1.0.213"
 flate2 = "1.0.34"
-protobuf = "3.7.1"
+protobuf = { workspace = true }
 
 [build-dependencies]
 anyhow = "1.0.90"

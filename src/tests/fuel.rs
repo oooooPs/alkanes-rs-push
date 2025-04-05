@@ -10,7 +10,7 @@ use crate::tests::helpers::{self as alkane_helpers};
 use alkane_helpers::clear;
 use alkanes::view;
 #[allow(unused_imports)]
-use metashrew::{
+use metashrew_core::{
     println,
     stdio::{stdout, Write},
 };

@@ -2,8 +2,8 @@
 mod tests {
     use crate::balance_sheet::load_sheet;
     use crate::message::MessageContext;
-    use metashrew::index_pointer::{AtomicPointer, IndexPointer};
-    use metashrew::proto;
+    use metashrew_core::index_pointer::{AtomicPointer, IndexPointer};
+    use metashrew_support::proto;
     use protorune_support::balance_sheet::{BalanceSheet, ProtoruneRuneId};
     use protorune_support::protostone::Protostone;
 
@@ -21,7 +21,7 @@ mod tests {
 
     use helpers::clear;
     #[allow(unused_imports)]
-    use metashrew::{
+    use metashrew_core::{
         println,
         stdio::{stdout, Write},
     };
