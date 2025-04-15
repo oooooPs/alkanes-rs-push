@@ -67,7 +67,7 @@ fn test_extcall_mint() -> Result<()> {
     // Create a cellpack to call the process_numbers method (opcode 11)
     let arb_mint_cellpack = Cellpack {
         target: AlkaneId { block: 1, tx: 0 },
-        inputs: vec![31, 2, 1, 30, 2, 0],
+        inputs: vec![31, 2, 1, 3, 30, 2, 0],
     };
 
     // Initialize the contract and execute the cellpacks
