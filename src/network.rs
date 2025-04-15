@@ -1,4 +1,5 @@
 use crate::message::AlkaneMessageContext;
+#[allow(unused_imports)]
 use crate::precompiled::{
     alkanes_std_genesis_alkane_dogecoin_build, alkanes_std_genesis_alkane_fractal_build,
     alkanes_std_genesis_alkane_luckycoin_build, alkanes_std_genesis_alkane_mainnet_build,

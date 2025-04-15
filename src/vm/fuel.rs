@@ -139,7 +139,7 @@ impl FuelTank {
             tank.current_txindex = txindex;
 
             // Calculate fuel allocation based on transaction size
-            let block_fuel_before = tank.block_fuel;
+            let _block_fuel_before = tank.block_fuel;
             tank.block_metered_fuel = tank.block_fuel * txsize / tank.size;
 
             // Ensure minimum fuel allocation

@@ -13,6 +13,7 @@ use alkanes_support::{
     trace::{TraceContext, TraceEvent, TraceResponse},
     utils::overflow_error,
 };
+#[allow(unused_imports)]
 use anyhow::{anyhow, Result};
 use metashrew_core::index_pointer::IndexPointer;
 #[allow(unused_imports)]
@@ -517,7 +518,7 @@ impl AlkanesHostFunctionsImpl {
                 Self::restore_context(caller);
                 return Ok(0);
             }
-            let mut context_guard = caller.data_mut().context.lock().unwrap();
+            let context_guard = caller.data_mut().context.lock().unwrap();
 
             // Create subcontext
             let mut subbed = context_guard.clone();

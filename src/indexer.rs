@@ -8,9 +8,9 @@ use metashrew_core::{
     println,
     stdio::{stdout, Write},
 };
-use metashrew_support::index_pointer::KeyValuePointer;
-use protorune::message::MessageContext;
 use protorune::Protorune;
+#[allow(unused_imports)]
+use metashrew_support::index_pointer::KeyValuePointer;
 use protorune_support::network::{set_network, NetworkParams};
 
 #[cfg(all(
@@ -89,13 +89,13 @@ pub fn index_block(block: &Block, height: u32) -> Result<()> {
     FuelTank::initialize(&block);
 
     // Get the set of updated addresses from the indexing process
-    let updated_addresses =
-        Protorune::index_block::<AlkaneMessageContext>(block.clone(), height.into())?;
+    let _updated_addresses =
+      Protorune::index_block::<AlkaneMessageContext>(block.clone(), height.into())?;
 
     #[cfg(feature = "cache")]
     {
         // Cache the WalletResponse for each updated address
-        for address in updated_addresses {
+        for address in _updated_addresses {
             // Skip empty addresses
             if address.is_empty() {
                 continue;

@@ -10,6 +10,7 @@ use metashrew_core::{
 #[allow(unused_imports)]
 use metashrew_support::block::AuxpowBlock;
 use metashrew_support::compat::export_bytes;
+#[allow(unused_imports)]
 use metashrew_support::index_pointer::KeyValuePointer;
 use metashrew_support::utils::{consensus_decode, consume_sized_int, consume_to_end};
 use protobuf::{Message, MessageField};
@@ -179,7 +180,7 @@ pub fn protorunesbyaddress() -> i32 {
   let mut data: Cursor<Vec<u8>> = Cursor::new(input());
   let _height = consume_sized_int::<u32>(&mut data).unwrap();
   let input_data = consume_to_end(&mut data).unwrap();
-  let request = protorune_support::proto::protorune::ProtorunesWalletRequest::parse_from_bytes(&input_data).unwrap();
+//  let _request = protorune_support::proto::protorune::ProtorunesWalletRequest::parse_from_bytes(&input_data).unwrap();
 
   let mut result: protorune_support::proto::protorune::WalletResponse =
   view::protorunes_by_address(&input_data)
