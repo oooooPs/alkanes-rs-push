@@ -518,7 +518,7 @@ impl AlkanesHostFunctionsImpl {
                 Self::restore_context(caller);
                 return Ok(0);
             }
-            let mut context_guard = caller.data_mut().context.lock().unwrap();
+            let context_guard = caller.data_mut().context.lock().unwrap();
 
             // Create subcontext
             let mut subbed = context_guard.clone();

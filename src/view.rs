@@ -129,7 +129,7 @@ pub fn call_multiview(ids: &[AlkaneId], inputs: &Vec<Vec<u128>>, fuel: u64) -> R
     let mut response: Vec<u8> = vec![];
 
     for result in results {
-        let (result, gas_used) = result.unwrap();
+        let (result, _gas_used) = result.unwrap();
         response.extend_from_slice(&result.data.len().to_le_bytes());
         response.extend_from_slice(&result.data);
     }
