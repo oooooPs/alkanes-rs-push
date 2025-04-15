@@ -5,8 +5,11 @@ use protorune_support::balance_sheet::{BalanceSheet, BalanceSheetOperations, Pro
 use protorune_support::rune_transfer::{increase_balances_using_sheet, RuneTransfer};
 use std::collections::HashMap;
 
-use metashrew_core::{println, stdio::stdout};
-use std::fmt::Write;
+#[allow(unused_imports)]
+use {
+  metashrew_core::{println, stdio::stdout},
+  std::fmt::Write
+};
 
 // use metashrew_core::{println, stdio::stdout};
 // use std::fmt::Write;

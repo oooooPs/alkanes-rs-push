@@ -13,6 +13,7 @@ use alkanes_support::{
     trace::{TraceContext, TraceEvent, TraceResponse},
     utils::overflow_error,
 };
+#[allow(unused_imports)]
 use anyhow::{anyhow, Result};
 use metashrew_core::index_pointer::IndexPointer;
 #[allow(unused_imports)]
