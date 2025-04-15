@@ -39,6 +39,9 @@ fn test_arbitrary_mint() -> Result<()> {
 
     println!("Last sheet: {:?}", sheet);
 
+    assert_eq!(sheet.get_cached(&ProtoruneRuneId { block: 2, tx: 0 }), 0);
+    assert_eq!(sheet.get_cached(&ProtoruneRuneId { block: 2, tx: 1 }), 0);
+
     let outpoint = OutPoint {
         txid: test_block.txdata.last().unwrap().compute_txid(),
         vout: 3,
@@ -95,6 +98,9 @@ fn test_extcall_mint() -> Result<()> {
     let sheet = alkane_helpers::get_last_outpoint_sheet(&test_block)?;
 
     println!("Last sheet: {:?}", sheet);
+
+    assert_eq!(sheet.get_cached(&ProtoruneRuneId { block: 2, tx: 0 }), 0);
+    assert_eq!(sheet.get_cached(&ProtoruneRuneId { block: 2, tx: 1 }), 0);
 
     let outpoint = OutPoint {
         txid: test_block.txdata.last().unwrap().compute_txid(),
