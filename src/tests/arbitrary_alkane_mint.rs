@@ -3,7 +3,7 @@ use alkanes_support::cellpack::Cellpack;
 use alkanes_support::id::AlkaneId;
 use alkanes_support::trace::{Trace, TraceEvent};
 use anyhow::Result;
-use bitcoin::OutPoint;
+use bitcoin::{OutPoint, Witness};
 
 use crate::index_block;
 use crate::tests::helpers::{self as alkane_helpers};
@@ -65,16 +65,30 @@ fn test_extcall_mint() -> Result<()> {
     let block_height = 840_000;
 
     // Create a cellpack to call the process_numbers method (opcode 11)
-    let arb_mint_cellpack = Cellpack {
+    let init_cellpack = Cellpack {
         target: AlkaneId { block: 1, tx: 0 },
-        inputs: vec![31, 2, 1, 3, 30, 2, 0],
+        inputs: vec![50],
     };
 
     // Initialize the contract and execute the cellpacks
     let mut test_block = alkane_helpers::init_with_multiple_cellpacks_with_tx(
         [alkanes_std_test_build::get_bytes()].into(),
-        [arb_mint_cellpack].into(),
+        [init_cellpack].into(),
     );
+
+    // Create a cellpack to call the process_numbers method (opcode 11)
+    let arb_mint_cellpack = Cellpack {
+        target: AlkaneId { block: 2, tx: 1 },
+        inputs: vec![31, 2, 1, 3, 30, 2, 0],
+    };
+
+    test_block
+        .txdata
+        .push(alkane_helpers::create_multiple_cellpack_with_witness(
+            Witness::new(),
+            vec![arb_mint_cellpack],
+            false,
+        ));
 
     index_block(&test_block, block_height)?;
 
@@ -94,7 +108,7 @@ fn test_extcall_mint() -> Result<()> {
         TraceEvent::RevertContext(trace_response) => {
             // Now we have the TraceResponse, access the data field
             let data = String::from_utf8_lossy(&trace_response.inner.data);
-            assert!(data.contains("overflow error"));
+            assert!(data.contains("ALKANES: revert: wasm `unreachable` instruction executed"));
         }
         _ => panic!("Expected RevertContext variant, but got a different variant"),
     }
