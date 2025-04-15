@@ -1,4 +1,4 @@
-use alkanes::message::AlkaneMessageContext;
+use crate::message::AlkaneMessageContext;
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::envelope::RawEnvelope;
 use alkanes_support::gz::compress;

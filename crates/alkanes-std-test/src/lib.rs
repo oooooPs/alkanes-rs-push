@@ -47,6 +47,9 @@ enum LoggerAlkaneMessage {
     #[opcode(30)]
     TestArbitraryMint { alkane: AlkaneId },
 
+    #[opcode(31)]
+    TestExtCall { target: AlkaneId, inputs: Vec<u128> },
+
     #[opcode(50)]
     GetTransaction,
 
@@ -154,6 +157,16 @@ impl LoggerAlkane {
             value: 1_000_000,
         });
 
+        Ok(response)
+    }
+
+    fn test_ext_call(&self, target: AlkaneId, inputs: Vec<u128>) -> Result<CallResponse> {
+        let context = self.context()?;
+        let cellpack = Cellpack {
+            target: target,
+            inputs: inputs,
+        };
+        let response = self.call(&cellpack, &context.incoming_alkanes, self.fuel())?;
         Ok(response)
     }
 
