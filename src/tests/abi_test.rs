@@ -350,7 +350,7 @@ fn test_logger_alkane_abi() -> Result<()> {
         (
             "test_arbitrary_mint",
             30,
-            vec![("alkane", "AlakneId")],
+            vec![("alkane", "AlkaneId")],
             "void",
         ),
         (
