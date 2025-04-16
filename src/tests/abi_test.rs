@@ -356,7 +356,7 @@ fn test_logger_alkane_abi() -> Result<()> {
         (
             "test_ext_call",
             31,
-            vec![("target", "AlakneId"), ("inputs", "Vec<u128>")],
+            vec![("target", "AlkaneId"), ("inputs", "Vec<u128>")],
             "void",
         ),
     ];
