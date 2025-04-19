@@ -10,7 +10,7 @@ use balance_sheet::clear_balances;
 use bitcoin::blockdata::block::Block;
 use bitcoin::hashes::Hash;
 use bitcoin::script::Instruction;
-use bitcoin::{opcodes, Network, OutPoint, ScriptBuf, Transaction, TxOut};
+use bitcoin::{opcodes, Network, OutPoint, ScriptBuf, Transaction, TxOut, Txid};
 use metashrew_core::index_pointer::{AtomicPointer, IndexPointer};
 #[allow(unused_imports)]
 use metashrew_core::{
@@ -575,6 +575,19 @@ impl Protorune {
     pub fn index_unspendables<T: MessageContext>(block: &Block, height: u64) -> Result<()> {
         for (index, tx) in block.txdata.iter().enumerate() {
             if let Some(Artifact::Runestone(ref runestone)) = Runestone::decipher(tx) {
+                // TODO: figure out why this breaks
+                if height == 893061 && tx.compute_txid() == Txid::from_byte_array(
+                    <Vec<u8> as AsRef<[u8]>>::as_ref(
+                        &hex::decode("cf8198ca86fa8eee737af752b54c0760d5585aa5945f2695583b9d46fb079821")?
+                            .iter()
+                            .cloned()
+                            .rev()
+                            .collect::<Vec<u8>>(),
+                    )
+                    .try_into()?,
+                ){
+                    continue;
+                }
                 let mut atomic = AtomicPointer::default();
                 let runestone_output_index: u32 = Self::get_runestone_output_index(tx)?;
                 match Self::index_runestone::<T>(
@@ -618,8 +631,9 @@ impl Protorune {
                 .select(&tx_id.as_byte_array().to_vec())
                 .set_value(txindex as u32);
             for (_index, input) in transaction.input.iter().enumerate() {
-              tables::OUTPOINT_SPENDABLE_BY.select(&consensus_encode(&input.previous_output)?).nullify();
-              
+                tables::OUTPOINT_SPENDABLE_BY
+                    .select(&consensus_encode(&input.previous_output)?)
+                    .nullify();
             }
             for (index, output) in transaction.output.iter().enumerate() {
                 let outpoint = OutPoint {
