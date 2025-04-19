@@ -866,6 +866,7 @@ impl Protorune {
                 })
                 .collect::<Result<Vec<BalanceSheet<AtomicPointer>>>>()?;
             let mut balance_sheet = BalanceSheet::concat(sheets);
+            println!("before process_burns");
             protostones.process_burns(
                 &mut atomic.derive(&IndexPointer::default()),
                 runestone,
@@ -875,6 +876,7 @@ impl Protorune {
                 unallocated_to,
                 tx.compute_txid(),
             )?;
+            println!("after process_burns");
 
             let num_protostones = protostones.len();
             let protostones_iter = protostones.into_iter();
@@ -890,6 +892,7 @@ impl Protorune {
                     (tx.output.len() as u32) + 1 + position as u32,
                 )?;
             }
+            println!("after handle_leftover_runes");
             protostones_iter
                 .enumerate()
                 .map(|(i, stone)| {
@@ -907,7 +910,9 @@ impl Protorune {
                     let mut prior_balance_sheet = BalanceSheet::default();
                     let is_message = stone.is_message();
                     if is_message {
+                        println!("before stone.refund.unwrap()");
                         let refund = stone.refund.unwrap();
+                        println!("after stone.refund.unwrap()");
                         // Start with a fresh balance sheet for edicts
                         prior_balance_sheet = match proto_balances_by_output.get(&refund) {
                             Some(sheet) => sheet.clone(),
