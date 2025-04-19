@@ -837,10 +837,8 @@ impl Protorune {
         balances_by_output: &mut HashMap<u32, BalanceSheet<AtomicPointer>>,
         unallocated_to: u32,
     ) -> Result<()> {
-        println!("index_protostones {:?}", tx.compute_txid());
         let protostones = Protostone::from_runestone(runestone)?;
 
-        println!("protostones {:?}", protostones);
         if protostones.len() != 0 {
             let mut proto_balances_by_output = HashMap::<u32, BalanceSheet<AtomicPointer>>::new();
             let table = tables::RuneTable::for_protocol(T::protocol_tag());
@@ -866,7 +864,6 @@ impl Protorune {
                 })
                 .collect::<Result<Vec<BalanceSheet<AtomicPointer>>>>()?;
             let mut balance_sheet = BalanceSheet::concat(sheets);
-            println!("before process_burns");
             protostones.process_burns(
                 &mut atomic.derive(&IndexPointer::default()),
                 runestone,
@@ -876,7 +873,6 @@ impl Protorune {
                 unallocated_to,
                 tx.compute_txid(),
             )?;
-            println!("after process_burns");
 
             let num_protostones = protostones.len();
             let protostones_iter = protostones.into_iter();
@@ -892,7 +888,6 @@ impl Protorune {
                     (tx.output.len() as u32) + 1 + position as u32,
                 )?;
             }
-            println!("after handle_leftover_runes");
             protostones_iter
                 .enumerate()
                 .map(|(i, stone)| {
@@ -910,9 +905,9 @@ impl Protorune {
                     let mut prior_balance_sheet = BalanceSheet::default();
                     let is_message = stone.is_message();
                     if is_message {
-                        println!("before stone.refund.unwrap()");
-                        let refund = stone.refund.unwrap();
-                        println!("after stone.refund.unwrap()");
+                        let refund = stone
+                            .refund
+                            .ok_or_else(|| anyhow!("Missing refund pointer"))?;
                         // Start with a fresh balance sheet for edicts
                         prior_balance_sheet = match proto_balances_by_output.get(&refund) {
                             Some(sheet) => sheet.clone(),
