@@ -579,7 +579,7 @@ impl Protorune {
                 println!("Indexing txid {:?}", tx.compute_txid());
                 if height == 893061 && tx.compute_txid() == Txid::from_byte_array(
                     <Vec<u8> as AsRef<[u8]>>::as_ref(
-                        &hex::decode("cf8198ca86fa8eee737af752b54c0760d5585aa5945f2695583b9d46fb079821")?
+                        &hex::decode("edbc8ec7aa26081fa4e7436dc043091ebcd05b541cf135e624b3f9cfae4b6427")?
                             .iter()
                             .cloned()
                             .rev()
