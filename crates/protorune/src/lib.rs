@@ -575,20 +575,6 @@ impl Protorune {
     pub fn index_unspendables<T: MessageContext>(block: &Block, height: u64) -> Result<()> {
         for (index, tx) in block.txdata.iter().enumerate() {
             if let Some(Artifact::Runestone(ref runestone)) = Runestone::decipher(tx) {
-                // TODO: figure out why this breaks
-                println!("Indexing txid {:?}", tx.compute_txid());
-                if height == 893061 && tx.compute_txid() == Txid::from_byte_array(
-                    <Vec<u8> as AsRef<[u8]>>::as_ref(
-                        &hex::decode("edbc8ec7aa26081fa4e7436dc043091ebcd05b541cf135e624b3f9cfae4b6427")?
-                            .iter()
-                            .cloned()
-                            .rev()
-                            .collect::<Vec<u8>>(),
-                    )
-                    .try_into()?,
-                ){
-                    continue;
-                }
                 let mut atomic = AtomicPointer::default();
                 let runestone_output_index: u32 = Self::get_runestone_output_index(tx)?;
                 match Self::index_runestone::<T>(
@@ -851,7 +837,10 @@ impl Protorune {
         balances_by_output: &mut HashMap<u32, BalanceSheet<AtomicPointer>>,
         unallocated_to: u32,
     ) -> Result<()> {
+        println!("index_protostones {:?}", tx.compute_txid());
         let protostones = Protostone::from_runestone(runestone)?;
+
+        println!("protostones {:?}", protostones);
         if protostones.len() != 0 {
             let mut proto_balances_by_output = HashMap::<u32, BalanceSheet<AtomicPointer>>::new();
             let table = tables::RuneTable::for_protocol(T::protocol_tag());
@@ -924,6 +913,7 @@ impl Protorune {
                             Some(sheet) => sheet.clone(),
                             None => BalanceSheet::default(),
                         };
+                        println!("stone before process message {:?}", stone);
                         stone.process_message::<T>(
                             &mut atomic.derive(&IndexPointer::default()),
                             tx,
@@ -936,6 +926,7 @@ impl Protorune {
                             protostone_unallocated_to,
                             num_protostones,
                         )?;
+                        println!("after process message");
                         // Get the post-message balance to use for edicts
                         prior_balance_sheet = match proto_balances_by_output.get(&refund) {
                             Some(sheet) => sheet.clone(),
