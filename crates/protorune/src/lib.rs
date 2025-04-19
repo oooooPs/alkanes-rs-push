@@ -913,7 +913,6 @@ impl Protorune {
                             Some(sheet) => sheet.clone(),
                             None => BalanceSheet::default(),
                         };
-                        println!("stone before process message {:?}", stone);
                         stone.process_message::<T>(
                             &mut atomic.derive(&IndexPointer::default()),
                             tx,
@@ -926,7 +925,6 @@ impl Protorune {
                             protostone_unallocated_to,
                             num_protostones,
                         )?;
-                        println!("after process message");
                         // Get the post-message balance to use for edicts
                         prior_balance_sheet = match proto_balances_by_output.get(&refund) {
                             Some(sheet) => sheet.clone(),
