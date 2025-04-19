@@ -576,6 +576,7 @@ impl Protorune {
         for (index, tx) in block.txdata.iter().enumerate() {
             if let Some(Artifact::Runestone(ref runestone)) = Runestone::decipher(tx) {
                 // TODO: figure out why this breaks
+                println!("Indexing txid {:?}", tx.compute_txid());
                 if height == 893061 && tx.compute_txid() == Txid::from_byte_array(
                     <Vec<u8> as AsRef<[u8]>>::as_ref(
                         &hex::decode("cf8198ca86fa8eee737af752b54c0760d5585aa5945f2695583b9d46fb079821")?
