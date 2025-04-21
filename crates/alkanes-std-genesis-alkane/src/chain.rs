@@ -10,11 +10,7 @@ use alkanes_runtime::{
 
 pub struct ContextHandle(());
 
-impl AlkaneResponder for ContextHandle {
-    fn execute(&self) -> Result<CallResponse> {
-        Ok(CallResponse::default())
-    }
-}
+impl AlkaneResponder for ContextHandle {}
 
 pub const CONTEXT_HANDLE: ContextHandle = ContextHandle(());
 

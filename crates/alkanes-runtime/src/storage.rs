@@ -7,11 +7,7 @@ use std::sync::Arc;
 
 struct StorageHandle(());
 
-impl AlkaneResponder for StorageHandle {
-    fn execute(&self) -> Result<CallResponse> {
-        Ok(CallResponse::default())
-    }
-}
+impl AlkaneResponder for StorageHandle {}
 
 const RUNTIME_STORAGE: StorageHandle = StorageHandle(());
 
