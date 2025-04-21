@@ -44,21 +44,15 @@ enum AuthTokenMessage {
 
 impl AuthToken {
     fn initialize(&self, amount: u128) -> Result<CallResponse> {
+        self.observe_initialization()?;
         let context = self.context()?;
         let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes.clone());
-
-        let mut pointer = StoragePointer::from_keyword("/initialized");
-        if pointer.get().len() == 0 {
-            response.alkanes = context.incoming_alkanes.clone();
-            response.alkanes.0.push(AlkaneTransfer {
-                id: context.myself.clone(),
-                value: amount,
-            });
-            pointer.set(Arc::new(vec![0x01]));
-            Ok(response)
-        } else {
-            return Err(anyhow!("already initialized"));
-        }
+        response.alkanes = context.incoming_alkanes.clone();
+        response.alkanes.0.push(AlkaneTransfer {
+            id: context.myself.clone(),
+            value: amount,
+        });
+        Ok(response)
     }
 
     fn authenticate(&self) -> Result<CallResponse> {

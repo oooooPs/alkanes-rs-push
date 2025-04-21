@@ -216,21 +216,11 @@ impl GenesisAlkane {
         })
     }
 
-    pub fn observe_initialization(&self) -> Result<()> {
-        self.observe_mint()?;
-        let mut initialized_pointer = StoragePointer::from_keyword("/initialized");
-        if initialized_pointer.get().len() == 0 {
-            initialized_pointer.set_value::<u32>(1);
-            Ok(())
-        } else {
-            Err(anyhow!("already initialized"))
-        }
-    }
-
     fn initialize(&self) -> Result<CallResponse> {
         let context = self.context()?;
         let mut response = CallResponse::forward(&context.incoming_alkanes);
 
+        self.observe_mint()?;
         self.observe_initialization()?;
         let premine = self.premine()?;
         response.alkanes.0.push(AlkaneTransfer {

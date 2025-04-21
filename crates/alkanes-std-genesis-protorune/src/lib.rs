@@ -80,6 +80,7 @@ impl GenesisProtorune {
     }
 
     fn initialize(&self) -> Result<CallResponse> {
+        self.observe_initialization()?;
         let context = self.context()?;
         let mut response = CallResponse::forward(&context.incoming_alkanes);
 
@@ -129,8 +130,7 @@ impl GenesisProtorune {
     }
 }
 
-impl AlkaneResponder for GenesisProtorune {
-}
+impl AlkaneResponder for GenesisProtorune {}
 
 // Use the new macro format
 declare_alkane! {

@@ -5,6 +5,7 @@ use crate::imports::{
     __request_storage, __request_transaction, __returndatacopy, __sequence, __staticcall,
     abort, /*, __load_output, __request_output */
 };
+use crate::storage::StoragePointer;
 #[allow(unused_imports)]
 use crate::{
     println,
@@ -13,6 +14,7 @@ use crate::{
 use anyhow::{anyhow, Result};
 #[allow(unused_imports)]
 use metashrew_support::compat::{to_arraybuffer_layout, to_passback_ptr, to_ptr};
+use metashrew_support::index_pointer::KeyValuePointer;
 use std::io::Cursor;
 
 #[cfg(feature = "panic-hook")]
@@ -149,6 +151,15 @@ impl Extcall for Staticcall {
 }
 
 pub trait AlkaneResponder: 'static {
+    fn observe_initialization(&self) -> Result<()> {
+        let mut pointer = StoragePointer::from_keyword("/initialized");
+        if pointer.get().len() == 0 {
+            pointer.set_value::<u8>(0x01);
+            Ok(())
+        } else {
+            Err(anyhow!("already initialized"))
+        }
+    }
     fn context(&self) -> Result<Context> {
         unsafe {
             let mut buffer: Vec<u8> = to_arraybuffer_layout(vec![0; __request_context() as usize]);

@@ -59,16 +59,6 @@ impl Orbital {
         self.total_supply_pointer().set_value::<u128>(v);
     }
 
-    pub fn observe_initialization(&self) -> Result<()> {
-        let mut initialized_pointer = StoragePointer::from_keyword("/initialized");
-        if initialized_pointer.get().len() == 0 {
-            initialized_pointer.set_value::<u32>(1);
-            Ok(())
-        } else {
-            Err(anyhow!("already initialized"))
-        }
-    }
-
     pub fn data(&self) -> Vec<u8> {
         // in this reference implementation, we return a 1x1 PNG
         // NFT data can be anything, however
@@ -76,10 +66,10 @@ impl Orbital {
     }
 
     fn initialize(&self) -> Result<CallResponse> {
+        self.observe_initialization()?;
         let context = self.context()?;
         let mut response = CallResponse::forward(&context.incoming_alkanes);
 
-        self.observe_initialization()?;
         self.set_total_supply(1);
         response.alkanes.0.push(AlkaneTransfer {
             id: context.myself.clone(),
@@ -126,8 +116,7 @@ impl Orbital {
     }
 }
 
-impl AlkaneResponder for Orbital {
-}
+impl AlkaneResponder for Orbital {}
 
 // Use the new macro format
 declare_alkane! {
