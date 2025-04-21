@@ -1,3 +1,8 @@
+#[allow(unused_imports)]
+use crate::{
+    println,
+    stdio::{stdout, Write},
+};
 use crate::{runtime::AlkaneResponder, storage::StoragePointer};
 use alkanes_support::{
     cellpack::Cellpack,
@@ -36,7 +41,16 @@ pub trait AuthenticatedResponder: AlkaneResponder {
         Ok(pointer.as_ref().clone().try_into()?)
     }
     fn only_owner(&self) -> Result<()> {
+        let context = self.context()?;
         let auth_token = self.auth_token()?;
+        if !context
+            .incoming_alkanes
+            .0
+            .iter()
+            .any(|i| i.id == auth_token)
+        {
+            return Err(anyhow!("Auth token is not in incoming alkanes"));
+        }
         let cellpack = Cellpack {
             target: auth_token,
             inputs: vec![0x1],
