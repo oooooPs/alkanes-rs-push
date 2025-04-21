@@ -70,10 +70,10 @@ impl OwnedToken {
         name: String,
         symbol: String,
     ) -> Result<CallResponse> {
+        self.observe_initialization()?;
         let context = self.context()?;
         let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes.clone());
 
-        self.observe_initialization()?;
         <Self as MintableToken>::set_name_and_symbol_str(self, name, symbol);
 
         response
@@ -139,8 +139,7 @@ impl OwnedToken {
     }
 }
 
-impl AlkaneResponder for OwnedToken {
-}
+impl AlkaneResponder for OwnedToken {}
 
 // Use the new macro format
 declare_alkane! {

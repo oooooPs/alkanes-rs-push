@@ -138,25 +138,19 @@ impl MerkleDistributor {
     }
 
     fn initialize(&self, length: u128, root_bytes: u128) -> Result<CallResponse> {
+        self.observe_initialization()?;
         let context = self.context()?;
         let mut inputs = context.inputs.clone();
-
-        let mut pointer = StoragePointer::from_keyword("/initialized");
-        if pointer.get().len() == 0 {
-            pointer.set(Arc::new(vec![0x01]));
-            if context.incoming_alkanes.0.len() != 1 {
-                panic!("must send 1 alkane to lock for distribution");
-            }
-            self.set_alkane(context.incoming_alkanes.0[0].id.clone());
-
-            // Extract the remaining parameters from inputs
-            self.set_length(length.try_into().unwrap());
-            self.set_root(shift_bytes32_or_err(&mut inputs)?);
-
-            Ok(CallResponse::default())
-        } else {
-            Err(anyhow!("already initialized"))
+        if context.incoming_alkanes.0.len() != 1 {
+            panic!("must send 1 alkane to lock for distribution");
         }
+        self.set_alkane(context.incoming_alkanes.0[0].id.clone());
+
+        // Extract the remaining parameters from inputs
+        self.set_length(length.try_into().unwrap());
+        self.set_root(shift_bytes32_or_err(&mut inputs)?);
+
+        Ok(CallResponse::default())
     }
 
     fn claim(&self) -> Result<CallResponse> {
@@ -172,8 +166,7 @@ impl MerkleDistributor {
     }
 }
 
-impl AlkaneResponder for MerkleDistributor {
-}
+impl AlkaneResponder for MerkleDistributor {}
 
 // Use the new macro format
 declare_alkane! {

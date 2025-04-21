@@ -63,20 +63,15 @@ impl Proxy {
     }
 
     fn initialize(&self) -> Result<CallResponse> {
+        self.observe_initialization()?;
         let context = self.context()?;
-
-        if self.load("/initialized".as_bytes().to_vec()).len() == 0 {
-            let mut response: CallResponse = CallResponse::default();
-            response.alkanes = context.incoming_alkanes.clone();
-            response.alkanes.0.push(AlkaneTransfer {
-                id: context.myself.clone(),
-                value: 1,
-            });
-            self.store("/initialized".as_bytes().to_vec(), vec![0x01]);
-            return Ok(response);
-        } else {
-            return Err(anyhow!("already initialized"));
-        }
+        let mut response: CallResponse = CallResponse::default();
+        response.alkanes = context.incoming_alkanes.clone();
+        response.alkanes.0.push(AlkaneTransfer {
+            id: context.myself.clone(),
+            value: 1,
+        });
+        return Ok(response);
     }
 
     fn call_witness(&self, witness_index: u128) -> Result<CallResponse> {

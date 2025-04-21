@@ -47,25 +47,20 @@ impl Upgradeable {
     }
 
     fn initialize(&self, block: u128, tx: u128, auth_token_units: u128) -> Result<CallResponse> {
+        self.observe_initialization()?;
         let context = self.context()?;
-        let mut pointer = StoragePointer::from_keyword("/proxy-initialized");
 
-        if pointer.get().len() == 0 {
-            // Construct AlkaneId from block and tx
-            let implementation = AlkaneId::new(block, tx);
+        // Construct AlkaneId from block and tx
+        let implementation = AlkaneId::new(block, tx);
 
-            self.set_alkane(implementation);
-            let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
+        self.set_alkane(implementation);
+        let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
 
-            response
-                .alkanes
-                .0
-                .push(self.deploy_auth_token(auth_token_units)?);
-            pointer.set(Arc::new(vec![0x01]));
-            Ok(response)
-        } else {
-            Err(anyhow!("already initialized"))
-        }
+        response
+            .alkanes
+            .0
+            .push(self.deploy_auth_token(auth_token_units)?);
+        Ok(response)
     }
 
     fn upgrade(&self, block: u128, tx: u128) -> Result<CallResponse> {
@@ -92,8 +87,7 @@ impl Upgradeable {
 
 impl AuthenticatedResponder for Upgradeable {}
 
-impl AlkaneResponder for Upgradeable {
-}
+impl AlkaneResponder for Upgradeable {}
 
 // Use the new macro format
 declare_alkane! {
