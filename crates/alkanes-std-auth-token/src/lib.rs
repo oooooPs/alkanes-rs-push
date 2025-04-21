@@ -101,16 +101,7 @@ impl AuthToken {
     }
 }
 
-impl AlkaneResponder for AuthToken {
-    fn execute(&self) -> Result<CallResponse> {
-        // The opcode extraction and dispatch logic is now handled by the declare_alkane macro
-        // This method is still required by the AlkaneResponder trait, but we can just return an error
-        // indicating that it should not be called directly
-        Err(anyhow!(
-            "This method should not be called directly. Use the declare_alkane macro instead."
-        ))
-    }
-}
+impl AlkaneResponder for AuthToken {}
 
 // Use the new macro format
 declare_alkane! {

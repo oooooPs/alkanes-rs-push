@@ -293,38 +293,4 @@ pub trait AlkaneResponder: 'static {
     ) -> Result<CallResponse> {
         self.extcall::<Staticcall>(cellpack, outgoing_alkanes, fuel)
     }
-    #[allow(static_mut_refs)]
-    fn run(&self) -> Vec<u8> {
-        let extended: ExtendedCallResponse = match self.initialize().execute() {
-            Ok(v) => handle_success(v),
-            Err(e) => handle_error(&e.to_string()),
-        };
-        extended.serialize()
-    }
-    #[allow(static_mut_refs)]
-    fn run_and_forward(&self) -> Vec<u8> {
-        let context = self.context().unwrap();
-        let extended: ExtendedCallResponse = match self.initialize().execute() {
-            Ok(v) => {
-                let mut response: ExtendedCallResponse = v.into();
-                initialize_cache();
-                response.storage = unsafe { _CACHE.as_ref().unwrap().clone() };
-                response
-                    .alkanes
-                    .0
-                    .append(&mut context.incoming_alkanes.0.clone());
-                response
-            }
-            Err(e) => {
-                let mut response = CallResponse::default();
-                let mut data: Vec<u8> = vec![0x08, 0xc3, 0x79, 0xa0];
-                data.extend(e.to_string().as_bytes());
-                response.data = data;
-                _abort();
-                response.into()
-            }
-        };
-        extended.serialize()
-    }
-    fn execute(&self) -> Result<CallResponse>;
 }
