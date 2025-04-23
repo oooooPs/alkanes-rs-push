@@ -373,59 +373,11 @@ pub fn get_last_outpoint_sheet(test_block: &Block) -> Result<BalanceSheet<IndexP
     get_sheet_for_outpoint(test_block, len - 1, 0)
 }
 
-/// Asserts that the trace data from the given outpoint contains a RevertContext with the expected error message.
-///
-/// # Arguments
-///
-/// * `outpoint` - The outpoint to get trace data from
-/// * `expected_error_message` - The error message to check for in the RevertContext data
-///
-/// # Returns
-///
-/// * `Result<(), anyhow::Error>` - Ok if the assertion passes, Err otherwise
-///
-/// # Example
-///
-/// ```
-/// assert_revert_context(
-///     &OutPoint {
-///         txid: test_block.txdata[test_block.txdata.len() - 1].compute_txid(),
-///         vout: 3,
-///     },
-///     "ALKANES: revert: Error: already initialized"
-/// )?;
-/// ```
 pub fn assert_revert_context(outpoint: &OutPoint, expected_error_message: &str) -> Result<()> {
     // This is a convenience wrapper around assert_revert_context_at_index that checks the last event
     assert_revert_context_at_index(outpoint, expected_error_message, None)
 }
 
-/// Asserts that a specific trace event from the given outpoint contains a RevertContext with the expected error message.
-///
-/// # Arguments
-///
-/// * `outpoint` - The outpoint to get trace data from
-/// * `expected_error_message` - The error message to check for in the RevertContext data
-/// * `index` - Optional index of the trace event to check. If None, checks the last event.
-///   Use negative values to count from the end (-1 = last, -2 = second to last, etc.)
-///
-/// # Returns
-///
-/// * `Result<(), anyhow::Error>` - Ok if the assertion passes, Err otherwise
-///
-/// # Example
-///
-/// ```
-/// // Check the second-to-last trace event
-/// assert_revert_context_at_index(
-///     &OutPoint {
-///         txid: test_block.txdata[test_block.txdata.len() - 1].compute_txid(),
-///         vout: 3,
-///     },
-///     "Overflow error in expression",
-///     Some(-2)
-/// )?;
-/// ```
 pub fn assert_revert_context_at_index(
     outpoint: &OutPoint,
     expected_error_message: &str,
