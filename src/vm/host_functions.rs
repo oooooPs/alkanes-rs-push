@@ -515,6 +515,7 @@ impl AlkanesHostFunctionsImpl {
                 _transfer_error
             };
             if transfer_error {
+                println!("transfer error occurred during extcall");
                 Self::restore_context(caller);
                 return Ok(0);
             }
