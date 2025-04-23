@@ -161,17 +161,10 @@ fn test_delegatecall_mint() -> Result<()> {
         vout: 3,
     };
 
-    let trace_data: Trace = view::trace(&outpoint)?.try_into()?;
-    let trace_events = trace_data.0.lock().expect("Mutex poisoned");
-    let last_trace_event = trace_events[trace_events.len() - 1].clone();
-    match last_trace_event {
-        TraceEvent::RevertContext(trace_response) => {
-            // Now we have the TraceResponse, access the data field
-            let data = String::from_utf8_lossy(&trace_response.inner.data);
-            assert!(data.contains("ALKANES: revert: wasm `unreachable` instruction executed"));
-        }
-        _ => panic!("Expected RevertContext variant, but got a different variant"),
-    }
+    alkane_helpers::assert_revert_context(
+        &outpoint,
+        "ALKANES: revert: Error: Extcall failed: balance underflow during transfer_from",
+    )?;
 
     Ok(())
 }
