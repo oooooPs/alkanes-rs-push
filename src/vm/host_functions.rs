@@ -556,53 +556,30 @@ impl AlkanesHostFunctionsImpl {
         subcontext.trace.clock(event);
 
         // Run the call in a new context
-        let result = match run_after_special(
+        let (response, gas_used) = run_after_special(
             Arc::new(Mutex::new(subcontext.clone())),
             binary_rc,
             start_fuel,
-        ) {
-            Ok((response, gas_used)) => {
-                caller.set_fuel(overflow_error(start_fuel.checked_sub(gas_used))?)?;
-                let mut return_context: TraceResponse = response.clone().into();
-                return_context.fuel_used = gas_used;
+        )?;
+        let serialized = CallResponse::from(response.clone().into()).serialize();
+        {
+            caller.set_fuel(overflow_error(start_fuel.checked_sub(gas_used))?)?;
+            let mut return_context: TraceResponse = response.clone().into();
+            return_context.fuel_used = gas_used;
 
-                // Update trace and context state
-                let mut context_guard = caller.data_mut().context.lock().unwrap();
-                context_guard
-                    .trace
-                    .clock(TraceEvent::ReturnContext(return_context));
-                let mut saveable: SaveableExtendedCallResponse = response.clone().into();
-                saveable.associate(&subcontext);
-                saveable.save(&mut context_guard.message.atomic)?;
-                let serialized = CallResponse::from(response.into()).serialize();
-                context_guard.returndata = serialized.clone();
-                T::handle_atomic(&mut context_guard.message.atomic);
-                serialized.len() as i32
-            }
-            Err(e) => {
-                let mut data: Vec<u8> = vec![0x08, 0xc3, 0x79, 0xa0];
-                data.extend(e.to_string().as_bytes());
-
-                let mut revert_context: TraceResponse = TraceResponse::default();
-                revert_context.inner.data = data.clone();
-
-                let mut response = CallResponse::default();
-                response.data = data.clone();
-                let serialized = response.serialize();
-
-                // Handle revert state
-                let mut context_guard = caller.data_mut().context.lock().unwrap();
-                context_guard
-                    .trace
-                    .clock(TraceEvent::RevertContext(revert_context));
-                context_guard.message.atomic.rollback();
-                context_guard.returndata = serialized.clone();
-                (serialized.len() as i32).checked_neg().unwrap_or(-1)
-            }
-        };
-
+            // Update trace and context state
+            let mut context_guard = caller.data_mut().context.lock().unwrap();
+            context_guard
+                .trace
+                .clock(TraceEvent::ReturnContext(return_context));
+            let mut saveable: SaveableExtendedCallResponse = response.clone().into();
+            saveable.associate(&subcontext);
+            saveable.save(&mut context_guard.message.atomic)?;
+            context_guard.returndata = serialized.clone();
+            T::handle_atomic(&mut context_guard.message.atomic);
+        }
         Self::restore_context(caller);
-        Ok(result)
+        Ok(serialized.len() as i32)
     }
     pub(super) fn log<'a>(caller: &mut Caller<'_, AlkanesState>, v: i32) -> Result<()> {
         let mem = get_memory(caller)?;
