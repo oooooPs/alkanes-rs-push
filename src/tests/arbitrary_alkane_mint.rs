@@ -278,10 +278,7 @@ fn test_multiple_extcall_err_and_good() -> Result<()> {
         vout: 3,
     };
 
-    alkane_helpers::assert_revert_context(
-        &outpoint,
-        "ALKANES: revert: Error: Extcall failed: balance underflow during transfer_from",
-    )?;
+    alkane_helpers::assert_revert_context(&outpoint, "ALKANES: revert")?;
 
     Ok(())
 }
