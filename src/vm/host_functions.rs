@@ -437,6 +437,58 @@ impl AlkanesHostFunctionsImpl {
         send_to_arraybuffer(caller, output.try_into()?, &balance)?;
         Ok(())
     }
+
+    pub(super) fn handle_extcall<'a, T: Extcall>(
+        caller: &mut Caller<'_, AlkanesState>,
+        cellpack_ptr: i32,
+        incoming_alkanes_ptr: i32,
+        checkpoint_ptr: i32,
+        start_fuel: u64,
+    ) -> i32 {
+        Self::preserve_context(caller);
+        let returnval = match Self::extcall::<T>(
+            caller,
+            cellpack_ptr,
+            incoming_alkanes_ptr,
+            checkpoint_ptr,
+            start_fuel,
+        ) {
+            Ok(v) => v,
+            Err(e) => {
+                println!("[[handle_extcall]] Error during extcall: {:?}", e);
+                let mut data: Vec<u8> = vec![0x08, 0xc3, 0x79, 0xa0];
+                data.extend(e.to_string().as_bytes());
+
+                let mut revert_context: TraceResponse = TraceResponse::default();
+                revert_context.inner.data = data.clone();
+
+                let mut response = CallResponse::default();
+                response.data = data.clone();
+                let serialized = response.serialize();
+
+                // Store the serialized length before we drop context_guard
+                let result = (serialized.len() as i32).checked_neg().unwrap_or(-1);
+
+                // Handle revert state in a separate scope so context_guard is dropped
+                {
+                    let mut context_guard = caller.data_mut().context.lock().unwrap();
+                    context_guard
+                        .trace
+                        .clock(TraceEvent::RevertContext(revert_context));
+                    context_guard.message.atomic.rollback();
+                    context_guard.returndata = serialized;
+                    // context_guard is dropped here when the scope ends
+                }
+
+                // Now we can use caller again
+                Self::_abort(caller.into());
+                result
+            }
+        };
+
+        Self::restore_context(caller);
+        returnval
+    }
     pub(super) fn extcall<'a, T: Extcall>(
         caller: &mut Caller<'_, AlkanesState>,
         cellpack_ptr: i32,
@@ -444,8 +496,6 @@ impl AlkanesHostFunctionsImpl {
         checkpoint_ptr: i32,
         start_fuel: u64,
     ) -> Result<i32> {
-        Self::preserve_context(caller);
-
         // Read all input data first
         let (cellpack, incoming_alkanes, storage_map, storage_map_len) = {
             let mem = get_memory(caller)?;
@@ -489,7 +539,7 @@ impl AlkanesHostFunctionsImpl {
                 run_special_cellpacks(caller.data_mut().context.clone(), &cellpack)?;
 
             // Re-acquire lock for state updates
-            let transfer_error = {
+            {
                 let mut context_guard = caller.data_mut().context.lock().unwrap();
                 pipe_storagemap_to(
                     &storage_map,
@@ -498,7 +548,7 @@ impl AlkanesHostFunctionsImpl {
                     ),
                 );
 
-                let _transfer_error = transfer_from(
+                transfer_from(
                     &incoming_alkanes,
                     &mut context_guard
                         .message
@@ -506,19 +556,8 @@ impl AlkanesHostFunctionsImpl {
                         .derive(&IndexPointer::default()),
                     &myself,
                     &submyself,
-                )
-                .is_err();
-                if _transfer_error {
-                    context_guard.message.atomic.rollback();
-                    context_guard.returndata = Vec::<u8>::new();
-                }
-                _transfer_error
+                )?;
             };
-            if transfer_error {
-                println!("transfer error occurred during extcall");
-                Self::restore_context(caller);
-                return Ok(0);
-            }
             let context_guard = caller.data_mut().context.lock().unwrap();
 
             // Create subcontext
@@ -578,7 +617,6 @@ impl AlkanesHostFunctionsImpl {
             context_guard.returndata = serialized.clone();
             T::handle_atomic(&mut context_guard.message.atomic);
         }
-        Self::restore_context(caller);
         Ok(serialized.len() as i32)
     }
     pub(super) fn log<'a>(caller: &mut Caller<'_, AlkanesState>, v: i32) -> Result<()> {

@@ -56,6 +56,17 @@ enum LoggerAlkaneMessage {
     #[opcode(32)]
     TestExtDelegateCall { target: AlkaneId, inputs: Vec<u128> },
 
+    #[opcode(33)]
+    TestStaticCall { target: AlkaneId, inputs: Vec<u128> },
+
+    #[opcode(34)]
+    TestMultipleExtCall {
+        target: AlkaneId,
+        inputs: Vec<u128>,
+        target2: AlkaneId,
+        inputs2: Vec<u128>,
+    },
+
     #[opcode(40)]
     TestLargeTransferParcel,
 
@@ -200,6 +211,38 @@ impl LoggerAlkane {
         };
         let response = self.delegatecall(&cellpack, &context.incoming_alkanes, self.fuel())?;
         Ok(response)
+    }
+
+    fn test_static_call(&self, target: AlkaneId, inputs: Vec<u128>) -> Result<CallResponse> {
+        let context = self.context()?;
+        let cellpack = Cellpack {
+            target: target,
+            inputs: inputs,
+        };
+        let response = self.staticcall(&cellpack, &context.incoming_alkanes, self.fuel())?;
+        Ok(response)
+    }
+
+    fn test_multiple_ext_call(
+        &self,
+        target: AlkaneId,
+        inputs: Vec<u128>,
+        target2: AlkaneId,
+        inputs2: Vec<u128>,
+    ) -> Result<CallResponse> {
+        let context = self.context()?;
+        let cellpack = Cellpack {
+            target: target,
+            inputs: inputs,
+        };
+        let _ = self.call(&cellpack, &context.incoming_alkanes, self.fuel()); // allow to fail
+
+        let cellpack2 = Cellpack {
+            target: target2,
+            inputs: inputs2,
+        };
+        let _ = self.call(&cellpack2, &context.incoming_alkanes, self.fuel()); // allow to fail
+        Ok(CallResponse::forward(&context.incoming_alkanes))
     }
 
     fn test_large_transfer_parcel(&self) -> Result<CallResponse> {

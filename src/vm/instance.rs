@@ -22,42 +22,6 @@ pub struct AlkanesInstance {
     pub(crate) store: Store<AlkanesState>,
 }
 
-fn handle_extcall(v: Result<i32>, caller: &mut Caller<'_, AlkanesState>) -> i32 {
-    match v {
-        Ok(v) => v,
-        Err(e) => {
-            println!("[[handle_extcall]] Error during extcall: {:?}", e);
-            let mut data: Vec<u8> = vec![0x08, 0xc3, 0x79, 0xa0];
-            data.extend(e.to_string().as_bytes());
-
-            let mut revert_context: TraceResponse = TraceResponse::default();
-            revert_context.inner.data = data.clone();
-
-            let mut response = CallResponse::default();
-            response.data = data.clone();
-            let serialized = response.serialize();
-
-            // Store the serialized length before we drop context_guard
-            let result = (serialized.len() as i32).checked_neg().unwrap_or(-1);
-
-            // Handle revert state in a separate scope so context_guard is dropped
-            {
-                let mut context_guard = caller.data_mut().context.lock().unwrap();
-                context_guard
-                    .trace
-                    .clock(TraceEvent::RevertContext(revert_context));
-                context_guard.message.atomic.rollback();
-                context_guard.returndata = serialized;
-                // context_guard is dropped here when the scope ends
-            }
-
-            // Now we can use caller again
-            AlkanesHostFunctionsImpl::_abort(caller.into());
-            result
-        }
-    }
-}
-
 impl AlkanesInstance {
     pub fn consume_fuel(&mut self, fuel: u64) -> Result<()> {
         let fuel_remaining = self.store.get_fuel().unwrap();
@@ -317,15 +281,12 @@ impl AlkanesInstance {
              checkpoint_ptr: i32,
              start_fuel: u64|
              -> i32 {
-                handle_extcall(
-                    AlkanesHostFunctionsImpl::extcall::<Call>(
-                        &mut caller,
-                        cellpack_ptr,
-                        incoming_alkanes_ptr,
-                        checkpoint_ptr,
-                        start_fuel,
-                    ),
+                AlkanesHostFunctionsImpl::handle_extcall::<Call>(
                     &mut caller,
+                    cellpack_ptr,
+                    incoming_alkanes_ptr,
+                    checkpoint_ptr,
+                    start_fuel,
                 )
             },
         )?;
@@ -338,15 +299,12 @@ impl AlkanesInstance {
              checkpoint_ptr: i32,
              start_fuel: u64|
              -> i32 {
-                handle_extcall(
-                    AlkanesHostFunctionsImpl::extcall::<Delegatecall>(
-                        &mut caller,
-                        cellpack_ptr,
-                        incoming_alkanes_ptr,
-                        checkpoint_ptr,
-                        start_fuel,
-                    ),
+                AlkanesHostFunctionsImpl::handle_extcall::<Delegatecall>(
                     &mut caller,
+                    cellpack_ptr,
+                    incoming_alkanes_ptr,
+                    checkpoint_ptr,
+                    start_fuel,
                 )
             },
         )?;
@@ -359,15 +317,12 @@ impl AlkanesInstance {
              checkpoint_ptr: i32,
              start_fuel: u64|
              -> i32 {
-                handle_extcall(
-                    AlkanesHostFunctionsImpl::extcall::<Staticcall>(
-                        &mut caller,
-                        cellpack_ptr,
-                        incoming_alkanes_ptr,
-                        checkpoint_ptr,
-                        start_fuel,
-                    ),
+                AlkanesHostFunctionsImpl::handle_extcall::<Staticcall>(
                     &mut caller,
+                    cellpack_ptr,
+                    incoming_alkanes_ptr,
+                    checkpoint_ptr,
+                    start_fuel,
                 )
             },
         )?;
