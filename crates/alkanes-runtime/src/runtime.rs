@@ -94,8 +94,7 @@ pub trait Extcall {
         let mut cellpack_buffer = to_arraybuffer_layout::<&[u8]>(&cellpack.serialize());
         let mut outgoing_alkanes_buffer: Vec<u8> =
             to_arraybuffer_layout::<&[u8]>(&outgoing_alkanes.serialize());
-        let mut storage_map_buffer =
-            to_arraybuffer_layout::<&[u8]>(&unsafe { _CACHE.as_ref().unwrap().serialize() });
+        let mut storage_map_buffer = to_arraybuffer_layout::<&[u8]>(&get_cache().serialize());
         let _call_result = Self::__call(
             to_passback_ptr(&mut cellpack_buffer),
             to_passback_ptr(&mut outgoing_alkanes_buffer),
@@ -108,6 +107,12 @@ pub trait Extcall {
             unsafe {
                 __returndatacopy(to_passback_ptr(&mut returndata));
             }
+            if returndata.len() < 20 {
+                return Err(anyhow!(format!(
+                    "Extcall failed, and returndatacopy len ({}) < AlkanesTransferParcel min size 20 ",
+                    returndata.len()
+                )));
+            }
             let response = CallResponse::parse(&mut Cursor::new((&returndata[4..]).to_vec()))?;
             if response.data.len() <= 4 || &response.data[0..4] != &[0x08, 0xc3, 0x79, 0xa0] {
                 return Err(anyhow!("Extcall failed (no details available)"));
@@ -119,6 +124,12 @@ pub trait Extcall {
             let mut returndata = to_arraybuffer_layout(&vec![0; call_result]);
             unsafe {
                 __returndatacopy(to_passback_ptr(&mut returndata));
+            }
+            if returndata.len() < 20 {
+                return Err(anyhow!(format!(
+                    "Extcall succeeded, but returndatacopy len ({}) < AlkanesTransferParcel min size 20 ",
+                    returndata.len()
+                )));
             }
             let response = CallResponse::parse(&mut Cursor::new((&returndata[4..]).to_vec()))?;
             Ok(response)

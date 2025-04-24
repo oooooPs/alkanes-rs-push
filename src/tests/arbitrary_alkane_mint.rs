@@ -108,17 +108,177 @@ fn test_extcall_mint() -> Result<()> {
         vout: 3,
     };
 
-    let trace_data: Trace = view::trace(&outpoint)?.try_into()?;
-    let trace_events = trace_data.0.lock().expect("Mutex poisoned");
-    let last_trace_event = trace_events[trace_events.len() - 1].clone();
-    match last_trace_event {
-        TraceEvent::RevertContext(trace_response) => {
-            // Now we have the TraceResponse, access the data field
-            let data = String::from_utf8_lossy(&trace_response.inner.data);
-            assert!(data.contains("ALKANES: revert: wasm `unreachable` instruction executed"));
-        }
-        _ => panic!("Expected RevertContext variant, but got a different variant"),
-    }
+    alkane_helpers::assert_revert_context(
+        &outpoint,
+        "ALKANES: revert: Error: Extcall failed: balance underflow during transfer_from",
+    )?;
+
+    Ok(())
+}
+
+#[wasm_bindgen_test]
+fn test_delegatecall_mint() -> Result<()> {
+    clear();
+    let block_height = 840_000;
+
+    // Create a cellpack to call the process_numbers method (opcode 11)
+    let init_cellpack = Cellpack {
+        target: AlkaneId { block: 1, tx: 0 },
+        inputs: vec![50],
+    };
+
+    // Initialize the contract and execute the cellpacks
+    let mut test_block = alkane_helpers::init_with_multiple_cellpacks_with_tx(
+        [alkanes_std_test_build::get_bytes()].into(),
+        [init_cellpack].into(),
+    );
+
+    // Create a cellpack to call the process_numbers method (opcode 11)
+    let arb_mint_cellpack = Cellpack {
+        target: AlkaneId { block: 2, tx: 1 },
+        inputs: vec![32, 2, 1, 3, 30, 2, 0],
+    };
+
+    test_block
+        .txdata
+        .push(alkane_helpers::create_multiple_cellpack_with_witness(
+            Witness::new(),
+            vec![arb_mint_cellpack],
+            false,
+        ));
+
+    index_block(&test_block, block_height)?;
+
+    let sheet = alkane_helpers::get_last_outpoint_sheet(&test_block)?;
+
+    println!("Last sheet: {:?}", sheet);
+
+    assert_eq!(sheet.get_cached(&ProtoruneRuneId { block: 2, tx: 0 }), 0);
+    assert_eq!(sheet.get_cached(&ProtoruneRuneId { block: 2, tx: 1 }), 0);
+
+    let outpoint = OutPoint {
+        txid: test_block.txdata.last().unwrap().compute_txid(),
+        vout: 3,
+    };
+
+    alkane_helpers::assert_revert_context(
+        &outpoint,
+        "ALKANES: revert: Error: Extcall failed: balance underflow during transfer_from",
+    )?;
+
+    Ok(())
+}
+
+#[wasm_bindgen_test]
+fn test_extcall_mint_err_plus_good_protostone() -> Result<()> {
+    clear();
+    let block_height = 840_000;
+
+    // Create a cellpack to call the process_numbers method (opcode 11)
+    let init_cellpack = Cellpack {
+        target: AlkaneId { block: 1, tx: 0 },
+        inputs: vec![50],
+    };
+
+    // Initialize the contract and execute the cellpacks
+    let mut test_block = alkane_helpers::init_with_multiple_cellpacks_with_tx(
+        [alkanes_std_test_build::get_bytes()].into(),
+        [init_cellpack].into(),
+    );
+
+    // Create a cellpack to call the process_numbers method (opcode 11)
+    let arb_mint_cellpack = Cellpack {
+        target: AlkaneId { block: 2, tx: 1 },
+        inputs: vec![31, 2, 1, 3, 30, 2, 0],
+    };
+    let mint_self_cellpack = Cellpack {
+        target: AlkaneId { block: 2, tx: 1 },
+        inputs: vec![30, 2, 1],
+    };
+
+    test_block
+        .txdata
+        .push(alkane_helpers::create_multiple_cellpack_with_witness(
+            Witness::new(),
+            vec![arb_mint_cellpack, mint_self_cellpack],
+            false,
+        ));
+
+    index_block(&test_block, block_height)?;
+
+    let sheet = alkane_helpers::get_last_outpoint_sheet(&test_block)?;
+
+    println!("Last sheet: {:?}", sheet);
+
+    assert_eq!(sheet.get_cached(&ProtoruneRuneId { block: 2, tx: 0 }), 0);
+    assert_eq!(sheet.get_cached(&ProtoruneRuneId { block: 2, tx: 1 }), 0);
+
+    let outpoint = OutPoint {
+        txid: test_block.txdata.last().unwrap().compute_txid(),
+        vout: 3,
+    };
+
+    alkane_helpers::assert_revert_context(
+        &outpoint,
+        "ALKANES: revert: Error: Extcall failed: balance underflow during transfer_from",
+    )?;
+
+    alkane_helpers::assert_revert_context(
+        &OutPoint {
+            txid: test_block.txdata.last().unwrap().compute_txid(),
+            vout: 4,
+        },
+        "ALKANES: revert: all fuel consumed by WebAssembly",
+    )?;
+
+    Ok(())
+}
+
+#[wasm_bindgen_test]
+fn test_multiple_extcall_err_and_good() -> Result<()> {
+    clear();
+    let block_height = 840_000;
+
+    // Create a cellpack to call the process_numbers method (opcode 11)
+    let init_cellpack = Cellpack {
+        target: AlkaneId { block: 1, tx: 0 },
+        inputs: vec![50],
+    };
+
+    // Initialize the contract and execute the cellpacks
+    let mut test_block = alkane_helpers::init_with_multiple_cellpacks_with_tx(
+        [alkanes_std_test_build::get_bytes()].into(),
+        [init_cellpack].into(),
+    );
+
+    let arb_mint_cellpack = Cellpack {
+        target: AlkaneId { block: 2, tx: 1 },
+        inputs: vec![34, 2, 1, 3, 30, 2, 0, 2, 1, 3, 30, 2, 1],
+    };
+
+    test_block
+        .txdata
+        .push(alkane_helpers::create_multiple_cellpack_with_witness(
+            Witness::new(),
+            vec![arb_mint_cellpack],
+            false,
+        ));
+
+    index_block(&test_block, block_height)?;
+
+    let sheet = alkane_helpers::get_last_outpoint_sheet(&test_block)?;
+
+    println!("Last sheet: {:?}", sheet);
+
+    assert_eq!(sheet.get_cached(&ProtoruneRuneId { block: 2, tx: 0 }), 0);
+    assert_eq!(sheet.get_cached(&ProtoruneRuneId { block: 2, tx: 1 }), 0);
+
+    let outpoint = OutPoint {
+        txid: test_block.txdata.last().unwrap().compute_txid(),
+        vout: 3,
+    };
+
+    alkane_helpers::assert_revert_context(&outpoint, "ALKANES: revert")?;
 
     Ok(())
 }

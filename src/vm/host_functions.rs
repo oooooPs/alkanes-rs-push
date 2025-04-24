@@ -437,34 +437,58 @@ impl AlkanesHostFunctionsImpl {
         send_to_arraybuffer(caller, output.try_into()?, &balance)?;
         Ok(())
     }
-    pub(super) fn extcall<'a, T: Extcall>(
+    fn _handle_extcall_abort<'a, T: Extcall>(
+        caller: &mut Caller<'_, AlkanesState>,
+        e: anyhow::Error,
+        should_rollback: bool,
+    ) -> i32 {
+        println!("[[handle_extcall]] Error during extcall: {:?}", e);
+        let mut data: Vec<u8> = vec![0x08, 0xc3, 0x79, 0xa0];
+        data.extend(e.to_string().as_bytes());
+
+        let mut revert_context: TraceResponse = TraceResponse::default();
+        revert_context.inner.data = data.clone();
+
+        let mut response = CallResponse::default();
+        response.data = data.clone();
+        let serialized = response.serialize();
+
+        // Store the serialized length before we drop context_guard
+        let result = (serialized.len() as i32).checked_neg().unwrap_or(-1);
+
+        // Handle revert state in a separate scope so context_guard is dropped
+        {
+            let mut context_guard = caller.data_mut().context.lock().unwrap();
+            context_guard
+                .trace
+                .clock(TraceEvent::RevertContext(revert_context));
+            if should_rollback {
+                context_guard.message.atomic.rollback();
+            }
+            context_guard.returndata = serialized;
+            // context_guard is dropped here when the scope ends
+        }
+
+        // Now we can use caller again
+        Self::_abort(caller.into());
+        result
+    }
+    fn _extcall_read_from_memory<'a, T: Extcall>(
         caller: &mut Caller<'_, AlkanesState>,
         cellpack_ptr: i32,
         incoming_alkanes_ptr: i32,
         checkpoint_ptr: i32,
-        start_fuel: u64,
-    ) -> Result<i32> {
-        Self::preserve_context(caller);
-
+    ) -> Result<(Cellpack, AlkaneTransferParcel, StorageMap, u64)> {
         // Read all input data first
-        let (cellpack, incoming_alkanes, storage_map, storage_map_len) = {
-            let mem = get_memory(caller)?;
-            let data = mem.data(&caller);
-            let buffer = read_arraybuffer(data, cellpack_ptr)?;
-            let cellpack = Cellpack::parse(&mut Cursor::new(buffer))?;
-            let buf = read_arraybuffer(data, incoming_alkanes_ptr)?;
-            let incoming_alkanes = AlkaneTransferParcel::parse(&mut Cursor::new(buf))?;
-            let storage_map_buffer = read_arraybuffer(data, checkpoint_ptr)?;
-            let storage_map_len = storage_map_buffer.len();
-            let storage_map = StorageMap::parse(&mut Cursor::new(storage_map_buffer))?;
-            (
-                cellpack,
-                incoming_alkanes,
-                storage_map,
-                storage_map_len as u64,
-            )
-        };
-
+        let mem = get_memory(caller)?;
+        let data = mem.data(&caller);
+        let buffer = read_arraybuffer(data, cellpack_ptr)?;
+        let cellpack = Cellpack::parse(&mut Cursor::new(buffer))?;
+        let buf = read_arraybuffer(data, incoming_alkanes_ptr)?;
+        let incoming_alkanes = AlkaneTransferParcel::parse(&mut Cursor::new(buf))?;
+        let storage_map_buffer = read_arraybuffer(data, checkpoint_ptr)?;
+        let storage_map_len = storage_map_buffer.len();
+        let storage_map = StorageMap::parse(&mut Cursor::new(storage_map_buffer))?;
         // Handle deployment fuel first
         if cellpack.target.is_deployment() {
             #[cfg(feature = "debug-log")]
@@ -476,7 +500,54 @@ impl AlkanesHostFunctionsImpl {
             }
             caller.consume_fuel(FUEL_EXTCALL_DEPLOY)?;
         }
+        Ok((
+            cellpack,
+            incoming_alkanes,
+            storage_map,
+            storage_map_len as u64,
+        ))
+    }
+    pub(super) fn handle_extcall<'a, T: Extcall>(
+        caller: &mut Caller<'_, AlkanesState>,
+        cellpack_ptr: i32,
+        incoming_alkanes_ptr: i32,
+        checkpoint_ptr: i32,
+        start_fuel: u64,
+    ) -> i32 {
+        Self::preserve_context(caller);
+        let returnval = match Self::_extcall_read_from_memory::<T>(
+            caller,
+            cellpack_ptr,
+            incoming_alkanes_ptr,
+            checkpoint_ptr,
+        ) {
+            Ok((cellpack, incoming_alkanes, storage_map, storage_map_len)) => {
+                match Self::extcall::<T>(
+                    caller,
+                    cellpack,
+                    incoming_alkanes,
+                    storage_map,
+                    storage_map_len,
+                    start_fuel,
+                ) {
+                    Ok(v) => v,
+                    Err(e) => Self::_handle_extcall_abort::<T>(caller, e, true),
+                }
+            }
+            Err(e) => Self::_handle_extcall_abort::<T>(caller, e, false),
+        };
 
+        Self::restore_context(caller);
+        returnval
+    }
+    pub(super) fn extcall<'a, T: Extcall>(
+        caller: &mut Caller<'_, AlkanesState>,
+        cellpack: Cellpack,
+        incoming_alkanes: AlkaneTransferParcel,
+        storage_map: StorageMap,
+        storage_map_len: u64,
+        start_fuel: u64,
+    ) -> Result<i32> {
         // Prepare subcontext data
         let (subcontext, binary_rc) = {
             let mut context_guard = caller.data_mut().context.lock().unwrap();
@@ -489,7 +560,7 @@ impl AlkanesHostFunctionsImpl {
                 run_special_cellpacks(caller.data_mut().context.clone(), &cellpack)?;
 
             // Re-acquire lock for state updates
-            let transfer_error = {
+            {
                 let mut context_guard = caller.data_mut().context.lock().unwrap();
                 pipe_storagemap_to(
                     &storage_map,
@@ -498,7 +569,7 @@ impl AlkanesHostFunctionsImpl {
                     ),
                 );
 
-                let _transfer_error = transfer_from(
+                transfer_from(
                     &incoming_alkanes,
                     &mut context_guard
                         .message
@@ -506,18 +577,8 @@ impl AlkanesHostFunctionsImpl {
                         .derive(&IndexPointer::default()),
                     &myself,
                     &submyself,
-                )
-                .is_err();
-                if _transfer_error {
-                    context_guard.message.atomic.rollback();
-                    context_guard.returndata = Vec::<u8>::new();
-                }
-                _transfer_error
+                )?;
             };
-            if transfer_error {
-                Self::restore_context(caller);
-                return Ok(0);
-            }
             let context_guard = caller.data_mut().context.lock().unwrap();
 
             // Create subcontext
@@ -555,53 +616,29 @@ impl AlkanesHostFunctionsImpl {
         subcontext.trace.clock(event);
 
         // Run the call in a new context
-        let result = match run_after_special(
+        let (response, gas_used) = run_after_special(
             Arc::new(Mutex::new(subcontext.clone())),
             binary_rc,
             start_fuel,
-        ) {
-            Ok((response, gas_used)) => {
-                caller.set_fuel(overflow_error(start_fuel.checked_sub(gas_used))?)?;
-                let mut return_context: TraceResponse = response.clone().into();
-                return_context.fuel_used = gas_used;
+        )?;
+        let serialized = CallResponse::from(response.clone().into()).serialize();
+        {
+            caller.set_fuel(overflow_error(start_fuel.checked_sub(gas_used))?)?;
+            let mut return_context: TraceResponse = response.clone().into();
+            return_context.fuel_used = gas_used;
 
-                // Update trace and context state
-                let mut context_guard = caller.data_mut().context.lock().unwrap();
-                context_guard
-                    .trace
-                    .clock(TraceEvent::ReturnContext(return_context));
-                let mut saveable: SaveableExtendedCallResponse = response.clone().into();
-                saveable.associate(&subcontext);
-                saveable.save(&mut context_guard.message.atomic)?;
-                let serialized = CallResponse::from(response.into()).serialize();
-                context_guard.returndata = serialized.clone();
-                T::handle_atomic(&mut context_guard.message.atomic);
-                serialized.len() as i32
-            }
-            Err(e) => {
-                let mut data: Vec<u8> = vec![0x08, 0xc3, 0x79, 0xa0];
-                data.extend(e.to_string().as_bytes());
-
-                let mut revert_context: TraceResponse = TraceResponse::default();
-                revert_context.inner.data = data.clone();
-
-                let mut response = CallResponse::default();
-                response.data = data.clone();
-                let serialized = response.serialize();
-
-                // Handle revert state
-                let mut context_guard = caller.data_mut().context.lock().unwrap();
-                context_guard
-                    .trace
-                    .clock(TraceEvent::RevertContext(revert_context));
-                context_guard.message.atomic.rollback();
-                context_guard.returndata = serialized.clone();
-                (serialized.len() as i32).checked_neg().unwrap_or(-1)
-            }
-        };
-
-        Self::restore_context(caller);
-        Ok(result)
+            // Update trace and context state
+            let mut context_guard = caller.data_mut().context.lock().unwrap();
+            context_guard
+                .trace
+                .clock(TraceEvent::ReturnContext(return_context));
+            let mut saveable: SaveableExtendedCallResponse = response.clone().into();
+            saveable.associate(&subcontext);
+            saveable.save(&mut context_guard.message.atomic)?;
+            context_guard.returndata = serialized.clone();
+            T::handle_atomic(&mut context_guard.message.atomic);
+        }
+        Ok(serialized.len() as i32)
     }
     pub(super) fn log<'a>(caller: &mut Caller<'_, AlkanesState>, v: i32) -> Result<()> {
         let mem = get_memory(caller)?;

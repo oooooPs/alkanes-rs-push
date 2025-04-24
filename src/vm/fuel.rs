@@ -155,7 +155,7 @@ impl FuelTank {
                 println!("Fuel allocation for transaction {}:", txindex);
                 println!("  - Transaction size: {} bytes", txsize);
                 println!("  - Block size: {} bytes", tank.size);
-                println!("  - Block fuel before: {}", block_fuel_before);
+                println!("  - Block fuel before: {}", _block_fuel_before);
                 println!("  - Block fuel after: {}", tank.block_fuel);
                 println!("  - Allocated fuel: {}", tank.transaction_fuel);
                 println!("  - Minimum fuel: {}", MINIMUM_FUEL);

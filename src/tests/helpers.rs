@@ -1,8 +1,10 @@
 use crate::message::AlkaneMessageContext;
+use crate::view;
 use alkanes_support::cellpack::Cellpack;
 use alkanes_support::envelope::RawEnvelope;
 use alkanes_support::gz::compress;
 use alkanes_support::id::AlkaneId;
+use alkanes_support::trace::{Trace, TraceEvent};
 use anyhow::Result;
 use bitcoin::blockdata::transaction::Version;
 use bitcoin::{
@@ -369,4 +371,63 @@ pub fn get_lazy_sheet_for_runtime() -> BalanceSheet<IndexPointer> {
 pub fn get_last_outpoint_sheet(test_block: &Block) -> Result<BalanceSheet<IndexPointer>> {
     let len = test_block.txdata.len();
     get_sheet_for_outpoint(test_block, len - 1, 0)
+}
+
+pub fn assert_revert_context(outpoint: &OutPoint, expected_error_message: &str) -> Result<()> {
+    // This is a convenience wrapper around assert_revert_context_at_index that checks the last event
+    assert_revert_context_at_index(outpoint, expected_error_message, None)
+}
+
+pub fn assert_revert_context_at_index(
+    outpoint: &OutPoint,
+    expected_error_message: &str,
+    index: Option<isize>,
+) -> Result<()> {
+    let trace_data: Trace = view::trace(outpoint)?.try_into()?;
+    let trace_events = trace_data.0.lock().expect("Mutex poisoned");
+
+    if trace_events.is_empty() {
+        panic!("No trace events found");
+    }
+
+    // Determine which event to check
+    let event_index = match index {
+        Some(idx) if idx >= 0 => idx as usize,
+        Some(idx) => {
+            // Handle negative indices (counting from the end)
+            let abs_idx = idx.abs() as usize;
+            if abs_idx > trace_events.len() {
+                panic!(
+                    "Index out of bounds: requested event {} but only {} events available",
+                    idx,
+                    trace_events.len()
+                );
+            }
+            trace_events.len() - abs_idx
+        }
+        None => trace_events.len() - 1, // Default to last event
+    };
+
+    // Get the event at the calculated index
+    let event = trace_events
+        .get(event_index)
+        .cloned()
+        .unwrap_or_else(|| panic!("Failed to get trace event at index {}", event_index));
+
+    match event {
+        TraceEvent::RevertContext(trace_response) => {
+            let data = String::from_utf8_lossy(&trace_response.inner.data);
+            assert!(
+                data.contains(expected_error_message),
+                "Expected error message '{}' not found in: '{}'",
+                expected_error_message,
+                data
+            );
+            Ok(())
+        }
+        _ => panic!(
+            "Expected RevertContext variant at index {}, but got a different variant: {:?}",
+            event_index, event
+        ),
+    }
 }
