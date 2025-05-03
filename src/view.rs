@@ -447,7 +447,7 @@ pub fn simulate_parcel(
     )));
     let mut atomic = parcel.atomic.derive(&IndexPointer::default());
     let (caller, myself, binary) = run_special_cellpacks(context.clone(), &cellpack)?;
-    credit_balances(&mut atomic, &myself, &parcel.runes);
+    credit_balances(&mut atomic, &myself, &parcel.runes)?;
     prepare_context(context.clone(), &caller, &myself, false);
     let (response, gas_used) = run_after_special(context.clone(), binary, fuel)?;
     pipe_storagemap_to(
@@ -455,11 +455,11 @@ pub fn simulate_parcel(
         &mut atomic.derive(&IndexPointer::from_keyword("/alkanes/").select(&myself.clone().into())),
     );
     let mut combined = parcel.runtime_balances.as_ref().clone();
-    <BalanceSheet<AtomicPointer> as From<Vec<RuneTransfer>>>::from(parcel.runes.clone())
-        .pipe(&mut combined);
-    let sheet = <BalanceSheet<AtomicPointer> as From<Vec<RuneTransfer>>>::from(
+    <BalanceSheet<AtomicPointer> as TryFrom<Vec<RuneTransfer>>>::try_from(parcel.runes.clone())?
+        .pipe(&mut combined)?;
+    let sheet = <BalanceSheet<AtomicPointer> as TryFrom<Vec<RuneTransfer>>>::try_from(
         response.alkanes.clone().into(),
-    );
+    )?;
     combined.debit_mintable(&sheet, &mut atomic)?;
     debit_balances(&mut atomic, &myself, &response.alkanes)?;
     Ok((response, gas_used))
@@ -494,7 +494,7 @@ pub fn getbytecode(input: &Vec<u8>) -> Result<Vec<u8>> {
         .select(&alkane_id.into())
         .get();
 
-    // Return the uncompressed bytecode
+    // Return the uncompressed bytecode. Note that gzip bomb is not possible since these bytecodes are upper bound by the size of the Witness
     if bytecode.len() > 0 {
         Ok(alkanes_support::gz::decompress(bytecode.to_vec())?)
     } else {
