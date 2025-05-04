@@ -12,6 +12,7 @@ use std::sync::Arc;
 use crate::view::{protorune_outpoint_to_outpoint_response, protorunes_by_address, outpoint_to_bytes};
 use serde::Serialize;
 use bitcoin::hashes::Hash;
+use once_cell::sync::Lazy;
 
 
 pub static HTTP_URL: Lazy<String> = Lazy::new(|| {
