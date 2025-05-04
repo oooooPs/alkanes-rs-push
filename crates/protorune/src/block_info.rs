@@ -9,7 +9,7 @@ use metashrew_core::{
 use metashrew_support::index_pointer::KeyValuePointer;
 use metashrew_support::utils::{consensus_decode, consensus_encode};
 use protorune_support::proto::protorune::{BalanceSheet, BalanceSheetItem, Rune, OutpointResponse, ProtoruneRuneId, WalletResponse};
-use protorune_support::balance_sheet;
+use protorune_support::{balance_sheet, utils::reverse_txid};
 use std::collections::HashMap;
 use std::io::Cursor;
 use std::sync::Arc;
@@ -76,15 +76,17 @@ pub fn get_block_info(height: u64) -> Result<BlockInfo> {
         runes.push((format!("{:?}:{:?}", rune_id.block, rune_id.tx), rune, cap, amount, mints_remaining));
     }
 
-    let block_hash = RUNES.HEIGHT_TO_BLOCKHASH.select_value::<u64>(height).get();
-
     // 2. 使用OUTPOINT_BY_HEIGHT表直接获取该区块的所有outpoint
     let mut outpoint_balances = HashMap::new();
     let outpoints = OUTPOINT_BY_HEIGHT.select_value::<u64>(height).get_list();
     
     for outpoint_bytes in outpoints {
         let outpoint = consensus_decode::<OutPoint>(&mut Cursor::new(outpoint_bytes.as_ref().to_vec()))?;
-        let outpoint_response = protorune_outpoint_to_outpoint_response(&outpoint, 1u128).unwrap_or_else(|_| OutpointResponse::new());
+        let real_outpoint = OutPoint {
+            txid: reverse_txid(&outpoint.txid),
+            vout: outpoint.vout,
+        };
+        let outpoint_response = protorune_outpoint_to_outpoint_response(&real_outpoint, 1).unwrap_or_else(|_| OutpointResponse::new());
 
         let balance_sheet = outpoint_response.balances.unwrap_or_default();
         if balance_sheet.clone().entries.is_empty() {
