@@ -44,37 +44,37 @@ pub extern "C" fn post_json(url: &str, body: &str) {
 
 pub struct BlockInfo {
     pub height: u64,
-    pub runes: Vec<(String, Rune, u128, u128, u128)>,
-    pub outpoint_balances: HashMap<OutPoint, Vec<BalanceSheetItem>>,
+    // pub runes: Vec<(String, Rune, u128, u128, u128)>,
+    pub outpoint_balances: HashMap<OutPoint, OutpointResponse>,
     // pub address_rune_balances: HashMap<String, Vec<BalanceSheetItem>>,
 }
 
 pub fn get_block_info(height: u64) -> Result<BlockInfo> {
     // 1. 获取区块部署的符文ID和原始信息
-    let mut runes = Vec::new();
-    let rune_ids = RUNES.HEIGHT_TO_RUNE_ID.select_value::<u64>(height).get_list();
-    for rune_id_bytes in rune_ids {
-        let rune_id = balance_sheet::ProtoruneRuneId::try_from(rune_id_bytes.as_ref().to_vec())?;
-        let etching = RUNES.RUNE_ID_TO_ETCHING.select(&rune_id.into()).get();
-        let name = String::from_utf8_lossy(&etching).to_string();
-        let symbol = RUNES.SYMBOL.select(&etching).get();
-        let divisibility = RUNES.DIVISIBILITY.select(&etching).get_value::<u32>();
-        let spacers = RUNES.SPACERS.select(&etching).get_value::<u32>();
-        let cap = RUNES.CAP.select(&etching).get_value::<u128>();
-        let amount = RUNES.AMOUNT.select(&etching).get_value::<u128>();
-        let mints_remaining = RUNES.MINTS_REMAINING.select(&etching).get_value::<u128>();
+    // let mut runes = Vec::new();
+    // let rune_ids = RUNES.HEIGHT_TO_RUNE_ID.select_value::<u64>(height).get_list();
+    // for rune_id_bytes in rune_ids {
+    //     let rune_id = balance_sheet::ProtoruneRuneId::try_from(rune_id_bytes.as_ref().to_vec())?;
+    //     let etching = RUNES.RUNE_ID_TO_ETCHING.select(&rune_id.into()).get();
+    //     let name = String::from_utf8_lossy(&etching).to_string();
+    //     let symbol = RUNES.SYMBOL.select(&etching).get();
+    //     let divisibility = RUNES.DIVISIBILITY.select(&etching).get_value::<u32>();
+    //     let spacers = RUNES.SPACERS.select(&etching).get_value::<u32>();
+    //     let cap = RUNES.CAP.select(&etching).get_value::<u128>();
+    //     let amount = RUNES.AMOUNT.select(&etching).get_value::<u128>();
+    //     let mints_remaining = RUNES.MINTS_REMAINING.select(&etching).get_value::<u128>();
         
-        let rune = Rune {
-            runeId: ::protobuf::MessageField::some(ProtoruneRuneId::default()),
-            name,
-            divisibility,
-            spacers,
-            symbol: String::from_utf8_lossy(&symbol).to_string(),
-            special_fields: Default::default(),
-        };
+    //     let rune = Rune {
+    //         runeId: ::protobuf::MessageField::some(ProtoruneRuneId::default()),
+    //         name,
+    //         divisibility,
+    //         spacers,
+    //         symbol: String::from_utf8_lossy(&symbol).to_string(),
+    //         special_fields: Default::default(),
+    //     };
 
-        runes.push((format!("{:?}:{:?}", rune_id.block, rune_id.tx), rune, cap, amount, mints_remaining));
-    }
+    //     runes.push((format!("{:?}:{:?}", rune_id.block, rune_id.tx), rune, cap, amount, mints_remaining));
+    // }
 
     // 2. 使用OUTPOINT_BY_HEIGHT表直接获取该区块的所有outpoint
     let mut outpoint_balances = HashMap::new();
@@ -82,19 +82,33 @@ pub fn get_block_info(height: u64) -> Result<BlockInfo> {
     
     for outpoint_bytes in outpoints {
         let outpoint = consensus_decode::<OutPoint>(&mut Cursor::new(outpoint_bytes.as_ref().to_vec()))?;
-        let real_outpoint = OutPoint {
-            txid: reverse_txid(&outpoint.txid),
-            vout: outpoint.vout,
-        };
-        let outpoint_response = protorune_outpoint_to_outpoint_response(&real_outpoint, 1).unwrap_or_else(|_| OutpointResponse::new());
-        println!("[xxxx] {:?}:{:?} outpoint_response {:?}", outpoint.txid, outpoint.vout, outpoint_response);
-        
-        let balance_sheet = outpoint_response.balances.unwrap_or_default();
-        if balance_sheet.clone().entries.is_empty() {
-            continue;
-        }
+        let output_len = outpoint.vout >> 16;
+        let vout = outpoint.vout & 0xFFFF;
+        let txid = outpoint.txid;
+        let rtxid = reverse_txid(&txid);
 
-        outpoint_balances.insert(outpoint, balance_sheet.entries);
+        for i in 0..output_len {
+            if i == vout {
+                continue;
+            }
+            let _outpoint = OutPoint {
+                txid,
+                vout: i,
+            };
+            let real_outpoint = OutPoint {
+                txid: rtxid,
+                vout: i,
+            };
+            let outpoint_response = protorune_outpoint_to_outpoint_response(&real_outpoint, 1).unwrap_or_else(|_| OutpointResponse::new());
+            println!("[xxxx] {:?}:{:?} outpoint_response {:?}", _outpoint.txid, _outpoint.vout, outpoint_response);
+            
+            let balance_sheet = outpoint_response.balances.unwrap_or_default();
+            if balance_sheet.clone().entries.is_empty() {
+                continue;
+            }
+
+            outpoint_balances.insert(_outpoint, outpoint_response);
+        }
     }
 
     // 3. 获取每个地址可花费的outpoint
@@ -121,7 +135,7 @@ pub fn get_block_info(height: u64) -> Result<BlockInfo> {
 
     Ok(BlockInfo {
         height,
-        runes,
+        // runes,
         outpoint_balances,
         // address_rune_balances,
     })
@@ -130,7 +144,7 @@ pub fn get_block_info(height: u64) -> Result<BlockInfo> {
 #[derive(Serialize)]
 struct SerializableBlockInfo {
     height: u64,
-    runes: Vec<SerializableRuneInfo>,
+    // runes: Vec<SerializableRuneInfo>,
     outpoint_balances: Vec<SerializableOutpointBalance>,
     // address_rune_balances: Vec<SerializableAddressBalance>,
 }
@@ -151,6 +165,7 @@ struct SerializableRuneInfo {
 struct SerializableOutpointBalance {
     txid: String,
     vout: u32,
+    txindex: u32,
     balances: Vec<SerializableBalanceItem>,
 }
 
@@ -164,30 +179,29 @@ struct SerializableAddressBalance {
 struct SerializableBalanceItem {
     rune_id: String,
     balance: String,
-    tx_idx: u32,
 }
 
 impl BlockInfo {
     pub fn to_json(&self) -> serde_json::Value {
-        let runes = self.runes.iter().map(|(id, rune, cap, amount, mints_remaining)| {
-            SerializableRuneInfo {
-                id: id.clone(),
-                name: rune.name.clone(),
-                divisibility: rune.divisibility,
-                spacers: rune.spacers,
-                symbol: rune.symbol.clone(),
-                cap: *cap,
-                amount: *amount,
-                mints_remaining: *mints_remaining,
-            }
-        }).collect::<Vec<_>>();
+        // let runes = self.runes.iter().map(|(id, rune, cap, amount, mints_remaining)| {
+        //     SerializableRuneInfo {
+        //         id: id.clone(),
+        //         name: rune.name.clone(),
+        //         divisibility: rune.divisibility,
+        //         spacers: rune.spacers,
+        //         symbol: rune.symbol.clone(),
+        //         cap: *cap,
+        //         amount: *amount,
+        //         mints_remaining: *mints_remaining,
+        //     }
+        // }).collect::<Vec<_>>();
 
-        let outpoint_balances = self.outpoint_balances.iter().map(|(outpoint, balances)| {
-            let tx_idx = RUNES.TXID_TO_TXINDEX.select(&outpoint.txid.as_byte_array().to_vec()).get_value::<u32>();
+        let outpoint_balances = self.outpoint_balances.iter().map(|(outpoint, outpoint_response)| {
             SerializableOutpointBalance {
                 txid: format!("{:x}", outpoint.txid),
                 vout: outpoint.vout,
-                balances: balances.iter().map(|item| {
+                txindex: outpoint_response.txindex,
+                balances: outpoint_response.balances.unwrap_or_default().entries.iter().map(|item| {
                     let balance: u128 = (u128::from(item.balance.hi) << 64) | u128::from(item.balance.lo);
                     let rune_id = item.rune.as_ref().unwrap().runeId.as_ref().unwrap();
                     let height = rune_id.height.as_ref().unwrap();
@@ -200,7 +214,6 @@ impl BlockInfo {
                             tx,
                         ),
                         balance: format!("{:?}", balance),
-                        tx_idx,
                     }
                 }).collect(),
             }
@@ -229,7 +242,7 @@ impl BlockInfo {
 
         let serializable_block_info = SerializableBlockInfo {
             height: self.height,
-            runes,
+            // runes,
             outpoint_balances,
             // address_rune_balances,
         };

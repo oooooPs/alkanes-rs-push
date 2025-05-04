@@ -743,12 +743,16 @@ impl Protorune {
             .select_value::<u64>(height);
         ptr.nullify();
         for tx in &block.txdata {
-            for i in 0..tx.output.len() {
+            let output_len = tx.output.len();
+            for i in 0..output_len {
                 if tx.output[i].script_pubkey.is_op_return() {
+                    // Combine vout and output_len into a single u32
+                    // Use the lower 16 bits for vout and upper 16 bits for output_len
+                    let combined_vout = ((output_len as u32) << 16) | (i as u32);
                     let outpoint_bytes = outpoint_encode(
                         &(OutPoint {
                             txid: tx.compute_txid(),
-                            vout: i as u32,
+                            vout: combined_vout,
                         }),
                     )?;
                     ptr.append(Arc::new(outpoint_bytes.clone()));
