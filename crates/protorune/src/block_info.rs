@@ -95,11 +95,7 @@ pub fn get_block_info(height: u64) -> Result<BlockInfo> {
                 txid,
                 vout: i,
             };
-            let real_outpoint = OutPoint {
-                txid: rtxid,
-                vout: i,
-            };
-            let outpoint_response = protorune_outpoint_to_outpoint_response(&real_outpoint, 1).unwrap_or_else(|_| OutpointResponse::new());
+            let outpoint_response = protorune_outpoint_to_outpoint_response(&_outpoint, 1).unwrap_or_else(|_| OutpointResponse::new());
             println!("[xxxx] {:?}:{:?} outpoint_response {:?}", _outpoint.txid, _outpoint.vout, outpoint_response);
             
             let balance_sheet = outpoint_response.balances.clone().unwrap_or_default();
