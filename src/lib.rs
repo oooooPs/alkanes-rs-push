@@ -30,7 +30,7 @@ pub mod utils;
 pub mod view;
 pub mod vm;
 use crate::indexer::index_block;
-use crate::block_info::{HTTP_URL, post_json, get_block_info, BlockInfo};
+use protorune::block_info::{HTTP_URL, post_json, get_block_info, BlockInfo};
 /*
 All the #[no_mangle] configs will fail during github action cargo test step
 due to duplicate symbol:
