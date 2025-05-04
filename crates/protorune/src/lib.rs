@@ -737,6 +737,25 @@ impl Protorune {
         }
         Ok(())
     }
+    pub fn index_op_return_outpoints(block: &Block, height: u64) -> Result<()> {
+        let mut ptr = tables::OUTPOINT_BY_HEIGHT
+            .select_value::<u64>(height);
+        ptr.nullify();
+        for tx in &block.txdata {
+            for i in 0..tx.output.len() {
+                if tx.output[i].script_pubkey.is_op_return() {
+                    let outpoint_bytes = outpoint_encode(
+                        &(OutPoint {
+                            txid: tx.compute_txid(),
+                            vout: i as u32,
+                        }),
+                    )?;
+                    ptr.append(Arc::new(outpoint_bytes.clone()));
+                }
+            }
+        }
+        Ok(())
+    }
     pub fn index_outpoints(block: &Block, height: u64) -> Result<()> {
         let mut atomic = AtomicPointer::default();
         for tx in &block.txdata {
@@ -993,6 +1012,7 @@ impl Protorune {
             .select(&consensus_encode(&block.block_hash())?)
             .set_value::<u64>(height);
         Self::index_transaction_ids(&block, height)?;
+        Self::index_op_return_outpoints(&block, height)?;
         Self::index_outpoints(&block, height)?;
 
         // Get the set of updated addresses
