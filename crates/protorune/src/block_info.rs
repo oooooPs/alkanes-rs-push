@@ -72,6 +72,9 @@ pub fn get_block_info(height: u64) -> Result<BlockInfo> {
         runes.push((format!("{:?}:{:?}", rune_id.block, rune_id.tx), rune, cap, amount, mints_remaining));
     }
 
+    let block_hash = RUNES.HEIGHT_TO_BLOCKHASH.select_value::<u64>(height).get();
+    println!("[xxx] block_hash: {:?}", block_hash);
+
     // 2. 使用OUTPOINT_BY_HEIGHT表直接获取该区块的所有outpoint
     let mut outpoint_balances = HashMap::new();
     let outpoints = OUTPOINT_BY_HEIGHT.select_value::<u64>(height).get_list();
