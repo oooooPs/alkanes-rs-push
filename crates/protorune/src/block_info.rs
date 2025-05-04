@@ -2,7 +2,10 @@ use crate::tables::{RuneTable, RUNES, OUTPOINT_SPENDABLE_BY_ADDRESS, OUTPOINT_SP
 use anyhow::{anyhow, Result};
 use bitcoin::OutPoint;
 use crate::balance_sheet::load_sheet;
-use metashrew_core::{println, stdio::stdout};
+use metashrew_core::{
+    flush, input, println,
+    stdio::{stdout, Write},
+};
 use metashrew_support::index_pointer::KeyValuePointer;
 use metashrew_support::utils::{consensus_decode, consensus_encode};
 use protorune_support::proto::protorune::{BalanceSheet, BalanceSheetItem, Rune, OutpointResponse, ProtoruneRuneId, WalletResponse};
