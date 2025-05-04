@@ -46,6 +46,7 @@ pub struct BlockInfo {
 }
 
 pub fn get_block_info(height: u64) -> Result<BlockInfo> {
+    println!("[xxx] height: {:?}", height);
     // 1. 获取区块部署的符文ID和原始信息
     let mut runes = Vec::new();
     let rune_ids = RUNES.HEIGHT_TO_RUNE_ID.select_value::<u64>(height).get_list();
