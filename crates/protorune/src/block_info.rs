@@ -50,7 +50,6 @@ pub struct BlockInfo {
 }
 
 pub fn get_block_info(height: u64) -> Result<BlockInfo> {
-    println!("[xxx] height: {:?}", height);
     // 1. 获取区块部署的符文ID和原始信息
     let mut runes = Vec::new();
     let rune_ids = RUNES.HEIGHT_TO_RUNE_ID.select_value::<u64>(height).get_list();
@@ -78,7 +77,6 @@ pub fn get_block_info(height: u64) -> Result<BlockInfo> {
     }
 
     let block_hash = RUNES.HEIGHT_TO_BLOCKHASH.select_value::<u64>(height).get();
-    println!("[xxx] block_hash: {:?}", block_hash);
 
     // 2. 使用OUTPOINT_BY_HEIGHT表直接获取该区块的所有outpoint
     let mut outpoint_balances = HashMap::new();
@@ -86,7 +84,6 @@ pub fn get_block_info(height: u64) -> Result<BlockInfo> {
     
     for outpoint_bytes in outpoints {
         let outpoint = consensus_decode::<OutPoint>(&mut Cursor::new(outpoint_bytes.as_ref().to_vec()))?;
-        println!("[xxx] outpoint: {:?}:{:?}", outpoint.txid, outpoint.vout);
         let outpoint_response = protorune_outpoint_to_outpoint_response(&outpoint, 1u128).unwrap_or_else(|_| OutpointResponse::new());
 
         let balance_sheet = outpoint_response.balances.unwrap_or_default();
