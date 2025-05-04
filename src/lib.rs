@@ -383,7 +383,7 @@ pub fn _start() {
     etl::index_extensions(height, &block);
     flush();
 
-    get_block_info(height).unwrap();
+    get_block_info(height as u64).unwrap();
 }
 
 #[cfg(test)]
