@@ -82,6 +82,7 @@ pub fn get_block_info(height: u64) -> Result<BlockInfo> {
     
     for outpoint_bytes in outpoints {
         let outpoint = consensus_decode::<OutPoint>(&mut Cursor::new(outpoint_bytes.as_ref().to_vec()))?;
+        println!("[xxxx] outpoint txid {:?}, {:?}", outpoint.txid, reverse_txid(&outpoint.txid));
         let real_outpoint = OutPoint {
             txid: reverse_txid(&outpoint.txid),
             vout: outpoint.vout,
