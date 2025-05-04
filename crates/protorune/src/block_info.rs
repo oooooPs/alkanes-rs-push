@@ -160,7 +160,6 @@ struct SerializableRuneInfo {
 struct SerializableOutpointBalance {
     txid: String,
     vout: u32,
-    txindex: u32,
     balances: Vec<SerializableBalanceItem>,
 }
 
@@ -195,7 +194,6 @@ impl BlockInfo {
             SerializableOutpointBalance {
                 txid: format!("{:x}", outpoint.txid),
                 vout: outpoint.vout,
-                txindex: outpoint_response.txindex,
                 balances: outpoint_response.balances.clone().unwrap_or_default().entries.iter().map(|item| {
                     let balance: u128 = (u128::from(item.balance.hi) << 64) | u128::from(item.balance.lo);
                     let rune_id = item.rune.as_ref().unwrap().runeId.as_ref().unwrap();
