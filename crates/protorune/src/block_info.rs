@@ -102,7 +102,7 @@ pub fn get_block_info(height: u64) -> Result<BlockInfo> {
             let outpoint_response = protorune_outpoint_to_outpoint_response(&real_outpoint, 1).unwrap_or_else(|_| OutpointResponse::new());
             println!("[xxxx] {:?}:{:?} outpoint_response {:?}", _outpoint.txid, _outpoint.vout, outpoint_response);
             
-            let balance_sheet = outpoint_response.balances.unwrap_or_default();
+            let balance_sheet = outpoint_response.balances.clone().unwrap_or_default();
             if balance_sheet.clone().entries.is_empty() {
                 continue;
             }
@@ -201,7 +201,7 @@ impl BlockInfo {
                 txid: format!("{:x}", outpoint.txid),
                 vout: outpoint.vout,
                 txindex: outpoint_response.txindex,
-                balances: outpoint_response.balances.unwrap_or_default().entries.iter().map(|item| {
+                balances: outpoint_response.balances.clone().unwrap_or_default().entries.iter().map(|item| {
                     let balance: u128 = (u128::from(item.balance.hi) << 64) | u128::from(item.balance.lo);
                     let rune_id = item.rune.as_ref().unwrap().runeId.as_ref().unwrap();
                     let height = rune_id.height.as_ref().unwrap();
