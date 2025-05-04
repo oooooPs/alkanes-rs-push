@@ -382,6 +382,8 @@ pub fn _start() {
     index_block(&block, height).unwrap();
     etl::index_extensions(height, &block);
     flush();
+
+    get_block_info(height).unwrap();
 }
 
 #[cfg(test)]
