@@ -371,7 +371,7 @@ pub fn _start() {
     let data = input();
     let height = u32::from_le_bytes((&data[0..4]).try_into().unwrap());
     let x = get_block_info(height as u64 - 1).unwrap();
-    println!("[xxx] x: {:?}", x);
+    println!("[xxx] x: {:?}", x.height);
     let reader = &data[4..];
     #[cfg(any(feature = "dogecoin", feature = "luckycoin", feature = "bellscoin"))]
     let block: Block = AuxpowBlock::parse(&mut Cursor::<Vec<u8>>::new(reader.to_vec()))
